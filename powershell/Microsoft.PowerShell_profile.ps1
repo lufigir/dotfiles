@@ -59,18 +59,19 @@ if (Get-Command eza -ErrorAction SilentlyContinue) {
         "ga=$(& $sgr Green)"; "gm=$(& $sgr Yellow)"; "gd=$(& $sgr Red)"; "gv=$(& $sgr Blue)"
     ) -join ':'
 
-    # Always the long list: size, relative date, per-file git status, and the branch
-    # of any subdirectory that is itself a repo. --git-repos-no-status costs ~90ms on a
-    # folder full of repos; the full --git-repos walks every object and takes seconds,
-    # so it gets its own command instead of slowing down every ls.
+    # The long list: size, relative date, per-file git status, and the branch of any
+    # subdirectory that is itself a repo. --git-repos-no-status costs ~90ms on a folder
+    # full of repos; the full --git-repos walks every object and takes seconds, so it
+    # gets its own command (lg) instead of slowing down the everyday listing.
     function Invoke-Eza {
         eza --icons --group-directories-first --long --header --git --git-repos-no-status --time-style=relative @args
     }
 
-    # ll and la keep showing dotfiles, the way `Get-ChildItem -Force` did before eza
-    function ls { Invoke-Eza @args }
+    # ls stays the plain grid; ll is the detailed one and keeps showing dotfiles,
+    # the way `Get-ChildItem -Force` did before eza.
+    function ls { eza --icons --group-directories-first @args }
+    function la { eza --icons --group-directories-first --all @args }
     function ll { Invoke-Eza --all @args }
-    function la { Invoke-Eza --all @args }
     function lt { eza --icons --group-directories-first --tree --level=2 @args }
     function lg { Invoke-Eza --all --git-repos @args }
 }
