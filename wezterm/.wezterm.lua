@@ -177,10 +177,14 @@ local ICON = {
   dot     = "\u{f111}",
   plus    = "\u{f067}",
   space   = "\u{f009}", -- workspace
-  clock   = "\u{f017}",
   dirty   = "\u{25cf}", -- ● uncommitted changes
   ahead   = "\u{2191}", -- ↑ commits to push
   behind  = "\u{2193}", -- ↓ commits to pull
+
+  -- Window buttons (codicons, same set VS Code draws in its title bar)
+  minimize = "\u{eaba}",
+  maximize = "\u{eab9}",
+  close    = "\u{ea76}",
 }
 
 local DIRTY_FG = "#F5D76E"
@@ -202,6 +206,19 @@ local PROCESS_ICONS = {
 
 local SHELLS = { pwsh = true, powershell = true, cmd = true, bash = true, zsh = true, fish = true, nu = true }
 
+-- Window buttons: the "Windows" style draws vector glyphs, so override each slot with
+-- our own icon. Hover and non-hover must stay the same printable width (3 cells) --
+-- WezTerm sizes the hit region from the hover string.
+local CLOSE_HOVER_BG = "#B23A5B"
+
+local function title_button(glyph, fg, bg)
+  return wezterm.format {
+    { Background = { Color = bg } },
+    { Foreground = { Color = fg } },
+    { Text = " " .. glyph .. " " },
+  }
+end
+
 -- "+" button as another flat block: same leading gap and inner padding as the tabs
 config.tab_bar_style = {
   new_tab = wezterm.format {
@@ -213,6 +230,13 @@ config.tab_bar_style = {
     { Background = { Color = HOVER_BG } }, { Foreground = { Color = HOVER_FG } },
     { Text = " " .. ICON.plus .. " " },
   },
+
+  window_hide           = title_button(ICON.minimize, DIM, BAR_BG),
+  window_hide_hover     = title_button(ICON.minimize, HOVER_FG, HOVER_BG),
+  window_maximize       = title_button(ICON.maximize, DIM, BAR_BG),
+  window_maximize_hover = title_button(ICON.maximize, HOVER_FG, HOVER_BG),
+  window_close          = title_button(ICON.close, DIM, BAR_BG),
+  window_close_hover    = title_button(ICON.close, "#FFFFFF", CLOSE_HOVER_BG),
 }
 
 -- Git info for tab titles. The branch comes from .git/HEAD, a cheap file read that
@@ -310,37 +334,34 @@ local function git_items(cwd_path, dim_fg)
   return items, width
 end
 
--- Right status: workspace (only when it isn't the unnamed "default" one) and clock.
--- Doubles as the git refresh timer for the focused pane's repo.
+-- Right status: the workspace name, and only when it isn't the unnamed "default" one,
+-- so the bar stays empty in the common case. Doubles as the git refresh timer for the
+-- focused pane's repo.
 wezterm.on("update-right-status", function(window, pane)
   local cwd = pane:get_current_working_dir()
   refresh_git(cwd and cwd.file_path)
+
+  local workspace = window:active_workspace()
+  if workspace == "default" then
+    window:set_right_status("")
+    return
+  end
 
   local items = {}
   for _, item in ipairs(GAP) do
     table.insert(items, item)
   end
-  table.insert(items, { Background = { Color = INACTIVE_BG } })
-
-  local workspace = window:active_workspace()
-  if workspace ~= "default" then
-    table.insert(items, { Foreground = { Color = ACCENT } })
-    table.insert(items, { Text = " " .. ICON.space .. " " })
-    table.insert(items, { Foreground = { Color = ACTIVE_FG } })
-    table.insert(items, { Text = workspace })
-    table.insert(items, { Foreground = { Color = DIM } })
-    table.insert(items, { Text = "  " })
-  else
-    table.insert(items, { Text = " " })
+  for _, item in ipairs {
+    { Background = { Color = INACTIVE_BG } },
+    { Foreground = { Color = ACCENT } },
+    { Text = " " .. ICON.space .. " " },
+    { Foreground = { Color = ACTIVE_FG } },
+    { Text = workspace .. " " },
+    { Background = { Color = BAR_BG } },
+    { Text = " " },
+  } do
+    table.insert(items, item)
   end
-
-  table.insert(items, { Foreground = { Color = DIM } })
-  table.insert(items, { Text = ICON.clock .. " " })
-  table.insert(items, { Foreground = { Color = ACTIVE_FG } })
-  table.insert(items, { Text = wezterm.strftime("%H:%M") })
-  table.insert(items, { Text = " " })
-  table.insert(items, { Background = { Color = BAR_BG } })
-  table.insert(items, { Text = " " })
 
   window:set_right_status(wezterm.format(items))
 end)
@@ -431,8 +452,9 @@ wezterm.on("format-tab-title", function(tab, _, _, _, hover, max_width)
     label = folder or process_name(pane) or pane.title
   end
 
-  -- Only the gap and the one cell of padding on each side come out of the budget.
-  label = truncate(label, math.max(10, (max_width or 40) - 3))
+  -- The gap, the one cell of padding on each side and the bell take from the budget.
+  local rang = ringing[tab.tab_id] or false
+  label = truncate(label, math.max(10, (max_width or 40) - 3 - (rang and 2 or 0)))
 
   local items = {}
   for _, item in ipairs(GAP) do
@@ -442,11 +464,20 @@ wezterm.on("format-tab-title", function(tab, _, _, _, hover, max_width)
     { Background = { Color = bg } },
     { Attribute = { Intensity = tab.is_active and "Bold" or "Normal" } },
     { Foreground = { Color = fg } },
-    { Text = " " .. label .. " " },
-    { Attribute = { Intensity = "Normal" } },
+    { Text = " " .. label },
   } do
     table.insert(items, item)
   end
+
+  -- Claude Code rang in a tab you weren't watching: flag it in amber until you look
+  if rang then
+    table.insert(items, { Foreground = { Color = DIRTY_FG } })
+    table.insert(items, { Text = " " .. ICON.bell })
+  end
+
+  table.insert(items, { Foreground = { Color = fg } })
+  table.insert(items, { Text = " " })
+  table.insert(items, { Attribute = { Intensity = "Normal" } })
 
   return items
 end)
