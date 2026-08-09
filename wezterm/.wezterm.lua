@@ -182,27 +182,9 @@ local DIM         = "#7A5C9E"
 local GAP = { { Background = { Color = BAR_BG } }, { Foreground = { Color = BAR_BG } }, { Text = " " } }
 
 local ICON = {
-  shell   = "\u{ebc7}", -- terminal
-  folder  = "\u{f07b}", -- folder
-  branch  = "\u{e0a0}", -- git branch
-  claude  = "\u{2733}", -- ✳ Claude Code
-  vim     = "\u{e62b}",
-  node    = "\u{e718}",
-  python  = "\u{e73c}",
-  git     = "\u{e702}",
-  docker  = "\u{e7b0}",
-  rust    = "\u{e7a8}",
-  go      = "\u{e627}",
-  ssh     = "\u{f233}",
-  generic = "\u{f013}", -- cog
-  zoom    = "\u{f065}",
-  bell    = "\u{f0f3}",
-  dot     = "\u{f111}",
-  plus    = "\u{f067}",
-  space   = "\u{f009}", -- workspace
-  dirty   = "\u{25cf}", -- ● uncommitted changes
-  ahead   = "\u{2191}", -- ↑ commits to push
-  behind  = "\u{2193}", -- ↓ commits to pull
+  bell  = "\u{f0f3}",
+  plus  = "\u{f067}",
+  space = "\u{f009}", -- workspace
 
   -- Window buttons (codicons, same set VS Code draws in its title bar)
   minimize = "\u{eaba}",
@@ -210,24 +192,7 @@ local ICON = {
   close    = "\u{ea76}",
 }
 
-local DIRTY_FG = "#F5D76E"
-local SYNC_FG  = "#63D9E0"
-
-local PROCESS_ICONS = {
-  pwsh = ICON.shell, powershell = ICON.shell, cmd = ICON.shell,
-  bash = ICON.shell, zsh = ICON.shell, fish = ICON.shell, nu = ICON.shell,
-  nvim = ICON.vim, vim = ICON.vim,
-  node = ICON.node, npm = ICON.node, pnpm = ICON.node, yarn = ICON.node, bun = ICON.node,
-  python = ICON.python, python3 = ICON.python, py = ICON.python, uv = ICON.python,
-  git = ICON.git, lazygit = ICON.git, gh = ICON.git,
-  docker = ICON.docker, ["docker-compose"] = ICON.docker,
-  cargo = ICON.rust, rustc = ICON.rust,
-  go = ICON.go,
-  ssh = ICON.ssh,
-  claude = ICON.claude,
-}
-
-local SHELLS = { pwsh = true, powershell = true, cmd = true, bash = true, zsh = true, fish = true, nu = true }
+local BELL_FG = "#F5D76E"
 
 -- Window buttons: the "Windows" style draws vector glyphs, so override each slot with
 -- our own icon. Hover and non-hover must stay the same printable width (3 cells) --
@@ -262,108 +227,9 @@ config.tab_bar_style = {
   window_close_hover    = title_button(ICON.close, "#FFFFFF", CLOSE_HOVER_BG),
 }
 
--- Git info for tab titles. The branch comes from .git/HEAD, a cheap file read that
--- is safe on every render; the dirty and ahead/behind counts need to shell out, so
--- they run on the status timer and are cached per repo.
-local GIT_TTL = 3
-local git_cache = {}
-
--- Returns the repo root and the current branch (or short sha when detached)
-local function git_head(cwd_path)
-  local dir = cwd_path
-  for _ = 1, 8 do
-    if dir == nil or dir == "" then
-      return nil
-    end
-    local f = io.open(dir .. "/.git/HEAD", "r")
-    if f then
-      local head = f:read("*l")
-      f:close()
-      if not head then
-        return dir, nil
-      end
-      return dir, head:match("ref: refs/heads/(.+)") or head:sub(1, 7)
-    end
-    local parent = dir:match("^(.*)[\\/][^\\/]+$")
-    if parent == dir then
-      return nil
-    end
-    dir = parent
-  end
-  return nil
-end
-
-local function refresh_git(cwd_path)
-  local root = cwd_path and git_head(cwd_path)
-  if not root then
-    return
-  end
-  local now = os.time()
-  local entry = git_cache[root]
-  if entry and now - entry.at < GIT_TTL then
-    return
-  end
-
-  local ok, stdout = wezterm.run_child_process {
-    "git", "-C", root, "--no-optional-locks", "status", "--porcelain", "--branch",
-  }
-  if not ok then
-    git_cache[root] = { at = now }
-    return
-  end
-
-  local changed, ahead, behind = 0, 0, 0
-  for line in stdout:gmatch("[^\r\n]+") do
-    if line:sub(1, 2) == "##" then
-      ahead = tonumber(line:match("ahead (%d+)")) or 0
-      behind = tonumber(line:match("behind (%d+)")) or 0
-    else
-      changed = changed + 1
-    end
-  end
-  git_cache[root] = { at = now, changed = changed, ahead = ahead, behind = behind }
-end
-
--- Format items for the "  main ●3 ↑1" chip, plus its printable width
-local function git_items(cwd_path, dim_fg)
-  local root, branch = git_head(cwd_path)
-  if not root or not branch then
-    return nil, 0
-  end
-
-  local items = { { Foreground = { Color = dim_fg } }, { Text = " " .. ICON.branch .. " " .. branch } }
-  local width = #branch + 3
-
-  local st = git_cache[root]
-  if st then
-    if (st.changed or 0) > 0 then
-      local text = " " .. ICON.dirty .. st.changed
-      table.insert(items, { Foreground = { Color = DIRTY_FG } })
-      table.insert(items, { Text = text })
-      width = width + #tostring(st.changed) + 2
-    end
-    if (st.ahead or 0) > 0 then
-      table.insert(items, { Foreground = { Color = SYNC_FG } })
-      table.insert(items, { Text = " " .. ICON.ahead .. st.ahead })
-      width = width + #tostring(st.ahead) + 2
-    end
-    if (st.behind or 0) > 0 then
-      table.insert(items, { Foreground = { Color = SYNC_FG } })
-      table.insert(items, { Text = " " .. ICON.behind .. st.behind })
-      width = width + #tostring(st.behind) + 2
-    end
-  end
-
-  return items, width
-end
-
 -- Right status: the workspace name, and only when it isn't the unnamed "default" one,
--- so the bar stays empty in the common case. Doubles as the git refresh timer for the
--- focused pane's repo.
-wezterm.on("update-right-status", function(window, pane)
-  local cwd = pane:get_current_working_dir()
-  refresh_git(cwd and cwd.file_path)
-
+-- so the bar stays empty in the common case.
+wezterm.on("update-right-status", function(window)
   local workspace = window:active_workspace()
   if workspace == "default" then
     window:set_right_status("")
@@ -395,27 +261,6 @@ local function process_name(pane)
     return nil
   end
   return (proc:match("([^\\/]+)$") or proc):gsub("%.exe$", ""):lower()
-end
-
--- Claude Code runs as node/pwsh, so detect it from the OSC title it sets
--- (either "Claude Code"/"claude" or a spinner glyph followed by the current task).
-local CLAUDE_SPINNERS = { "\u{2733}", "\u{273B}", "\u{2736}", "\u{2734}", "\u{2739}", "\u{00B7}", "*" }
-
-local function claude_task(pane)
-  local title = pane.title
-  if not title or title == "" then
-    return nil
-  end
-  for _, spinner in ipairs(CLAUDE_SPINNERS) do
-    if title:sub(1, #spinner) == spinner then
-      local task = (title:sub(#spinner + 1):gsub("^%s+", ""))
-      return task:lower():match("^claude") and "" or task
-    end
-  end
-  if title:lower():match("claude") then
-    return ""
-  end
-  return nil
 end
 
 local function truncate(text, limit)
@@ -494,7 +339,7 @@ wezterm.on("format-tab-title", function(tab, _, _, _, hover, max_width)
 
   -- Claude Code rang in a tab you weren't watching: flag it in amber until you look
   if rang then
-    table.insert(items, { Foreground = { Color = DIRTY_FG } })
+    table.insert(items, { Foreground = { Color = BELL_FG } })
     table.insert(items, { Text = " " .. ICON.bell })
   end
 
