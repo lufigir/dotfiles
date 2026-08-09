@@ -49,11 +49,17 @@ Create files lazily — only when you have something to write. If no `CONTEXT.md
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately: your glossary defines "cancellation" as X, but they seem to mean Y.
 
 ### Sharpen fuzzy language
 
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account' — do you mean the Customer or the User? Those are different things."
+When the user uses vague or overloaded terms, propose a precise canonical term: they say "account", but do they mean the Customer or the User? Those are different things.
+
+### Put term decisions through the selector
+
+Both moves above end in a decision with named candidates, so they go through the `AskUserQuestion` selector per the global `CLAUDE.md` rules, with your proposed canonical term first and what each reading commits the model to in its `description`.
+
+These fire often and land in the middle of other work, so **batch them**: hold the term questions until you have up to four and put them in one call, rather than interrupting once per word.
 
 ### Discuss concrete scenarios
 
@@ -77,4 +83,4 @@ Only offer to create an ADR when all three are true:
 2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+If any of the three is missing, skip the ADR. When all three hold, offer it through the `AskUserQuestion` selector as a two-option tab (write it now / skip it), naming in the question which decision it would record. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).

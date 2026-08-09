@@ -50,7 +50,7 @@ Create a todo per phase. Do not skip phase 3's checkpoint.
 
 ### 1. Discovery
 
-Understand the product before touching the stack. Ask, one question at a time, only what you cannot infer:
+Understand the product before touching the stack. Ask only what you cannot infer, and ask it through the `AskUserQuestion` selector per the global `CLAUDE.md` rules: tenancy, profile and everything already decided are enumerable, so they are tabs. Only the mini-PRD paragraph is genuinely open, so that one goes in prose after the selector.
 
 - **What is it?** One paragraph. This becomes the mini-PRD.
 - **Features in scope.** A list. Every noun in it is a candidate entity.
@@ -89,7 +89,7 @@ Present, compactly:
 4. **Stack and exact versions**: resolved in phase 2, plus anything the live docs corrected.
 5. **What you will not do**: explicitly out of scope for this scaffold.
 
-**Then stop and wait for approval.** Do not scaffold before the user approves. If they change the entities or the stack, revise and present again.
+**Then stop and wait for approval**, asked through the selector (approve as-is / revise the entities / revise the stack). Do not scaffold before the user approves. If they change the entities or the stack, revise and present again.
 
 ### 4. Scaffold
 

@@ -7,6 +7,12 @@
 ## Working style
 
 - Before implementing anything non-trivial: if there's ambiguity or multiple interpretations, ask instead of silently assuming.
+- **Ask through the `AskUserQuestion` selector, not in prose.** Default for every question with an enumerable answer, inside skills and outside them. Prose is only for what has nothing to pick from (a name, a URL, a free-form constraint).
+  - One decision per question object; each renders as its own tab, and `header` is the tab label, so keep it under 12 characters.
+  - Default to **3 options**, recommendation first, labelled `(Recomendado)`. Keep labels short and put the trade-off (what it buys, what it costs) in `description`. Two options only for a real binary, four only when the fourth is materially different.
+  - The UI adds "Other" by itself, so never spend an option on "something else". When part of the answer is open (a date, a number), say in the question text that it goes in "Other".
+  - `multiSelect: true` only when the choices genuinely combine, and there **never** tag options `(Recomendado)`: state the recommendation in the question instead.
+  - A call caps at **4 tabs** and a tab at **4 options**. More decisions means chaining back-to-back calls; more candidates means the decision is badly grouped, so split or merge it.
 - Surgical changes: only touch what the task asks for; don't "improve" adjacent code or delete unrelated dead code (mention it instead).
 
 ## Engineering principles
