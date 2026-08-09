@@ -5,12 +5,28 @@ local is_windows = wezterm.target_triple:find("windows") ~= nil
 
 if is_windows then
   config.default_prog = { "pwsh.exe", "-NoLogo" }
+  -- Windows 11 blurs whatever sits behind the window. The background colour below
+  -- still tints it, so the purple survives instead of turning into plain grey glass.
+  config.win32_system_backdrop = "Acrylic"
 end
 
 config.font = wezterm.font("JetBrainsMono Nerd Font")
 config.font_size = 12
 
-config.window_background_opacity = 0.95
+-- GPU rendering. WebGpu is the modern backend and keeps scrolling through long
+-- output smooth; max_fps only matters on displays above 60Hz.
+config.front_end = "WebGpu"
+config.webgpu_power_preference = "HighPerformance"
+config.max_fps = 120
+
+-- Low enough for the acrylic blur to read, high enough to keep the background dark
+config.window_background_opacity = 0.7
+
+-- Dim panes that don't have focus, so a split is readable without hunting the cursor
+config.inactive_pane_hsb = {
+  saturation = 0.9,
+  brightness = 0.65,
+}
 
 config.window_padding = {
   left = 8,
@@ -101,6 +117,13 @@ config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
 
 config.initial_cols = 110
 config.initial_rows = 30
+
+-- Session persistence: tabs and panes live in a background mux server instead of the
+-- GUI window, so closing the window (or a crash) leaves the running processes alone
+-- and reopening reattaches to them. `wezterm start --no-auto-connect` gets a plain
+-- window back if the server ever misbehaves.
+config.unix_domains = { { name = "unix" } }
+config.default_gui_startup_args = { "connect", "unix" }
 
 -- Preserve long lines when copying (don't insert newlines at wrapping points)
 config.canonicalize_pasted_newlines = "None"
