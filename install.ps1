@@ -305,8 +305,8 @@ $catalog = [ordered]@{
         )
     }
     'powershell' = @{
-        Summary = 'profile: Oh My Posh init + Unix-style aliases'
-        Deps    = @()
+        Summary = 'profile: Oh My Posh init + Unix-style aliases + purple theme'
+        Deps    = @('eza')
         Links   = @(
             @{ Target = (Join-Path (Split-Path $PROFILE) 'Microsoft.PowerShell_profile.ps1'); Source = (Join-Path $repo 'powershell' 'Microsoft.PowerShell_profile.ps1') }
         )
@@ -334,6 +334,7 @@ $depHints = @{
     'claude'     = @{ Windows = 'npm install -g @anthropic-ai/claude-code';  macOS = 'npm install -g @anthropic-ai/claude-code';           Linux = 'npm install -g @anthropic-ai/claude-code' }
     'node'       = @{ Windows = 'winget install OpenJS.NodeJS';              macOS = 'brew install node';                                  Linux = 'https://nodejs.org/en/download' }
     'uv'         = @{ Windows = 'winget install astral-sh.uv';               macOS = 'brew install uv';                                    Linux = 'curl -LsSf https://astral.sh/uv/install.sh | sh' }
+    'eza'        = @{ Windows = 'winget install eza-community.eza';          macOS = 'brew install eza';                                   Linux = 'https://github.com/eza-community/eza/blob/main/INSTALL.md' }
 }
 
 $nameWidth = ($catalog.Keys | Measure-Object -Property Length -Maximum).Maximum
