@@ -51,7 +51,7 @@
     "skill-creator@claude-plugins-official": true
   },
   "language": "Español",
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "voice": {
