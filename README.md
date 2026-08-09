@@ -17,7 +17,7 @@ Personal configuration files, symlinked from here to keep them in sync across ma
 
 - `commit-and-push` — git add + version bump + commit + push
 - `mcp-integrations` — Notion, Context7, Supabase, Vercel through Executor (Notion and Supabase have 2 accounts each: `felipegiraldo` and `centrodeprototipado`)
-- `new-project` — bootstrap a new project with a layered architecture, versions verified against the live docs; off by default (invoke manually with `/new-project`)
+- `project-architecture` — two modes: bootstrap a new project with a layered architecture, and answer architecture questions mid-build against the repo's own `AGENTS.md`; 12 references (layers, routing, DAL, schema and migrations, multi-tenancy, API contracts, async work, uploads, security, performance, operations, design system) whose version-specific claims are always verified against the live docs
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
 
 Check each skill's `SKILL.md` for the current, authoritative on/off state and

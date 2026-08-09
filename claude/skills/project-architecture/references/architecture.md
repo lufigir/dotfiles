@@ -50,6 +50,8 @@ A user subscribes to a plan:
 
 Swapping Stripe for something else touches layer 5 and maybe 4. Nothing above notices.
 
+Each layer has its own reference: `api-design.md` for transport, `data-layer.md` for how the domain reaches persistence, `security.md` for what may cross the server boundary at all.
+
 ## Folder structure
 
 ### Single app profile (default)
@@ -80,7 +82,17 @@ Layers are folders, and the boundary is enforced by lint rules rather than packa
 
 `data/` is the compressed version of Transport + Domain + Foundations. That compression is the point of the single-app profile: same principles, less ceremony. Split it into packages when the project actually earns it.
 
-> **VERIFY:** whether the framework wants this data folder inside or beside the routes directory, and whether it has a private-folder convention (a prefix that keeps a directory from becoming a route) you should be using. Look up the current routing and colocation conventions.
+#### Reading the routes folder
+
+In a file-system router every directory is a URL segment by default, which fights you the moment you want to organize. Three conventions buy the organization back, and the tree above uses all three:
+
+- **Route groups.** A directory in parentheses, `(marketing)`, groups routes without contributing a URL segment. `(marketing)/pricing` serves `/pricing`. Use them to give sections their own layout: marketing pages with one shell, the authenticated app with another, both at the root of the URL space.
+- **Private folders.** A prefixed directory, `_components`, is excluded from routing entirely. This is what makes colocation safe, since otherwise a folder of components becomes a route that renders nothing.
+- **Colocation.** Anything used by exactly one route lives inside that route's folder, in a private folder. Anything used by two or more moves up to the shared location. The distance between a file and the thing that uses it is a real cost, and a top-level `components/` folder holding a component that one page imports pays it for nothing.
+
+Colocation and the layer boundaries are not in tension: a colocated file still belongs to a layer, and a colocated component is still forbidden from calling the ORM. Colocation decides *how far away* a file lives. The dependency rule decides *what it may import*. Wrong answers on the first are annoying; wrong answers on the second are the thing this document exists to prevent.
+
+> **VERIFY:** the current syntax for route groups and private folders, whether the framework wants the data folder inside or beside the routes directory, and any newer colocation convention. The prefix characters and the routing rules around them are framework-specific and have changed.
 
 ### Monorepo profile
 
@@ -108,10 +120,9 @@ Read the dependency rule straight off each package's manifest: `web` depends on 
 
 > **VERIFY:** current monorepo tooling setup, workspace configuration syntax, and task pipeline config. Look up the build orchestrator's current config format.
 
-Two details worth carrying over:
+One detail worth carrying over: **the task pipeline encodes real dependencies.** If type checking needs generated ORM types, declare that, so types are never stale.
 
-- **Lock down install scripts.** Only dependencies that genuinely need it should be allowed to run postinstall code. Everything else is blocked by default.
-- **The task pipeline encodes real dependencies.** If type checking needs generated ORM types, declare that, so types are never stale.
+Lock down install scripts here too. Both profiles need it, and `security.md` covers it with the rest of the supply chain settings.
 
 ## Naming
 

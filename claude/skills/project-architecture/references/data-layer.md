@@ -17,7 +17,7 @@ The DAL cannot be forgotten, because it is the only path to the data. If the req
 
 Middleware/proxy still earns its place: it does the cheap **optimistic** check, reading the session from the cookie only. It must not hit the database. It runs on every matched request, so a database round trip there taxes the entire app.
 
-> **VERIFY:** the current name and signature of the framework's request interceptor, and the current guidance on what is safe to do inside it. In Next.js this was `middleware` and is now `proxy`, with the same matcher config. Do not assume either name.
+> **VERIFY:** the current name and signature of the framework's request interceptor, and the current guidance on what is safe to do inside it. In Next.js this was `middleware` and is `proxy` from v16, with the same matcher config; the old filename is deprecated and having both is a build error. Do not assume either name.
 
 ## File layout
 
@@ -45,10 +45,10 @@ Two functions, one job each:
 
 Two non-negotiables:
 
-- Import the **server-only** marker at the top. It turns "this must not reach the client" from a convention into a build error.
+- Import the **server-only** marker at the top. It turns "this must not reach the client" from a convention into a build error. Per `security.md`.
 - Wrap the session lookup in a **per-render cache**. A dashboard that needs the session in the page, the nav, and a widget should fetch it once, not three times. This is a per-render-pass cache, not a time-based one, so there is no stale-session hazard: navigate to another route and it refetches.
 
-> **VERIFY:** the exact import specifier for the server-only marker and the current per-render memoization primitive. Both are framework-version-specific, and the caching story in particular has changed repeatedly.
+> **VERIFY:** the current per-render memoization primitive. It is framework-version-specific and the caching story has changed repeatedly.
 
 ## The DTO
 
@@ -136,7 +136,7 @@ Order inside every mutation: validate input, authorize, mutate, validate output.
 
 ## Server actions are public endpoints
 
-An action compiles down to a POST endpoint. Anyone can call it directly with a crafted request; arriving through your form is not a fact you get to assume. Treat every action exactly as you would a public API route.
+An action compiles down to a POST endpoint. Anyone can call it directly with a crafted request; arriving through your form is not a fact you get to assume. Treat every action exactly as you would a public API route. `security.md` covers what that means for validation, and `api-design.md` covers when a route handler is the better entry point.
 
 Which means: **the action calls the DAL, and the DAL does the checking.** The action's job is orchestration only.
 
@@ -160,9 +160,7 @@ Reading cookies or headers opts a route into dynamic rendering. That is correct 
 Three ways out, in order of preference:
 
 1. **Move the gate up.** Do the route-level auth check in the proxy/middleware so the page itself stays static.
-2. **Isolate the dynamic part.** Wrap the session-reading component in a suspense boundary so the rest of the route keeps its static shell and the dynamic island streams in. This is partial prerendering, and it is the right answer when you want both static output and server-rendered user data.
+2. **Isolate the dynamic part.** Wrap the session-reading component in a suspense boundary so the rest of the route keeps its static shell and the dynamic island streams in. This is partial prerendering, and it is the right answer when you want both static output and server-rendered user data. See `performance.md`.
 3. **Move it to the client.** A client component with a session hook preserves static rendering at the cost of a loading state.
 
 For a dashboard behind a login this barely matters; everything is dynamic anyway. For anything with public content it matters a great deal.
-
-> **VERIFY:** whether partial prerendering is stable, still behind a config flag, or renamed, and what that flag is called today. This has moved every release for several releases.
