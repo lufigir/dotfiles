@@ -25,6 +25,53 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 $repo = $PSScriptRoot
 $backupDir = Join-Path $HOME '.dotfiles-backup'
 
+# --- Presentation ------------------------------------------------------------
+# Colors collapse to empty strings when output is redirected, NO_COLOR is set, or
+# $PSStyle is missing (7.0/7.1), so piping to a file stays clean.
+$c = @{}
+if ([Console]::IsOutputRedirected -or $env:NO_COLOR -or -not $PSStyle) {
+    foreach ($k in 'Reset', 'Bold', 'Dim', 'Cyan', 'Green', 'Yellow', 'Red') { $c[$k] = '' }
+} else {
+    $c = @{
+        Reset  = $PSStyle.Reset
+        Bold   = $PSStyle.Bold
+        Dim    = $PSStyle.Foreground.BrightBlack
+        Cyan   = $PSStyle.Foreground.Cyan
+        Green  = $PSStyle.Foreground.Green
+        Yellow = $PSStyle.Foreground.Yellow
+        Red    = $PSStyle.Foreground.Red
+    }
+}
+
+$boxWidth = 58
+
+function Write-Box($title, $subtitle) {
+    $inner = $boxWidth - 2
+    Write-Host ""
+    Write-Host "$($c.Cyan)╭$('─' * $inner)╮$($c.Reset)"
+    Write-Host "$($c.Cyan)│$($c.Reset) $($c.Bold)$($title.PadRight($inner - 2))$($c.Reset) $($c.Cyan)│$($c.Reset)"
+    Write-Host "$($c.Cyan)│$($c.Reset) $($c.Dim)$($subtitle.PadRight($inner - 2))$($c.Reset) $($c.Cyan)│$($c.Reset)"
+    Write-Host "$($c.Cyan)╰$('─' * $inner)╯$($c.Reset)"
+}
+
+function Write-Section($text) {
+    Write-Host ""
+    Write-Host "$($c.Bold)$text$($c.Reset)"
+}
+
+function Write-Ok($text)   { Write-Host "  $($c.Green)✓$($c.Reset) $text" }
+function Write-Warn($text) { Write-Host "  $($c.Yellow)⚠$($c.Reset) $text" }
+function Write-Fail($text) { Write-Host "  $($c.Red)✗$($c.Reset) $text" }
+function Write-Note($text) { Write-Host "  $($c.Dim)$text$($c.Reset)" }
+
+# ~/... instead of the full home path, so lines stay short and readable.
+function Format-Path($path) {
+    if ($path.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase)) {
+        return '~' + $path.Substring($HOME.Length)
+    }
+    return $path
+}
+
 function Get-OsName {
     if ($IsWindows) { return 'Windows' }
     if ($IsMacOS) { return 'macOS' }
@@ -43,6 +90,7 @@ $os = Get-OsName
 $configHome = Get-ConfigHome
 
 function Link-Config($target, $source) {
+    $shown = Format-Path $target
     $dir = Split-Path $target
     if (-not (Test-Path $dir)) {
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -67,18 +115,18 @@ function Link-Config($target, $source) {
             $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
             $dest = Join-Path $backupDir ((Split-Path $target -Leaf) + ".$stamp")
             Move-Item -Path $target -Destination $dest -Force
-            Write-Output "Backed up existing $target -> $dest"
+            Write-Warn "$shown $($c.Dim)already existed, backed up to $(Format-Path $dest)$($c.Reset)"
         }
     }
 
     try {
         New-Item -ItemType SymbolicLink -Path $target -Target $source -ErrorAction Stop | Out-Null
     } catch {
-        Write-Warning "Failed to link $target -> $source ($($_.Exception.Message))"
+        Write-Fail "$shown $($c.Dim)$($_.Exception.Message)$($c.Reset)"
         return
     }
 
-    Write-Output "Linked $target -> $source"
+    Write-Ok $shown
 }
 
 # Leaves Claude Code on the dotfiles baseline: only the skill-creator
@@ -135,31 +183,33 @@ function Clean-ClaudeBaseline($repo) {
     if (Test-Path $localSettings) { $other += $localSettings }
 
     if (($plugins.Count + $mcp.Count + $skills.Count + $other.Count) -eq 0) {
-        Write-Output "Cleanup: nothing to remove, Claude is already on the baseline."
+        Write-Ok "cleanup: already on the baseline"
         return
     }
 
-    Write-Output "`n=== Claude cleanup (outside the dotfiles baseline) ==="
-    if ($plugins) { Write-Output "Plugins to uninstall:";         $plugins | ForEach-Object { Write-Output "  - $_" } }
-    if ($mcp)     { Write-Output "MCP servers to remove:";        $mcp     | ForEach-Object { Write-Output "  - $_" } }
-    if ($skills)  { Write-Output "Loose skills to delete:";       $skills  | ForEach-Object { Write-Output "  - $_" } }
-    if ($other)   { Write-Output "Rules / settings.local to delete:"; $other | ForEach-Object { Write-Output "  - $_" } }
+    Write-Section "Claude cleanup $($c.Dim)(outside the dotfiles baseline)$($c.Reset)"
+    if ($plugins) { Write-Note "plugins to uninstall";          $plugins | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $_" } }
+    if ($mcp)     { Write-Note "MCP servers to remove";         $mcp     | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $_" } }
+    if ($skills)  { Write-Note "loose skills to delete";        $skills  | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $(Format-Path $_)" } }
+    if ($other)   { Write-Note "rules / settings.local to delete"; $other | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $(Format-Path $_)" } }
 
-    $ans = Read-Host "`nProceed with cleanup? (y/N)"
-    if ($ans -notmatch '^[ysYS]') { Write-Output "Cleanup skipped."; return }
+    Write-Host ""
+    $ans = Read-Host "  Proceed with cleanup? $($c.Dim)(y/N)$($c.Reset)"
+    if ($ans -notmatch '^[ysYS]') { Write-Note "cleanup skipped"; return }
 
-    foreach ($p in $plugins) { claude plugin uninstall $p -y --scope user 2>$null; Write-Output "Uninstalled plugin: $p" }
-    foreach ($m in $mcp)     { claude mcp remove $m --scope user 2>$null;          Write-Output "Removed MCP: $m" }
-    foreach ($s in $skills)  { Remove-Item $s -Recurse -Force;                     Write-Output "Deleted loose skill: $s" }
-    foreach ($o in $other)   { Remove-Item $o -Force;                              Write-Output "Deleted: $o" }
-    Write-Output "Cleanup complete."
+    foreach ($p in $plugins) { claude plugin uninstall $p -y --scope user 2>$null; Write-Ok "uninstalled plugin $p" }
+    foreach ($m in $mcp)     { claude mcp remove $m --scope user 2>$null;          Write-Ok "removed MCP $m" }
+    foreach ($s in $skills)  { Remove-Item $s -Recurse -Force;                     Write-Ok "deleted $(Format-Path $s)" }
+    foreach ($o in $other)   { Remove-Item $o -Force;                              Write-Ok "deleted $(Format-Path $o)" }
 }
 
 # Claude Code's MCP servers and plugins can't be symlinked — they live in ~/.claude.json
 # and in the plugin store — so they're registered through the CLI instead.
 function Install-ClaudeExtras($repo) {
+    Write-Section "Claude Code $($c.Dim)MCP servers and plugin$($c.Reset)"
+
     if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-        Write-Warning "claude CLI not found — skipping the Executor + Chrome DevTools + NotebookLM MCPs and the skill-creator plugin. Install Claude Code, then re-run this script."
+        Write-Warn "claude CLI not found, skipping the MCPs and the skill-creator plugin"
         return
     }
 
@@ -167,10 +217,10 @@ function Install-ClaudeExtras($repo) {
     # Connections themselves are managed at executor.sh; first use prompts an OAuth authorize.
     $executorUrl = "https://executor.sh/felipe-giraldo-s-organization/mcp"
     if ((claude mcp list 2>$null) -notmatch "executor") {
-        claude mcp add --transport http executor $executorUrl --scope user
-        Write-Output "Added Executor MCP (run /mcp in Claude Code to authorize)"
+        claude mcp add --transport http executor $executorUrl --scope user | Out-Null
+        Write-Ok "executor $($c.Dim)added, run /mcp to authorize$($c.Reset)"
     } else {
-        Write-Output "Executor MCP already configured"
+        Write-Ok "executor $($c.Dim)already configured$($c.Reset)"
     }
 
     # Chrome DevTools: browser automation + debugging (navigate, click, screenshots,
@@ -180,10 +230,10 @@ function Install-ClaudeExtras($repo) {
     # PowerShell swallows a bare -- as its end-of-parameters token, so the CLI would then
     # parse the command's own flags (-y, --from) as claude options and fail.
     if ((claude mcp list 2>$null) -notmatch "chrome-devtools") {
-        claude mcp add chrome-devtools --scope user '--' npx -y chrome-devtools-mcp@latest
-        Write-Output "Added Chrome DevTools MCP"
+        claude mcp add chrome-devtools --scope user '--' npx -y chrome-devtools-mcp@latest | Out-Null
+        Write-Ok "chrome-devtools $($c.Dim)added$($c.Reset)"
     } else {
-        Write-Output "Chrome DevTools MCP already configured"
+        Write-Ok "chrome-devtools $($c.Dim)already configured$($c.Reset)"
     }
 
     # NotebookLM: notebooks as a long-context knowledge system (notebook_query, source_add,
@@ -192,17 +242,18 @@ function Install-ClaudeExtras($repo) {
     # `uvx --from notebooklm-mcp-cli nlm login` once. Exposes ~43 tools, so keep it toggled
     # off with /mcp when not working on a notebook-backed project.
     if ((claude mcp list 2>$null) -notmatch "notebooklm-mcp") {
-        claude mcp add notebooklm-mcp --scope user '--' uvx --from notebooklm-mcp-cli notebooklm-mcp
-        Write-Output "Added NotebookLM MCP (run 'uvx --from notebooklm-mcp-cli nlm login' to authenticate)"
+        claude mcp add notebooklm-mcp --scope user '--' uvx --from notebooklm-mcp-cli notebooklm-mcp | Out-Null
+        Write-Ok "notebooklm-mcp $($c.Dim)added, authenticate with nlm login$($c.Reset)"
     } else {
-        Write-Output "NotebookLM MCP already configured"
+        Write-Ok "notebooklm-mcp $($c.Dim)already configured$($c.Reset)"
     }
 
     # Only plugin we keep is skill-creator.
     if ((claude plugin list 2>$null) -notmatch "skill-creator") {
-        claude plugin install skill-creator@claude-plugins-official
+        claude plugin install skill-creator@claude-plugins-official | Out-Null
+        Write-Ok "skill-creator $($c.Dim)installed$($c.Reset)"
     } else {
-        Write-Output "skill-creator plugin already installed"
+        Write-Ok "skill-creator $($c.Dim)already installed$($c.Reset)"
     }
 
     # Git on Windows checks symlinks out as plain (broken) text files unless this is on,
@@ -210,6 +261,7 @@ function Install-ClaudeExtras($repo) {
     # Mode (see the header). On macOS and Linux git handles symlinks natively.
     if ($IsWindows) {
         git config --global core.symlinks true
+        Write-Ok "git core.symlinks $($c.Dim)enabled$($c.Reset)"
     }
 
     # Cleanup: removes whatever's extra relative to the baseline (runs after
@@ -239,35 +291,35 @@ Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory | ForEach-Obj
 
 $catalog = [ordered]@{
     'wezterm' = @{
-        Summary = 'WezTerm config (theme, keybindings, panes, tab bar)'
+        Summary = 'terminal: theme, keybindings, panes, tab bar'
         Deps    = @('wezterm')
         Links   = @(
             @{ Target = (Join-Path $HOME '.wezterm.lua'); Source = (Join-Path $repo 'wezterm' '.wezterm.lua') }
         )
     }
     'oh-my-posh' = @{
-        Summary = 'Oh My Posh prompt theme (Material, tweaked)'
+        Summary = 'prompt theme (Material, tweaked)'
         Deps    = @('oh-my-posh')
         Links   = @(
             @{ Target = (Join-Path $configHome 'oh-my-posh' 'material.omp.json'); Source = (Join-Path $repo 'oh-my-posh' 'material.omp.json') }
         )
     }
     'powershell' = @{
-        Summary = 'PowerShell profile (Oh My Posh init + Unix-style aliases)'
+        Summary = 'profile: Oh My Posh init + Unix-style aliases'
         Deps    = @()
         Links   = @(
             @{ Target = (Join-Path (Split-Path $PROFILE) 'Microsoft.PowerShell_profile.ps1'); Source = (Join-Path $repo 'powershell' 'Microsoft.PowerShell_profile.ps1') }
         )
     }
     'zed' = @{
-        Summary = 'Zed settings (theme, fonts, LSP, agent)'
+        Summary = 'editor: theme, fonts, LSP, agent'
         Deps    = @('zed')
         Links   = @(
             @{ Target = $zedSettings; Source = (Join-Path $repo 'zed' 'settings.json') }
         )
     }
     'claude' = @{
-        Summary = 'Claude Code settings, CLAUDE.md, skills, MCPs and plugin'
+        Summary = 'settings, CLAUDE.md, skills, MCPs, plugin'
         Deps    = @('claude', 'node', 'uv')
         Links   = $claudeLinks
         Post    = { param($repo) Install-ClaudeExtras $repo }
@@ -284,13 +336,70 @@ $depHints = @{
     'uv'         = @{ Windows = 'winget install astral-sh.uv';               macOS = 'brew install uv';                                    Linux = 'curl -LsSf https://astral.sh/uv/install.sh | sh' }
 }
 
-function Select-Components($catalog) {
+$nameWidth = ($catalog.Keys | Measure-Object -Property Length -Maximum).Maximum
+
+# Arrow-key picker: ↑↓ to move, space to toggle, a for all/none, enter to confirm.
+# Everything starts checked, so a bare Enter installs the whole thing.
+function Select-ComponentsInteractive($catalog) {
     $names = @($catalog.Keys)
-    Write-Output "`nComponents available:"
-    for ($i = 0; $i -lt $names.Count; $i++) {
-        Write-Output ("  {0}) {1,-11} {2}" -f ($i + 1), $names[$i], $catalog[$names[$i]].Summary)
+    $checked = @{}
+    foreach ($n in $names) { $checked[$n] = $true }
+    $cursor = 0
+
+    Write-Section "Components $($c.Dim)↑↓ move · space toggle · a all/none · enter confirm$($c.Reset)"
+
+    try { [Console]::CursorVisible = $false } catch {}
+    try {
+        $first = $true
+        while ($true) {
+            if (-not $first) { Write-Host ("`e[{0}A" -f $names.Count) -NoNewline }
+            $first = $false
+
+            for ($i = 0; $i -lt $names.Count; $i++) {
+                $n = $names[$i]
+                $box = if ($checked[$n]) { "$($c.Green)[x]$($c.Reset)" } else { "$($c.Dim)[ ]$($c.Reset)" }
+                $padded = $n.PadRight($nameWidth)
+                if ($i -eq $cursor) {
+                    $line = "$($c.Cyan)❯$($c.Reset) $box $($c.Bold)$padded$($c.Reset)  $($c.Dim)$($catalog[$n].Summary)$($c.Reset)"
+                } else {
+                    $line = "  $box $padded  $($c.Dim)$($catalog[$n].Summary)$($c.Reset)"
+                }
+                Write-Host "`e[2K$line"
+            }
+
+            $key = [Console]::ReadKey($true)
+            switch ($key.Key) {
+                'UpArrow'   { $cursor = ($cursor - 1 + $names.Count) % $names.Count; continue }
+                'DownArrow' { $cursor = ($cursor + 1) % $names.Count; continue }
+                'Spacebar'  { $checked[$names[$cursor]] = -not $checked[$names[$cursor]]; continue }
+                'Enter'     { return @($names | Where-Object { $checked[$_] }) }
+                'Escape'    { return @() }
+            }
+            switch ($key.KeyChar) {
+                'k' { $cursor = ($cursor - 1 + $names.Count) % $names.Count }
+                'j' { $cursor = ($cursor + 1) % $names.Count }
+                'a' {
+                    $target = -not (@($names | Where-Object { $checked[$_] }).Count -eq $names.Count)
+                    foreach ($n in $names) { $checked[$n] = $target }
+                }
+                'q' { return @() }
+            }
+        }
+    } finally {
+        try { [Console]::CursorVisible = $true } catch {}
     }
-    $ans = Read-Host "`nPick them comma-separated, by number or name (Enter = all)"
+}
+
+# Fallback for when there's no interactive console to read keys from (piped input, CI).
+function Select-ComponentsNumbered($catalog) {
+    $names = @($catalog.Keys)
+    Write-Section "Components"
+    for ($i = 0; $i -lt $names.Count; $i++) {
+        $n = $names[$i]
+        Write-Host "  $($c.Cyan)$($i + 1))$($c.Reset) $($n.PadRight($nameWidth))  $($c.Dim)$($catalog[$n].Summary)$($c.Reset)"
+    }
+    Write-Host ""
+    $ans = Read-Host "  Pick them comma-separated, by number or name $($c.Dim)(Enter = all)$($c.Reset)"
     if (-not $ans -or -not $ans.Trim()) { return $names }
 
     $picked = @()
@@ -302,19 +411,30 @@ function Select-Components($catalog) {
         } elseif ($names -contains $t) {
             $picked += $t
         } else {
-            Write-Warning "Ignoring '$t': not a component."
+            Write-Warn "ignoring '$t', not a component"
         }
     }
     return @($picked | Select-Object -Unique)
 }
 
+function Select-Components($catalog) {
+    if ([Console]::IsInputRedirected) { return Select-ComponentsNumbered $catalog }
+    try {
+        return Select-ComponentsInteractive $catalog
+    } catch {
+        # No key-reading console available after all.
+        return Select-ComponentsNumbered $catalog
+    }
+}
+
 # --- Run ---------------------------------------------------------------------
-Write-Output "dotfiles -> $os (PowerShell $($PSVersionTable.PSVersion))"
+Write-Box 'dotfiles' "$os · PowerShell $($PSVersionTable.PSVersion)"
 
 if ($Components) {
     $unknown = @($Components | Where-Object { $_ -notin $catalog.Keys })
     if ($unknown) {
-        Write-Host "Unknown component(s): $($unknown -join ', '). Valid ones: $($catalog.Keys -join ', ')."
+        Write-Fail "unknown component(s): $($unknown -join ', ')"
+        Write-Note "valid ones: $($catalog.Keys -join ', ')"
         exit 1
     }
     $selected = @($Components | Select-Object -Unique)
@@ -325,13 +445,13 @@ if ($Components) {
 }
 
 if (-not $selected) {
-    Write-Output "Nothing selected, nothing to do."
+    Write-Section "Nothing selected"
+    Write-Note "no changes made"
     exit 0
 }
 
-Write-Output "Installing: $($selected -join ', ')`n"
-
 foreach ($name in $selected) {
+    Write-Section "$name $($c.Dim)$($catalog[$name].Summary)$($c.Reset)"
     foreach ($link in $catalog[$name].Links) {
         Link-Config $link.Target $link.Source
     }
@@ -354,18 +474,26 @@ foreach ($name in $selected) {
 }
 
 if ($missing) {
-    Write-Output "`n=== Missing on this machine ==="
+    Write-Section "Missing on this machine"
     foreach ($dep in $missing) {
-        Write-Output ("  {0,-11} {1}" -f $dep, $depHints[$dep].$os)
+        Write-Host "  $($c.Yellow)•$($c.Reset) $($dep.PadRight($nameWidth))  $($c.Dim)$($depHints[$dep].$os)$($c.Reset)"
     }
 }
 
-Write-Output "`nDone. Restart WezTerm or open a new PowerShell tab."
+# --- What's left to do by hand -----------------------------------------------
+$next = @("restart WezTerm or open a new PowerShell tab")
 if ('wezterm' -in $selected) {
-    Write-Output "WezTerm needs JetBrainsMono Nerd Font installed by hand: https://nerdfonts.com"
+    $next += "install JetBrainsMono Nerd Font by hand: https://nerdfonts.com"
 }
 if ('claude' -in $selected) {
-    Write-Output "Open Claude Code and run /mcp to authorize Executor (Notion, Context7, Supabase, Vercel)."
-    Write-Output "Authenticate NotebookLM once with: uvx --from notebooklm-mcp-cli nlm login"
-    Write-Output "The Chrome DevTools MCP also needs Google Chrome installed."
+    $next += "run /mcp in Claude Code to authorize Executor"
+    $next += "authenticate NotebookLM: uvx --from notebooklm-mcp-cli nlm login"
+    $next += "the Chrome DevTools MCP also needs Google Chrome installed"
 }
+if ('zed' -in $selected) {
+    $next += "install the Zed extensions listed in zed/extensions.md"
+}
+
+Write-Section "Next"
+foreach ($step in $next) { Write-Host "  $($c.Cyan)→$($c.Reset) $($c.Dim)$step$($c.Reset)" }
+Write-Host ""
