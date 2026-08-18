@@ -144,7 +144,7 @@ This buys you **fast failure**. Without it, an agent writes 80% of a feature bef
 
 Server boundaries deserve their own rules. A webhook route runs on the server, which does not mean everything server-side belongs there.
 
-> **VERIFY:** current linter config format and the exact rule name for import restrictions. Flat config and rule names have both moved recently. Look it up rather than writing config from memory.
+**`lint-guardrails.md` owns the mechanism** — the per-layer allow table, why it denies by default, and the exception that keeps the ORM confined to the DAL even though the database client itself flows upward. This file defines which imports are legal; that one makes the build agree.
 
 ## `AGENTS.md`
 
@@ -161,3 +161,21 @@ Contents:
 `CLAUDE.md` should point at `AGENTS.md` rather than duplicating it. Two copies of the conventions means one of them is stale.
 
 > **VERIFY:** some frameworks now ship their own documentation inside the installed package for agents to read locally. If yours does, point `AGENTS.md` at that path. Look up whether the framework ships bundled agent docs, and where.
+
+## Common mistakes
+
+| Mistake | Consequence |
+|---|---|
+| Organizing by file type instead of responsibility | `components/`, `utils/`, `services/` say what things *are*, never who may know about them |
+| The UI importing a vendor directly | Swapping the vendor becomes a change across the whole application |
+| Domain logic inside a route handler | The rule is unreusable and untestable, and transport absorbed the layer below it |
+| Business decisions in a capability | The facade now knows the product, so it is no longer swappable |
+| Reaching for the monorepo profile first | Package ceremony bought before there is a second deployable to justify it |
+| A package manifest that contradicts the dependency diagram | The architecture is already broken; the diagram is documentation of a past state |
+| A folder of components that becomes a route | Colocation without a private folder turns helpers into URLs that render nothing |
+| Colocating a file used by three routes | The file lives inside one of them, so the other two import across the tree |
+| Treating colocation and the dependency rule as the same question | One decides how far away a file lives, the other what it may import |
+| Mixed file naming formats | Nobody, human or agent, can guess what a file is called |
+| camelCase carried into database columns | Two naming worlds in one query, quoted identifiers forever |
+| Conventions living only in this skill | The next session starts without them; they belong in `AGENTS.md` |
+| `CLAUDE.md` duplicating `AGENTS.md` | Two copies of the conventions, so one of them is stale |

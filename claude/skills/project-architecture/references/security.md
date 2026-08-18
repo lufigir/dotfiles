@@ -100,6 +100,16 @@ export const contactSchema = z.object({
 
 One schema, imported by the form for instant feedback and by the action for the check that counts. The order inside every mutation stays the one from `data-layer.md`: validate input, authorize, mutate, validate output.
 
+## Where the session lives
+
+A session token in `localStorage` is a session token that JavaScript can read, which means it is a session token that **any** script on the page can read: an XSS bug, a compromised dependency, a third-party analytics snippet that got hijacked. The token is exfiltrated and the attacker has the account without needing the password, without triggering a login, and without expiring when the user changes it.
+
+The alternative removes the class of attack rather than mitigating it. Put the session in a cookie marked `httpOnly`, so JavaScript cannot read it at all; `secure`, so it never crosses plaintext HTTP; and with a `sameSite` policy, so it is not attached to requests originating from other sites. An XSS bug on a page that stores its session this way is still a bug, but it cannot walk away with the session.
+
+This is also why the framework's auth conventions read the session from cookies on the server rather than handing it to the client: the token is never in a place a script can reach.
+
+The same reasoning extends past tokens. A query string is not a secret — it is written to server logs, proxy logs and browser history, and leaks through the referrer header when the user clicks an outbound link. `list-views.md` puts view state in the URL deliberately, and the boundary of that advice is here: filters and page numbers yes, anything you would not want printed in a log, never.
+
 ## Security headers
 
 A fresh app ships essentially none of the headers that matter. They cost one file in the request interceptor and they close whole attack classes:
@@ -146,4 +156,7 @@ Both belong in the package manager's config, committed, so every machine and CI 
 | Validation only in the form | The generated endpoint accepts anything |
 | Returning the raw ORM row | Password hashes and internal flags leak; see `data-layer.md` |
 | No security headers | Clickjacking, MIME sniffing and injection all stay open |
+| Session token in `localStorage` | Any script on the page can steal the session; XSS becomes account takeover |
+| Authorization enforced in the request interceptor | An interceptor bypass is an authorization bypass; see `data-layer.md` |
+| Sensitive values in the query string | Written to every log in the path and leaked through the referrer header |
 | Installing latest immediately | Full exposure to the supply-chain attack window |

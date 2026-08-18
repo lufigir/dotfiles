@@ -74,6 +74,20 @@ When a client component needs to wrap server-rendered content, pass it as `child
 
 The client component receives already-rendered children and never needs to know what produced them.
 
+### What may cross the boundary
+
+Props passed from a server component to a client one are serialized, so they must be plain data: objects, arrays, strings, numbers, dates. A class instance, a database connection, a function that is not a server action — each throws at runtime rather than degrading quietly.
+
+This is a constraint worth welcoming rather than working around. It is the dependency rule from `architecture.md` enforced by the runtime: if you are trying to hand an ORM client or a service object to a component in the browser, the boundary is telling you the work belongs on the other side of it. The fix is to do the work on the server and pass the result, not to find a way to serialize the object.
+
+### Memoization is mostly obsolete
+
+Manual `useMemo`, `useCallback` and component memoization were bookkeeping for the renderer, and the compiler now does that analysis automatically. Writing them by hand in a compiled project adds noise, and worse, it hides which values genuinely matter by wrapping everything indiscriminately.
+
+Delete them as you touch the files rather than in a sweep, and measure before adding one back. If a component still re-renders too much with the compiler on, the cause is usually a prop identity problem or a context that is too broad — an architectural issue, which is what this file is about.
+
+> **VERIFY:** whether the compiler is enabled by default in this version or still opt-in, and what the config flag is. If it is not on, manual memoization still applies and this section is premature.
+
 ## Static, dynamic, and the line between them
 
 Static rendering happens at build time and serves from a CDN. It is the fastest thing available and it is the default until you take it away.
@@ -92,19 +106,48 @@ It is exactly right for the shape most real pages have: a product page that is s
 
 The islands are the Suspense boundaries you already placed. That is the payoff of getting boundaries right: enabling this is a config change rather than a rewrite.
 
-> **VERIFY:** whether partial prerendering is stable or still behind a flag, what the flag is called, whether it is opt-in per route, and whether opting in is still an exported route constant. This has moved on nearly every release.
+Recent versions fold this into the same opt-in as the caching model below, rather than keeping it a separate feature. Turning it on tends to surface errors immediately, and they are the useful kind: they point at components that fetch without a boundary above them, which was already the bug. Fix them by placing the boundary, not by opting the route out.
+
+> **VERIFY:** whether partial prerendering is still its own flag or has been absorbed into the caching opt-in, what that config key is called, and whether it is per-route or per-app. This has moved on nearly every release.
+
+### Growing the static shell
+
+Once a route is part-static, the question becomes how much of it can be. Every component moved into the shell is content the user sees instantly on navigation instead of waiting for.
+
+The move is to challenge what looks dynamic. Recommended products derived from the product being viewed are the same for everyone, so they belong in the shell. A "popular this week" panel changes daily, not per request. What genuinely varies per user is usually a smaller set than the first pass assumes: their name, their cart, their permissions.
+
+The check is visual and it is the only honest one: navigate between routes and watch what is painted immediately versus what pops in. A shell that renders as an empty frame is a shell that is not doing its job.
+
+### Prefetching, and overfetching
+
+Links prefetch on approach so navigation feels instant. The failure case is a page with a great many links — a footer with a hundred, a long table of rows each linking to a detail page — where naive prefetching turns one page view into a hundred requests, spending the user's bandwidth on pages they will never open.
+
+Current versions prefetch only the static shell around a link rather than its full content, which keeps the instant feel at a fraction of the cost. It is worth knowing this exists, because the older advice — disable prefetching on dense link lists — is now the wrong fix for a problem that has a better one.
+
+> **VERIFY:** the current prefetching default and whether partial prefetching needs opting in, plus the prop for disabling it on a specific link. This changed recently and the guidance predating it is still widely repeated.
 
 ## Caching
 
 The framework caches; the question is only whether you control it or discover it. Three concerns, and mixing them up is what makes caching feel unpredictable:
 
 - **What to cache.** Mark the data-fetching function, not the page. A directive at the top of the function opts its result into the data cache.
+- **Who it is cached for.** The directive has variants, and this is the one to get right: one caches at build time and shares the result with everyone, one caches at runtime and shares it across instances, and one caches **per user and never shares it**. Choosing by what the data is — catalog copy, current pricing, this user's recommendations — is the difference between a fast page and serving one customer's data to another.
 - **How long.** A named profile ("minutes", "hours", "days") beats a raw number, because the intent survives being read six months later.
 - **When to throw it away.** Tag the cached data, and invalidate by tag in the mutation that changed it. Time-based expiry alone means a user edits a record and then stares at the old value until the window elapses.
 
 The invalidation belongs in the action that performed the write. A mutation that does not revalidate is a bug that only shows up on someone else's screen.
 
-> **VERIFY:** the current caching directives and their exact names, the profile names available, the tagging and revalidation functions, and which of them are stable. Caching is the single most volatile area of the framework and has been reworked repeatedly. Look it up every time.
+There are two invalidation calls, not one, and picking the wrong one is visible to the user rather than merely suboptimal: one expires the entry immediately so the next read waits for fresh data, the other serves the stale copy while refreshing behind it. The user's own write needs the first. `mutations.md` covers the choice.
+
+Enabling the caching model tends to be the moment a codebase discovers which of its components fetch without a Suspense boundary, because those now error instead of quietly making the whole page wait. That is the same finding as the streaming section above, arriving as a build error rather than as a slow page.
+
+### Opting out is no longer a thing you do
+
+Under the older model the framework cached aggressively by default and you opted *out*. That inverted: execution is dynamic at request time unless a function opts in, which means the utilities whose job was to say "do not cache this" are deprecated — there is nothing to prevent. If a component must do request-time work, there is now a call that marks it as such, and the component goes inside a Suspense boundary like any other dynamic island.
+
+The practical consequence for reading old code and old tutorials: **advice about disabling caching is advice about a model that no longer exists.** Anything that force-disables caching, pins a route to dynamic wholesale, or works around implicit `fetch` caching is describing the previous system. Prerender configuration has tightened alongside it — the parameter-generating function must produce at least one entry, and per-segment dynamic-parameter switches are on the way out.
+
+> **VERIFY:** the current caching opt-in config key, **the exact spelling of each directive variant and which is shared versus per-user**, the profile names available, the invalidation functions and their arguments, the current call for marking request-time work, and the current constraints on the static-params function. The variant names are a suffix on the same directive string, so a typo degrades silently into the wrong sharing behavior rather than erroring. Caching is the single most volatile area of the framework and has been reworked repeatedly. Look it up every time — this section is the shape of the model, not its API.
 
 ## Images
 
@@ -141,6 +184,9 @@ Before adding any dependency, check its bundle cost and whether the platform alr
 | Fetching in the page, passing down as props | The page awaits, so the Suspense boundary never suspends |
 | Route-level loading file for the whole page | Static content waits on the slowest query |
 | `"use client"` at the top of a page | Everything the page imports ships to the browser |
+| Class instance or function passed as a prop to a client component | Runtime serialization error; the work belongs on the server |
+| Hand-written memoization in a compiled project | Noise that hides which values actually matter |
+| Following advice about disabling caching | It describes the previous model, where caching was the default |
 | Reading cookies in the root layout | The entire application becomes dynamic |
 | Time-based cache with no tag invalidation | Users see stale data after their own writes |
 | Plain `<img>` | No resizing, no modern formats, layout shift |

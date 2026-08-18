@@ -17,6 +17,12 @@ The DAL cannot be forgotten, because it is the only path to the data. If the req
 
 Middleware/proxy still earns its place: it does the cheap **optimistic** check, reading the session from the cookie only. It must not hit the database. It runs on every matched request, so a database round trip there taxes the entire app.
 
+### This is not a theoretical argument
+
+The interceptor is a bad place for the security model for a reason more concrete than "you might forget a matcher": **the interceptor itself has been bypassable**. CVE-2025-29927 let an attacker skip middleware execution entirely by sending a crafted internal header, so every check living there was simply not run. Applications whose authorization was a middleware check were open; applications whose authorization was in the data layer were not, because there is no header that skips the function the query lives inside.
+
+The framework patched it and later reworked the interceptor into a lighter boundary, partly in response. That does not change the design conclusion, it confirms it: an upstream gate is a component that can fail, be bypassed, or be misconfigured, while the DAL is on the only path to the data. Keep the interceptor for what cannot be exploited into a breach — redirects, rewrites, locale detection, mapping a tenant subdomain onto a header — and keep every assertion that decides *who may see what* downstream, next to the data.
+
 > **VERIFY:** the current name and signature of the framework's request interceptor, and the current guidance on what is safe to do inside it. In Next.js this was `middleware` and is `proxy` from v16, with the same matcher config; the old filename is deprecated and having both is a build error. Do not assume either name.
 
 ## File layout
@@ -146,10 +152,13 @@ Which means: **the action calls the DAL, and the DAL does the checking.** The ac
 export async function createPost(formData: FormData) {
   const dal = await PostDAL.create()                  // asserts session
   const post = await dal.create(Object.fromEntries(formData))  // validates + authorizes
-  revalidatePath("/posts")
+  // invalidate by tag, not by path: see mutations.md for which of the two
+  // invalidation calls this needs and why the choice is visible to the user
   return post
 }
 ```
+
+What this example leaves out is everything the user experiences: the pending state, the field errors, the optimistic row, and which invalidation call keeps the screen honest. `mutations.md` covers that half; the DAL contract above is what it calls into.
 
 Server components read through the DAL the same way. A page never touches the ORM.
 
@@ -164,3 +173,22 @@ Three ways out, in order of preference:
 3. **Move it to the client.** A client component with a session hook preserves static rendering at the cost of a loading state.
 
 For a dashboard behind a login this barely matters; everything is dynamic anyway. For anything with public content it matters a great deal.
+
+## Common mistakes
+
+| Mistake | Consequence |
+|---|---|
+| A `data/` folder of query functions called a DAL | None of the guarantees, all of the appearance |
+| An ORM call in a page, component, handler or action | The single path to the database is no longer single |
+| Authorization only in the request interceptor | One forgotten matcher opens a route, and the interceptor itself has been bypassable |
+| A database call inside the interceptor | A round trip added to every matched request in the application |
+| Authorization checked after the query | The data was already read; the check only decides whether to show it |
+| Returning the ORM row directly | Password hashes and internal flags reach the client, serialized at your expense |
+| Spreading a row into the response | Every column added to the table silently joins the API |
+| No output schema, only an input one | The response shape is unenforced and drifts from what the UI expects |
+| Policies that query the database | No longer pure, no longer testable without fixtures, and slower on every call |
+| A DAL method reachable without an identity | The guarantee the class exists to provide is optional after all |
+| Session looked up repeatedly in one render | The same query three times for one page |
+| Missing the server-only marker | One bad import ships queries and secrets to the browser |
+| An action that validates instead of delegating | Transport absorbed the data layer; the next caller of the DAL gets no checks |
+| A session read in an app-wide component | Static rendering disappears from the entire site to show an avatar |

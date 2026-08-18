@@ -114,6 +114,43 @@ Separate the two kinds cleanly. **Expected errors** are outcomes the product has
 
 The distinction between 401 and 403 is worth getting right because it drives client behavior. 401 means "log in", and the client can act on it. 403 means "you are logged in and it still will not happen", and retrying with a fresh session changes nothing.
 
+## Retries, and the requests you cannot safely repeat
+
+A client that gets a 500 or a timeout does not know what happened. The request may have failed before doing anything, or succeeded and failed on the way back. For a read that ambiguity is harmless. For "create the invoice" or "transfer the money" it is the whole problem: retrying might duplicate the action, and not retrying might lose it.
+
+The client cannot resolve this alone, so the API has to offer a way. **The idempotency key**: the caller generates a unique value per logical operation and sends it with the request. The server checks whether it has seen that key; if so it returns the original outcome without acting again, and if not it performs the work and records the key with its result.
+
+```
+POST /invoices
+Idempotency-Key: 7c3a...   ← the caller's id for "this specific invoice creation"
+```
+
+The key is the **caller's** identifier for an intent, which is what makes retries safe: same key, same intent, at most one execution. A key the server generates would be a different value on every attempt and would prove nothing.
+
+Three decisions worth getting right:
+
+- **Where the record lives.** A key/value store with expiry is the natural home, keyed by the idempotency key and scoped to the account. It does not need to be permanent — most retries happen within seconds — so an expiry of hours is fine for everything except payments, where longer is cheap insurance.
+- **Store the response, not just the key.** A duplicate should receive the *same answer* the original got, including the created resource's id. Returning a bare "already processed" forces the caller into a lookup they should not have to write.
+- **Which operations need it.** Anything that creates or charges. Reads never do. Deletes by id usually do not, because the id is itself the key — the second `DELETE /comments/32` finds nothing to delete.
+
+Keep it **optional**. Many API consumers are not full-time engineers, and requiring a concept they have not met is a barrier at exactly the moment you want adoption. Offer it, document it for the operations where it matters, and make the endpoint behave sensibly without it.
+
+This is the transport-layer sibling of the job idempotency in `async-work.md`. Same guarantee, different entry point: there because queues deliver at least once, here because networks fail ambiguously.
+
+## Rate limiting
+
+A user clicking through the UI is limited by their hands. An API consumer is limited by a loop. Every expensive operation you expose can be called as fast as code can call it, and the callers who cause trouble are rarely malicious — they are polling a list endpoint with no delay, retrying a failing import without backoff, or syncing a spreadsheet every second because that was easier than reasoning about change detection.
+
+**Limit by operation, not globally.** A cheap read and a report that scans a million rows should not share a budget. Tighter limits go where the cost is.
+
+**Say what the limit is in the response.** A client that cannot see its remaining budget cannot be well behaved even when it wants to be. Return the remaining allowance, and on rejection, how long to wait before retrying. That header is what turns a rejection into a client that backs off instead of one that hammers harder.
+
+**Keep a killswitch.** The ability to throttle or disable the API for one specific account, without a deploy, is what lets you take pressure off the system at 3am while you work out what is happening. An incident where the only lever is "turn off the whole API" is an incident where every other customer pays for one customer's loop.
+
+On serverless, the counter belongs in a shared store rather than in process memory, because instances come and go and each one would enforce its own private limit. A small in-memory cache in front of that store is a reasonable optimization — it collapses repeated checks within one instance — as long as the shared store remains the authority.
+
+> **VERIFY:** the current rate-limiting library and store for the deployment target, and the header names for remaining quota and retry timing. The headers have a standardized form now alongside the older conventional ones; check which the consumers expect.
+
 ## Webhooks
 
 Incoming webhooks are route handlers with two extra obligations:
@@ -146,4 +183,10 @@ State lives in your database, not in the vendor. The webhook's job is to keep th
 | Manually maintained API docs | Wrong within a week and trusted by nobody |
 | Webhook processed without signature verification | Anyone who finds the URL can forge events |
 | Webhook handler that is not idempotent | Retries double-charge, double-send, double-write |
+| No idempotency key on operations that create or charge | An ambiguous timeout leaves the caller choosing between a duplicate and a loss |
+| Idempotency record that stores the key but not the response | The retry gets "already processed" and has to go looking for the result |
+| One rate limit for every operation | The expensive endpoint is limited like the cheap one, or the cheap one like the expensive |
+| No quota headers in the response | Well-intentioned clients cannot back off, because they cannot see the limit |
+| Rate limit counted in process memory on serverless | Each instance enforces its own private limit; the real one is a multiple |
+| No per-customer killswitch | The only lever during an incident is turning the API off for everyone |
 | Pagination added later | A breaking change to every consumer |

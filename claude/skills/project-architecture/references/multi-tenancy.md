@@ -97,6 +97,7 @@ Cross-tenant leaks almost never come from one dramatic vulnerability. They come 
 | **Authorization only in the UI** | The check lives in React, the raw endpoint has none, and network traffic reveals the endpoint |
 | **Missing filter in a query** | Search returning every match instead of every match belonging to this tenant. The widest blast radius of them all |
 | **Cache key without the tenant** | `invoice:{id}` serves one tenant's cached data to another |
+| **Framework cache marked shared instead of per-user** | The caching directive has a shared variant and a private one. Tenant-scoped data under the shared variant is one customer's data served to the next, and it looks like a performance win right up until it does not |
 | **Background job without context** | The job runs outside the request that carried the tenant, so it operates across boundaries. See `async-work.md` |
 | **Storage path without a prefix** | Object keys not scoped by tenant. See `file-uploads.md` |
 | **Export and reporting functions** | Built as a separate path, so they never inherited the scoping the main path has |

@@ -55,7 +55,17 @@ Modern color format: **L**ightness, **C**hroma, **H**ue.
 
 It is worth using because it lets you reason about colors instead of guessing hex codes. Need the same color one step darker? Lower L, leave C and H alone. Building a palette at consistent perceived lightness is arithmetic rather than trial and error.
 
-> **VERIFY:** how the current version of the styling framework wants tokens declared, and how theme values map to utility classes. The token declaration syntax changed substantially in recent majors. Also check whether the component library ships a theme generator you should use instead of hand-editing variables.
+### The config file went away
+
+The structural change worth knowing before writing any of this: the styling framework moved its design system **out of a JavaScript config and into CSS**. There is no longer a config file exporting a theme object; the tokens are custom properties in the global stylesheet, and a directive maps them onto utility class names. A project still carrying the old config file is carrying a file that is no longer read, which is a confusing thing to debug — it looks like the source of truth and it changes nothing.
+
+Three failure modes come with the new arrangement, and they produce symptoms that do not point at their cause:
+
+- **Declaring the token blocks inside a base layer.** The cascade order breaks and values apply inconsistently rather than not at all, which is worse to diagnose. Declare them at the top level.
+- **Double-wrapping color functions.** Where the old setup stored bare channel values and wrapped them at the use site, the current one stores the complete color and handles opacity itself. Wrapping twice yields an invalid color and the element renders unstyled.
+- **Animation and utility plugins that assumed the old config.** Several were replaced by CSS-first equivalents; the old ones fail silently because there is no config left to read them.
+
+> **VERIFY:** the current directive for mapping tokens to utilities, whether tokens are declared bare or wrapped in a color function, which companion plugins have CSS-first replacements, and what the component library's config file should say now that there is no framework config to point at. This area changed wholesale in the last major, so anything written from memory will be the previous system.
 
 ### Theming and dark mode
 
@@ -92,3 +102,6 @@ Adding `premium` here makes it available everywhere, typed, consistent, and disc
 | Repeating the same composition inline | Extract a wrapper component |
 | Boolean props accumulating on one component | Compose separate components |
 | Product-specific components in `ui/` | `ui/` stays primitives |
+| A leftover framework config file | Delete it; it is no longer read and reads like the source of truth |
+| Token blocks nested inside a base layer | Declare them at the top level, or the cascade misbehaves |
+| Color tokens wrapped twice | Store the complete color; the framework handles opacity |

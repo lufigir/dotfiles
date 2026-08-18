@@ -156,6 +156,30 @@ Roll forward instead. Expand and contract already gives you the rollback: every 
 
 > **VERIFY:** how the ORM's migration tool lets you edit generated SQL before applying it, whether it can run statements outside a transaction (concurrent index builds require this), and how it orders migrations against deploys in your pipeline. Migration tools differ sharply here and the generated SQL frequently needs hand-editing to be safe.
 
+## The pieces
+
+Everything above is schema design and holds whatever you use to talk to the database. The choice of client is narrower than the debate around it suggests, because the two mature options differ mostly in one axis: **how much sits between your query and the SQL.**
+
+A **generated-client ORM** owns a schema file in its own language, generates a typed client from it, and brings a mature migration toolchain. A **thin SQL layer** declares the schema in TypeScript, infers types immediately, and produces queries that look like the SQL they become.
+
+Three things actually decide it:
+
+- **Does the deployment care about cold starts and bundle size?** Edge runtimes and cold serverless functions do; a long-lived container does not. The thin layer wins by an order of magnitude here, though the gap narrowed considerably when the heavier engine was rewritten.
+- **How close to SQL is the work?** Several patterns in this skill — keyset pagination with a tuple comparison, setting a session variable so a policy can read it, a batched backfill walking the primary key — are SQL-shaped. A thin layer expresses them directly; a generated client makes you drop to raw queries, which is fine but means the type safety you paid for stops exactly where the difficulty starts.
+- **Is row-level security in the plan?** Then the deciding question is mechanical: can the client set a session variable per transaction, and does it guarantee that variable cannot leak across pooled connections? Get that answered before committing, because it is the difference between policies that work and policies that intermittently see the wrong tenant. `multi-tenancy.md` covers what depends on it.
+
+Neither is a wrong answer. What is wrong is choosing on benchmark headlines and discovering the third question afterwards.
+
+### Three mistakes both of them let you make
+
+**Pushing the schema straight to a production database.** Every tool ships a command that syncs the schema without generating a migration file. It is genuinely useful while prototyping and it is destructive in production: no reviewable SQL, no history, no rollback, and a column drop the tool inferred on its own. Production changes go through generated, reviewed, committed migrations — the process in the section above.
+
+**Assuming foreign keys are indexed.** They are not, by either tool. Declaring a relation creates a constraint, not an index. The symptom arrives months later as a join that got slow, and the fix is the rule already stated above: index every foreign key, explicitly.
+
+**Trusting a generated migration for a rename.** Migration generators compare two schemas; they cannot see that a column was renamed rather than one dropped and another added. The generated SQL will happily drop the old column with its data. Always read the SQL before applying it, and treat a rename as the expand-and-contract sequence described above.
+
+> **VERIFY:** the current major of the client in use, its schema syntax, how it wants relations and indexes declared, whether it now creates foreign key indexes by default, and its command for editing generated migration SQL before it runs. Both mature options have had significant releases recently, including one that replaced its query engine entirely.
+
 ## Common mistakes
 
 | Mistake | Consequence |
@@ -174,3 +198,6 @@ Roll forward instead. Expand and contract already gives you the rollback: every 
 | Delete behavior left to the default | Either an unremovable row or a cascade that erases history |
 | One-to-one without a unique FK | Silently a one-to-many |
 | Generating the schema from a prompt | Missing relationships, wrong types, phantom tables |
+| Schema pushed directly to production | No reviewable SQL, no history, no rollback, and inferred column drops |
+| Assuming a declared relation created an index | Neither tool does; the join gets slow months later |
+| Applying a generated rename migration unread | The old column is dropped with its data |
