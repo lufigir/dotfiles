@@ -104,15 +104,23 @@ In this order, so the project works end to end at every step:
 2. **Apply the folder structure** from the approved blueprint. Empty directories are fine as placeholders only if something in them is coming in this same scaffold; otherwise leave them out.
 3. **Database schema** from the approved ERD, plus the initial migration. Verify it applies.
 4. **Design system**: install the component library, set semantic tokens in the global stylesheet, configure dark mode. Per `references/design-system.md`.
-5. **Guardrails, before the slice.** The lint config, the layer boundary rules and the evidence rules, per `references/lint-guardrails.md`. They go in first so the vertical slice is the first thing checked against them; boundary rules added after twenty files exist are boundary rules you weaken to make the build pass.
-6. **One vertical slice.** Pick a single real entity from the ERD and build it all the way through: DTO, policy, DAL, action, and a page that renders it. This is the template every future feature copies, and it is what proves the architecture actually runs. Per `references/data-layer.md`. If the entity has a list — and most do — build the list the way `references/list-views.md` describes and the write the way `references/mutations.md` does, because whatever this slice does is what every later feature will copy. The URL-state dependency enters here and only here: install it when the slice actually has filters to put in the URL, not as part of the baseline, so a project without a list never carries it.
+5. **Guardrails, before the slice.** Copy the preset from `lint/` in the dotfiles repo: `oxlint.config.ts`, `.oxfmtrc.json`, `tools/oxlint/` and `rule-tests/`, plus `ci.yml` into `.github/workflows/`. Its `README.md` has the five install steps; `references/lint-guardrails.md` has the reasoning. Adapt the boundaries block **and its fixtures** to this project's layer names, then run `node tools/oxlint/rule-tests/check.mjs` — a boundary table nobody verified is a boundary table that may be denying everything or nothing. Guardrails go in first so the vertical slice is the first thing checked against them; boundary rules added after twenty files exist are boundary rules you weaken to make the build pass.
+6. **One vertical slice.** Pick a single real entity from the ERD and build it all the way through: DTO, policy, DAL, action, and a page that renders it. This is the template every future feature copies, and it is what proves the architecture actually runs. Per `references/data-layer.md`. If the entity has a list — and most do — build the list the way `references/list-views.md` describes and the write the way `references/mutations.md` does, because whatever this slice does is what every later feature will copy. The URL-state dependency enters here and only here: install it when the slice actually has filters to put in the URL, not as part of the baseline, so a project without a list never carries it. **Run the `tdd` skill here.** The slice is the template every later feature copies, so whatever testing habit it establishes is the one the project keeps: a slice shipped without a test teaches the agent that features do not come with tests.
 7. **Security baseline**: security headers, the server-only markers, environment variable split, locked-down install scripts. Per `references/security.md`.
 8. **Configuration and logging**: the environment schema that fails the build when a variable is missing, plus structured logging with a trace id. Per `references/operations.md`.
 9. **`AGENTS.md`** at the repo root, documenting conventions, the dependency rule, and the resolved versions. A `CLAUDE.md` that points at `AGENTS.md` rather than duplicating it.
 
 ### 5. Verify
 
-Run the build and the linter. Both must pass. If the vertical slice has a page, run the dev server and confirm it renders.
+Run the build, the linter, `node tools/oxlint/rule-tests/check.mjs`, and the slice's tests. The four must pass. If the vertical slice has a page, run the dev server and confirm it renders.
+
+Then audit the repo against the non-negotiables:
+
+```bash
+python <skill>/scripts/audit_project.py --path .
+```
+
+It reports three things, and the last two are different. `MISSING` is something the repo says is absent. `BY HAND` is a non-negotiable with a semantic signature that no tool can decide, which is exactly the kind that gets quietly dropped when a session's context rolls over. **A `BY HAND` line is not a pass, it is the list of what still needs a person.** Walk it before reporting the bootstrap done.
 
 Report what was created, the resolved versions, anything the live docs corrected, and what is deliberately left for later. Do not claim it works without the command output.
 
@@ -122,7 +130,7 @@ The failure this mode exists to prevent: an agent six weeks in, writing a query 
 
 ### Order of authority
 
-1. **`AGENTS.md` at the repo root**, plus `CONTEXT.md` if the project keeps one. This is the project's own record: resolved versions, layer names, the illegal imports, where a new feature goes. Read it before answering anything architectural.
+1. **`AGENTS.md` at the repo root.** This is the project's own record: resolved versions, layer names, the illegal imports, the domain vocabulary, where a new feature goes. Read it before answering anything architectural.
 2. **The code already there.** One existing module of the same kind outranks any general rule. Copy its shape.
 3. **`references/`.** The principle behind the rule, and the answer when the repo is silent.
 
@@ -130,9 +138,22 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 
 ### The procedure
 
+0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading nineteen references to find out the project never had lint boundaries.
 1. **Read `AGENTS.md`.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/architecture.md`.
 2. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
 3. **Open the one reference for the concern**, not all nineteen. The table below maps concern to file.
+
+### When the question is not this skill's
+
+Three questions arrive dressed as architecture questions and are answered better elsewhere. Hand them over instead of improvising:
+
+| The question actually is | Skill | Why not here |
+|---|---|---|
+| "What should this module's interface be?", "where does the seam go?", "is this abstraction worth it?" | `codebase-design` | This skill owns *layers*: who may know about whom. That one owns *depth*: how much a module hides behind its interface. A file can be in the right layer and still be a shallow wrapper |
+| "How do I test this?", "is this test worth keeping?", anything written test-first | `tdd` | The linter cannot see a missing tenant filter or a non-idempotent job; `lint-guardrails.md` says so explicitly. Those are caught by tests, which makes `tdd` the other half of the guardrails, not a separate topic |
+| "This is broken", "this got slow", a failing behaviour with no obvious cause | `diagnosing-bugs` | An architecture answer to a bug report is a guess. That skill starts from a reproduction and does not stop at the first plausible story |
+
+They are siblings, not alternatives: a diagnosis usually ends in a regression test, and a deepened module usually changes what the tests attach to.
 4. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 5. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -161,7 +182,7 @@ Read the one the work is about. Reading all nineteen for a question about a fore
 | `security.md` | server-only, taint, env vars, XSS, security headers, validation, supply chain | Handling secrets, user-supplied content, or public entry points |
 | `performance.md` | Waterfalls, streaming and Suspense, PPR, server vs client components, caching directives, images, bundle | Something is slow, or a route turned dynamic |
 | `operations.md` | Structured logs, trace ids, redaction, error tracking, environment schema and secrets | Instrumenting the app, or wiring up configuration |
-| `lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one |
+| `lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
 | `design-system.md` | Component ownership, semantic tokens, variants vs. wrappers, theming | Styling anything |
 | `accessibility.md` | Semantic markup, table and sort semantics, focus lifecycle, live regions, form errors, what tooling misses | Building a table, a form, a modal or any custom interactive control |
 | `maintenance.md` | How this skill is refreshed, what belongs in a `VERIFY` block, signals a reference went stale, what survives a change of stack | Updating these references after a major release, or evaluating a different framework, ORM or database |
