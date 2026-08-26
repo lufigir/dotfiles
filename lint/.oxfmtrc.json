@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+
+  // Formato con oxfmt, no con Prettier. Pasa el 100% de los tests de conformidad de
+  // Prettier en JS y TS, y se lleva por delante tres dependencias: el ordenado de
+  // imports, el sorting de clases de Tailwind y el de package.json vienen dentro.
+  //
+  // Los dos de abajo vienen APAGADOS de fábrica y hay que pedirlos, que es justo lo
+  // que se pierde al copiar este archivo sin leerlo. `sortPackageJson` sí viene
+  // encendido por defecto, por eso no aparece aquí.
+  //
+  // oxfmt está en 0.x. Si algún día cambia de criterio el diff será enorme, pero es
+  // solo formato: se absorbe en un commit aparte y se sigue. Formatear no es
+  // arquitectura.
+  //
+  // Migrar desde una config existente: `oxfmt --migrate prettier` (o `biome`).
+  "sortImports": true,
+  "sortTailwindcss": true,
+
+  // El linter no se formatea a sí mismo.
+  "ignorePatterns": ["tools/oxlint/**"]
+}

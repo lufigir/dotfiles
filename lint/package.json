@@ -1,0 +1,15 @@
+{
+  "name": "dotfiles-lint-preset",
+  "private": true,
+  "type": "module",
+  "description": "The lint preset, and its own test bench. See README.md.",
+  "scripts": {
+    "lint:rules": "node rule-tests/check.mjs"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "^1.80.0",
+    "oxfmt": "^0.65.0",
+    "oxlint": "^1.80.0",
+    "oxlint-tsgolint": "^7.0.2001"
+  }
+}

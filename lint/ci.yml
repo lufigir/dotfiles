@@ -1,0 +1,71 @@
+# Copiar a `.github/workflows/ci.yml` del proyecto.
+#
+# Las reglas de `oxlint.config.ts` solo son reales si algo se niega a mergear cuando
+# fallan. Sin este archivo corren cuando alguien se acuerda de escribir `npm run lint`,
+# que es lo mismo que ser advisory, que es lo mismo que no existir.
+#
+# `tsc --noEmit` está aquí porque en la mayoría de proyectos el build es lo único que
+# chequea tipos, y lo hace como efecto secundario de empaquetar: un error de tipos en
+# un archivo que ninguna ruta importa no aparecería.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un segundo push a la misma rama vuelve irrelevante al primero.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` honra `.npmrc`, así que un `ignore-scripts=true` también aplica aquí.
+      # `oxlint-tsgolint` llega igualmente, porque viaja como dependencia opcional y no
+      # como script de postinstall.
+      - run: npm ci
+
+      # Formato antes que lint: un fallo de formato se arregla con un comando y no
+      # merece gastar los minutos de las otras tres etapas.
+      - name: Formato
+        run: npx oxfmt --check .
+
+      # `--type-aware` necesita `oxlint-tsgolint` en las devDependencies.
+      - name: Lint
+        run: npx oxlint --type-aware
+
+      # Que las reglas de frontera sigan mordiendo. Sin esto, una regla que se cae del
+      # config produce exactamente lo que esperas ver: cero errores.
+      - name: Las reglas muerden
+        run: node tools/oxlint/rule-tests/check.mjs
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      # Al final, porque es lo más lento y las cuatro etapas de arriba cazan casi todo
+      # lo que lo rompería.
+      - name: Build
+        run: npm run build
+        env:
+          # ADAPTAR: placeholders a propósito, no secretos que se perdieron.
+          #
+          # Si el proyecto valida sus variables de entorno al importar (que es lo que
+          # recomienda `security.md`), el build no arranca sin todas. Nada de esto toca
+          # la red mientras las rutas sean dinámicas: compila y chequea tipos, pero no
+          # emite una sola consulta. Valores reales no comprarían nada y pondrían una
+          # clave de servicio en CI.
+          #
+          # Si algún día el build empieza a prerenderizar datos reales, este job va a
+          # fallar contra estos valores, que es el momento correcto para decidir si CI
+          # debería sostener credenciales.
+          NEXT_PUBLIC_APP_URL: https://placeholder.invalid
