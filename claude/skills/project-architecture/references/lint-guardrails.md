@@ -6,6 +6,22 @@ The dependency rule in `architecture.md` is the clearest case. "The UI may not i
 
 So the linter is not a style tool here. It is the only part of the architecture that is **executable**. Everything else is prose.
 
+## The preset already exists
+
+This file explains the *why*. The working configuration lives in the dotfiles repo at `lint/`, and it is not an example — it is the artifact you copy.
+
+```
+lint/
+├── oxlint.config.ts            the config; the boundaries block is adapted per project
+├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
+├── ci.yml                      the workflow that makes the rules bite
+├── tools/oxlint/anti-slop/     vendored evidence rules
+├── tools/oxlint/house/         house rules: no-literal-colors
+└── rule-tests/                 code that MUST fail, and the checker that proves it does
+```
+
+Its `README.md` carries the five install steps. Read this file for the reasoning, then copy the preset rather than reconstructing it from these paragraphs. Reconstructing it is how the two drift.
+
 ## Three families, three different jobs
 
 Keep them separate in your head, because they fail differently and they are configured differently.
@@ -18,32 +34,23 @@ Keep them separate in your head, because they fail differently and they are conf
 
 A project with only the third family — which is what the framework CLI leaves you — has a linter that formats and nothing that defends the architecture.
 
-## Oxlint as the base
+## One vendor: oxc
 
-Use Oxlint. Two reasons that matter for this skill specifically: it is fast enough to run on every save rather than only in CI, which is the difference between catching a boundary violation as it is written and catching it after twenty files copied the mistake; and the plugin ecosystem this reference depends on targets it.
+Oxlint for all three families, oxfmt for formatting. No ESLint, no Prettier, and this is not a half-finished migration.
 
-One config file at the root, `oxlint.config.ts`, with four things in it:
+The reason it can be a clean break, verified against oxlint 1.80.0 rather than assumed: `eslint/no-restricted-imports`, `react/exhaustive-deps`, `react/rules-of-hooks`, the whole `nextjs` plugin and the type-aware rules are all present. Those were the four things that used to justify keeping `eslint-config-next` alongside. There is a migration helper, `@oxlint/migrate`, for a project that already has an ESLint config.
 
-```ts
-import { defineConfig } from "oxlint"
+Two things are worth knowing before you assume a rule exists:
 
-export default defineConfig({
-  plugins: ["import", "typescript"],
-  categories: { correctness: "error" },
-  rules: { "import/no-cycle": "error" },
-  overrides: [/* the boundary rules, below */],
-})
-```
+**The rules reference lists rules the binary does not have.** `eslint/no-restricted-syntax` is documented and unimplemented; ask for it and the config fails to parse. That is why the literal-colours rule in the preset is a house plugin rather than a selector. Check a rule against the binary, not against the docs page.
 
-- **`categories`** turn on whole groups at once. Correctness is the floor.
-- **`plugins`** enable rule namespaces. `import` gives you cycle detection; `typescript` gives you the type-aware rules.
-- **`overrides`** apply rules to a file glob, which is the mechanism the whole boundary section depends on.
+**Two environment requirements fail with unhelpful messages.** The `.ts` config does not load unless `package.json` has `"type": "module"`. `--type-aware` does not start unless `oxlint-tsgolint` is installed. Neither error names what is missing.
+
+> **VERIFY:** the current oxlint major and whether `defineConfig`, `categories`, `options.typeAware`, `jsPlugins` and `excludeFiles` are still the config shape; whether `eslint/no-restricted-syntax` has landed, which would make the house colour rule unnecessary; whether `oxlint-tsgolint` is still a separate package; and where oxfmt is on the road to 1.0. Everything in this file was checked against oxlint 1.80.0 and oxfmt 0.65.0. The fastest way to answer the second one is not the docs, which already list that rule: it is `firecrawl_developer_search`, or running it.
 
 ### Type-aware rules earn their cost
 
-The `typescript` plugin runs rules that need the type checker, not just the syntax tree. Slower, and worth it for a few that catch bugs nothing else does. `typescript/no-floating-promises` is the one to enable first in this stack: a server action that calls the DAL without awaiting it returns a success the write never made, and `async-work.md` explains why on serverless that promise is discarded entirely rather than merely late. That failure is invisible in review and obvious to the type checker.
-
-> **VERIFY:** the current Oxlint major, whether `defineConfig`, `categories` and `overrides` are still the config shape, how type-aware rules are enabled today and whether they still need a separate binary, and what the framework's own lint plugin is called. Also check whether the framework CLI still scaffolds ESLint: if the project already has one, the supported path is running both, with the plugin that disables the ESLint rules Oxlint already covers, rather than a big-bang migration.
+The type-aware pass runs rules that need the type checker, not just the syntax tree. Slower, and worth it for a few that catch bugs nothing else does. `typescript/no-floating-promises` is the one to enable first in this stack: a server action that calls the DAL without awaiting it returns a success the write never made, and `async-work.md` explains why on serverless that promise is discarded entirely rather than merely late. That failure is invisible in review and obvious to the type checker.
 
 ### Everything set to error
 
@@ -53,9 +60,9 @@ Set architectural rules to `"error"`. If a rule is too noisy to be an error, it 
 
 ## Boundary rules
 
-This is the family the architecture actually depends on, and it is the one no package will hand you configured, because only your repo knows its layer names.
+This is the family the architecture actually depends on, and it is the one no package will hand you configured, because only your repo knows its layer names. The preset ships the single-app profile from `architecture.md` ready to rename.
 
-Express the dependency rule from `architecture.md` as **allowed imports per directory**, denying everything else:
+Express the dependency rule as **allowed imports per directory**, denying everything else:
 
 | Layer | May import | Denied |
 |---|---|---|
@@ -65,45 +72,31 @@ Express the dependency rule from `architecture.md` as **allowed imports per dire
 | Capabilities | vendors, shared | transport, UI, domain |
 | Vendors | shared | everything else |
 
-Two details decide whether this works in practice:
+Three details decide whether this works in practice:
 
-**Deny by default, not by list.** A rule that forbids the four illegal imports you thought of is silent about the fifth directory added next month. A rule that permits only what the table allows fails loudly the moment a new layer appears, which is exactly when you want to be asked.
+**Deny by default, not by list.** A rule that forbids the four illegal imports you thought of is silent about the fifth directory added next month. A rule that permits only what the table allows fails loudly the moment a new layer appears, which is exactly when you want to be asked. In `no-restricted-imports` that means closing a whole `group` and reopening the legal exceptions with a leading `!`.
+
+**Negations work, and they were once broken.** The `!` re-inclusion in `group` did not work until [oxc#10911](https://github.com/oxc-project/oxc/issues/10911) was fixed in May 2025, before oxlint 1.0. Two later reports about the same rule ([#19956](https://github.com/oxc-project/oxc/issues/19956), [#21920](https://github.com/oxc-project/oxc/issues/21920)) are also closed. The one still open, [#19237](https://github.com/oxc-project/oxc/issues/19237), affects namespace imports with `importNames: ["default"]`, which the pattern-based rules here do not use. This history is the reason the preset ships a fixture that asserts a negation still reopens what it should.
 
 **The database client is the interesting exception.** `shared` and the database client flow upward to everyone, per the dependency rule — but the whole point of `data-layer.md` is that only the DAL may *call* the ORM. So the boundary rule needs to keep the ORM import restricted to the DAL directory even though the client itself is a foundation. Get this one wrong and non-negotiable #2 is unenforced while looking enforced.
 
-In the monorepo profile the package graph does part of this for you: a package cannot import what it does not depend on. It does not do all of it — nothing stops a package from adding the dependency — so keep the lint rules in both profiles and let the package boundaries be the second layer.
+Note that the exclusion key inside an `overrides` block is `excludeFiles`, not ESLint's `ignores`. A config carried over from ESLint fails to parse on that alone.
 
-> **VERIFY:** the current rule and plugin for import restrictions by path in Oxlint, and its option shape for allow/deny lists. Also check whether the framework ships a rule for server-only imports reaching client components, which overlaps with the server-only marker in `security.md`.
+In the monorepo profile the package graph does part of this for you: a package cannot import what it does not depend on. It does not do all of it — nothing stops a package from adding the dependency — so keep the lint rules in both profiles and let the package boundaries be the second layer.
 
 ## Evidence rules: anti-slop
 
 The second family targets a specific failure mode, and it is worth naming precisely because it is the one agents produce most: **code that fabricates evidence**. Not wrong code — code that tells the compiler it has checked something it never checked.
 
 ```ts
-const user = input as object as User   // two assertions, zero verification
-function handle(input: unknown) {}     // the caller's contract is "anything"
+const user = input as object as User    // two assertions, zero verification
+function handle(input: unknown) {}      // the caller's contract is "anything"
 type Metadata = Record<string, unknown> // a dictionary that promises nothing
 ```
 
 Each of these compiles, passes review at a glance, and moves a runtime failure to somewhere far from its cause. They are what `security.md` and `api-design.md` are trying to prevent structurally, appearing as a local shortcut instead.
 
-The `anti-slop` plugin is fifteen rules against exactly this shape. Copy it into the repo — the author's own instruction, and the right call independently: at the time of writing it has no releases and a handful of commits, so pinning a version means pinning to something that will move under you. Vendored, the rules are yours to read and to disagree with.
-
-```ts
-// oxlint.config.ts
-jsPlugins: [{ name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" }],
-rules: {
-  "anti-slop/no-chained-type-assertions": "error",
-  "anti-slop/no-unknown-parameters": "error",
-  "anti-slop/no-unknown-returns": "error",
-  "anti-slop/no-unsafe-dictionary-type": "error",
-  "anti-slop/no-runtime-typeof": "error",
-  "anti-slop/require-safety-comment-for-type-assertion": "error",
-  // ...the rest of the generic set
-}
-```
-
-The three worth understanding rather than just enabling:
+The preset enables ten of the plugin's fifteen generic rules. The three worth understanding rather than just enabling:
 
 **`no-runtime-typeof`** rejects ad hoc `typeof` narrowing and asks for parsing at the boundary instead. That is the same principle as "validate in and out" from `data-layer.md`: a schema at the edge means the inside of the function does not have to guess. If a project has no schema library, the rule takes `{ allowInTypeGuards: true }` so checks are at least confined to real type predicates.
 
@@ -111,9 +104,43 @@ The three worth understanding rather than just enabling:
 
 **`no-known-value-widening`** rejects annotating a value with a type broader than what it demonstrably is — `const handlers: Record<string, Handler> = { start: startHandler }` throws away the fact that `start` exists. Use `satisfies` or let inference do its job.
 
+The other five sit in the config commented out with the reasoning attached. They are strong design positions — banning the `object` type in inputs, banning module mocking — that deserve to be argued in real code rather than inherited. Turning one on is a decision, and leaving it off is also a decision; what the preset refuses to do is let either happen by accident.
+
+The plugin is **vendored, not depended on**. The author's own instruction, and the right call independently: no releases, outside semver, so pinning a version means pinning to something that will move under you. Custom JS plugins are also the young part of this toolchain in a way the native Rust rules are not — do not let one alpha surface make you distrust the other three families.
+
 Add the plugin directory and the agent tooling directories to `ignorePatterns`, so the linter does not lint itself.
 
-> **VERIFY:** the current rule list and install path for the plugin, since it is new and actively changing, and whether the bundled agent skill is the recommended install route.
+## House rules
+
+Between "the framework's plugin ships it" and "anti-slop covers it" there is a gap, and a project will always have one or two rules that live in it. The preset's is `house/no-literal-colors`, which enforces the semantic tokens from `design-system.md`.
+
+It is worth reading as a pattern rather than a single rule. It exists as a JS plugin because the rule it replaces, `no-restricted-syntax`, is not implemented in oxlint — and writing it out longhand turned out better than the selector it replaced: it catches template literals, which is where classes end up the moment somebody introduces a condition, and its message names the offending class.
+
+When a convention you have had to explain twice keeps coming back, this is where it goes. Explaining a convention repeatedly is the signal that prose is not the right medium for it.
+
+## Verify that the rules still bite
+
+This is the part that has no equivalent in a normal lint setup, and it is the one that matters most over time.
+
+A lint config is the only executable part of the architecture, and also the only part that can stop working without turning anything red. A rule that disappears from oxlint, a plugin that fails to load, a negation whose semantics change: the result is always the same, `oxlint` exiting zero and a boundary that no longer exists. Zero errors is exactly what you expected to see, so nobody finds out.
+
+The preset inverts the test. `rule-tests/fixtures/` is code that **must** fail, and every line tagged `CLEAN:` is code that **must not** report, with the reason written beside it. `check.mjs` stages a real project in a temp directory, runs the actual config against the fixtures, and compares.
+
+```bash
+node tools/oxlint/rule-tests/check.mjs
+```
+
+Run it after bumping oxlint, after re-vendoring anti-slop, and after adapting the boundary table to a project's layer names. That last one is the point: it is what distinguishes a negation that reopens a legal import from one that swallowed the whole rule.
+
+Two mechanics worth knowing if you touch the checker. Oxlint honours `.gitignore` and `--no-ignore` does not override it, so the staging directory has to live outside the repo. And `jsPlugins` specifiers and `overrides` globs both resolve against the **config file's directory**, not the working directory, which is why the preset only behaves as shipped when the config sits at the project root with `tools/` beside it.
+
+## Formatting
+
+`oxfmt`, and it is a shorter conversation than the linter because formatting is not architecture.
+
+It replaces Prettier plus two plugins: import sorting and Tailwind class sorting are built in, and `package.json` key sorting comes on by default. The first two do **not** — they ship disabled and have to be asked for, which is the thing quietly lost by copying the config without reading it.
+
+It is at 0.x. If it ever changes its mind about something the diff will be large, but it is only formatting: absorb it in its own commit and move on. `oxfmt --migrate prettier` converts an existing config.
 
 ## What the linter cannot do
 
@@ -123,27 +150,14 @@ A linter checks the shape of code, not its meaning. It will never tell you that 
 
 The split is: **the linter owns the rules with a syntactic signature; the DAL, the policy layer and the type system own the rest.** A rule you cannot express syntactically is a rule that belongs in `AGENTS.md` and in a test, not in a regex someone will fight.
 
+There is a second thing it cannot do, and it is the one this reference used to be quiet about: a linter cannot tell you the code reads like a tutorial. Narrated comments, `*Helper` suffixes, a wrapper called once, a test that asserts nothing but the absence of a throw — none of that has a syntactic signature, and all of it is what an agent produces under time pressure. That is the `deslop` skill's job, on the diff, before the merge. The linter and that skill do not overlap; they fail at different things.
+
 ## Where this fits
 
-- **Bootstrap**: the guardrails step. Install the config, the boundary rules and the vendored plugin *before* the vertical slice, so the slice is the first thing the rules are checked against. A boundary rule added after twenty files exist is a boundary rule you will weaken to make the build pass.
-- **Convention**: when a rule you had to explain twice keeps coming back, it wants to become a lint rule rather than another paragraph in `AGENTS.md`. Explaining a convention repeatedly is the signal that prose is not the right medium for it.
+- **Bootstrap**: the guardrails step. Copy the preset, adapt the boundaries, run the rule tests, *before* the vertical slice, so the slice is the first thing the rules are checked against. A boundary rule added after twenty files exist is a boundary rule you will weaken to make the build pass.
+- **Convention**: when a rule you had to explain twice keeps coming back, it wants to become a house rule rather than another paragraph in `AGENTS.md`.
 
-Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build.
-
-## The pieces
-
-Four, and they are not equally solid — which matters, because one of them is alpha and the config will not tell you:
-
-| Piece | Job | Maturity |
-|---|---|---|
-| `oxlint` with `categories: { correctness: "error" }` | The floor | Stable |
-| The `import` plugin | Cycles, plus the boundary rules through `no-restricted-imports` in `overrides` | Stable |
-| The `typescript` plugin | Type-aware rules; enable the floating-promise one first | Stable, slower — it needs the type checker |
-| `anti-slop` through `jsPlugins` | The evidence rules | **Alpha, and outside semver** |
-
-That last row is the reason the plugin gets vendored rather than depended on, and it is worth being explicit: custom JS plugins are a young part of the toolchain. The native Rust rules are not — do not let one alpha surface make you distrust the other three rows.
-
-**If the project already has ESLint**, which is what the framework CLI still tends to leave, there is a supported middle state: run both, with the plugin that switches off the ESLint rules Oxlint already covers so the same problem is not reported twice. That is a better first move than a migration nobody scheduled. The formatter is a separate question from all of this — formatting is not architecture, and this reference has no opinion on it.
+Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs format, lint, the rule tests, types and build, in that order — cheapest first.
 
 ## Common mistakes
 
@@ -153,8 +167,13 @@ That last row is the reason the plugin gets vendored rather than depended on, an
 | Boundary rules that list what is denied | Any directory added later is unconstrained by default |
 | ORM import allowed anywhere the database client is allowed | The DAL boundary looks enforced and is not |
 | Architectural rules left at `"warn"` | Warnings pile up, nobody reads them, new violations look normal |
-| Linter runs only in CI | The violation is found after twenty files copied it |
+| Trusting the rules reference over the binary | The config fails to parse, or worse, the rule silently was never there |
+| `"type": "module"` missing, `oxlint-tsgolint` missing | The config does not load and the error does not say why |
+| `ignores` copied from an ESLint override | The whole config fails to parse; the key is `excludeFiles` |
+| Adapting the boundary table without adapting the fixtures | The rule tests pass while testing nothing |
+| A pinned lockfile in the preset | The rule tests can never catch a toolchain change, which is their only job |
 | `anti-slop` installed as a pinned dependency | Coupled to a young package instead of owning the rules |
 | Assertions allowed with no stated invariant | No way to tell a checked assertion from a hopeful one |
 | Expecting lint to catch missing tenant filters | Semantic bugs need tests; the linter never sees them |
+| Expecting lint to catch slop | It has no syntactic signature; that is `deslop`, on the diff |
 | Lint failures that do not block the merge | The rules are advisory, which is the same as absent |
