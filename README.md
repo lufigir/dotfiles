@@ -13,6 +13,11 @@ links each config where that system expects it.
 - `claude/CLAUDE.md` — global Claude Code instructions (commit rules, pointer to personal skills)
 - `claude/skills/` — personal Claude Code skills (see the opt-in model below)
 - `zed/settings.json` — Zed editor settings (theme, fonts, LSP, agent)
+- `lint/` — the lint preset that every project copies: oxlint with the boundary,
+  evidence and framework families, oxfmt for formatting, `anti-slop` vendored, the
+  house rules, a CI workflow, and `rule-tests/`, which asserts the rules still bite.
+  One vendor (oxc), no ESLint, no Prettier. See `lint/README.md`; the reasoning lives
+  in `project-architecture`'s `lint-guardrails.md` reference
 - `zed/extensions.md` — reference list of installed extensions (manual install, see note below)
 
 ### Personal skills
@@ -21,6 +26,12 @@ links each config where that system expects it.
 - `mcp-integrations` — Notion, Context7, Supabase, Vercel through Executor (Notion and Supabase have 2 accounts each: `felipegiraldo` and `centrodeprototipado`)
 - `project-architecture` — two modes: bootstrap a new project with a layered architecture, and answer architecture questions mid-build against the repo's own `AGENTS.md`; 12 references (layers, routing, DAL, schema and migrations, multi-tenancy, API contracts, async work, uploads, security, performance, operations, design system) whose version-specific claims are always verified against the live docs
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
+- `deslop` — taste-level review of a branch's diff for the patterns that mark AI-written
+  code: narrated comments, placeholder names, wrappers around one call, defensive
+  catches that swallow, tests that mock everything. Twenty-four rules in six categories,
+  with a verdict band. Slash-only (`/deslop`), and deliberately the complement of the
+  linter rather than an overlap: lint owns the rules with a syntactic shape, this owns
+  the ones with only a smell
 
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
@@ -37,10 +48,8 @@ symlink into this repo, and the plugin is read-only — the descriptions need ed
 - `grilling` — the relentless interview: asks the whole *frontier* of unblocked questions per round, numbered, each with a recommended answer, and dispatches sub-agents to look up facts instead of asking. This is what replaced `superpowers:brainstorming`.
 - `tdd` — red→green loop, seams, and the test anti-patterns worth naming
 - `codebase-design` — the deep-module vocabulary (module, interface, depth, seam, adapter, leverage, locality) and the deletion test
-- `domain-modeling` — maintains `CONTEXT.md` (domain glossary) and ADRs in `docs/adr/`
 - `diagnosing-bugs` — diagnosis loop for hard bugs, starting from a failing repro
-- `resolving-merge-conflicts` — finishes an in-progress merge/rebase hunk by hunk
-- `writing-for-agents` — how to write skills, `CLAUDE.md`, `CONTEXT.md`
+- `writing-for-agents` — how to write skills, `CLAUDE.md` and `AGENTS.md`
 
 **Slash-only** (`disable-model-invocation: true` upstream — deliberate: these are expensive
 verbs you trigger, not criteria that fire on their own):
@@ -56,8 +65,28 @@ verbs you trigger, not criteria that fire on their own):
 
 **Deliberately not vendored:** `research` (would bypass the Executor rule in `CLAUDE.md`),
 `code-review` (name collision, see above), `setup-matt-pocock-skills` (writes its own repo
-context file; `domain-modeling` already maintains `CONTEXT.md`), the `to-spec`/`to-tickets`/`implement`
+context file, which `AGENTS.md` already is), the `to-spec`/`to-tickets`/`implement`
 pipeline, and the human-facing set (`teach`, `triage`, `wizard`, `wayfinder`, `handoff`, `wait-what`, `prototype`).
+
+**Dropped after measuring** — counted over 85 session transcripts, both were invoked zero
+times:
+
+- `domain-modeling` maintained a `CONTEXT.md` glossary and ADRs under `docs/adr/`. Neither
+  file exists in any of the twenty projects, and both duplicate something that does: the
+  glossary is what `AGENTS.md` already carries, and the entity model is the ERD that
+  `project-architecture`'s bootstrap produces. Three sources of truth for one domain model
+  is the failure mode those references warn about. Every skill that read `CONTEXT.md` now
+  reads `AGENTS.md`.
+- `resolving-merge-conflicts` never fired because the scenario does not arise: work is solo
+  and `commit-and-push` lands everything on `main`.
+
+The same count explained the rest. `mcp-integrations` (13 invocations), `grilling` (11) and
+`commit-and-push` (9) are the only ones with real usage, and the only ones with a **routing
+mechanism**: the first is named in `CLAUDE.md`, the second carries a "MUST use before any
+creative work" framing, the third is a verb you type. The others were islands — nothing
+pointed at them. `project-architecture` now routes into `tdd`, `codebase-design` and
+`diagnosing-bugs` at the moments they apply, which is the fix: a good skill nothing reaches
+is a skill that does not exist.
 
 **Updating:** there's no auto-update — re-copy from upstream and re-apply the description
 edits above. `agents/openai.yaml` is dropped from each skill (it's Codex config).
