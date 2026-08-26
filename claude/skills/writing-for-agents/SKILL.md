@@ -2,7 +2,7 @@
 name: writing-for-agents
 description: >
   Writing documents an agent consumes. Use when creating or editing a skill, or
-  modifying AGENTS.md, CLAUDE.md or CONTEXT.md. Spanish triggers: "crea una skill",
+  modifying AGENTS.md or CLAUDE.md. Spanish triggers: "crea una skill",
   "edita la skill", "mejora la skill", "escribe una skill", "actualiza el CLAUDE.md",
   "instrucciones para el agente".
 ---
