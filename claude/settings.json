@@ -9,7 +9,8 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus",
+  "outputStyle": "Concise",
   "skillOverrides": {
     "felipego-projects": "off",
     "claude-in-chrome": "off"
@@ -60,5 +61,6 @@
   },
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "agentPushNotifEnabled": true
 }
