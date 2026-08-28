@@ -1,0 +1,5 @@
+# Skills installed by `npx skills add` — third-party, re-installable, and
+# mirrored into .claude/skills as symlinks. Not part of this dotfiles set.
+/.agents/
+/.claude/
+/skills-lock.json
