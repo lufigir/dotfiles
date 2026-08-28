@@ -7,9 +7,15 @@ All external integrations go **through Executor** (`mcp__executor__execute`), ne
 
 **Discover, don't memorize.** Connections and tool names change over time. Use `tools.search({ query: "...", namespace: "<integration>_mcp" })` (or the bare integration name, e.g. `"vercel"`) to find the exact tool path and argument shape. Any MCP added to Executor shows up here automatically — this skill does **not** keep an inventory of them.
 
+Never construct a tool path or an argument list from memory. `tools.search` returns the path; `tools.describe.tool({ path })` returns the exact `inputTypeScript`. Calling a guessed path costs a `tool_not_found` round trip, and a guessed argument name costs a validation error — both of which the two discovery calls would have avoided.
+
+**Absence from `ToolSearch` is not absence of the integration.** These MCPs are not exposed as `mcp__<name>__*` tools; they live *inside* Executor. Searching the harness tool list for `mcp__supabase__*` and finding nothing proves only that there is no direct server. Before telling the user an integration is unavailable, run `tools.search` inside Executor, or list what is actually connected with `tools.executor.coreTools.connections.list({})`.
+
 ## Accounts
 
-Several integrations have more than one connected account/organization, distinguished by a `.user.<name>` suffix on the namespace (e.g. `notion_mcp.user.felipegiraldo`, `notion_mcp.user.centrodeprototipado`). Which ones are split changes over time, so check with `tools.search` rather than assuming a given integration has only one.
+Every tool path carries a `.user.<account>` segment, whether the integration has one connected account or several: `context7_mcp.user.context7.resolve_library_id`, `notion_mcp.user.felipegiraldo`, `supabase_mcp.user.centrodeprototipado`. There is no un-suffixed form — `context7_mcp.resolve_library_id` is a `tool_not_found`, not a shortcut. Take the whole path from `tools.search`; never assemble it from the integration name.
+
+Which integrations are split across several accounts changes over time, so check with `tools.search` rather than assuming a given integration has only one.
 
 - `felipegiraldo` is the default; `centrodeprototipado` is only for that project.
 - Use the account the user tells you to use — it's the source of truth.
@@ -19,8 +25,8 @@ Several integrations have more than one connected account/organization, distingu
 
 Two-step flow, worth remembering because it isn't obvious from the tool list:
 
-1. `resolve_library_id({ libraryName, query })` — both required; `query` is the user's full question, improves relevance ranking.
-2. `query_docs({ libraryId, query })` — use the library ID from step 1 (prefer exact name match, higher benchmark score, and version-specific IDs when the user names a version).
+1. `tools.context7_mcp.user.context7.resolve_library_id({ libraryName, query })` — both required; omitting either one fails validation. `query` is the user's full question, and improves relevance ranking.
+2. `tools.context7_mcp.user.context7.query_docs({ libraryId, query })` — use the library ID from step 1 (prefer exact name match, higher benchmark score, and version-specific IDs when the user names a version).
 
 Use it when the user asks about libraries, frameworks, or API references, or needs current code examples instead of relying on training data.
 
