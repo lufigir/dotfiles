@@ -3,3 +3,6 @@
 /.agents/
 /.claude/
 /skills-lock.json
+
+# Eval run output (reports, transcripts, mock recordings)
+/claude/evals/results/

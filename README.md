@@ -126,6 +126,47 @@ To enable one in a project, in its `.claude/settings.json`:
 { "skillOverrides": { "felipego-projects": "on" } }
 ```
 
+#### Measuring whether a skill fires (`claude plugin eval`)
+
+A skill's `description` is the only thing that decides whether it gets invoked, and editing
+one is guesswork until it is measured. [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals)
+runs a prompt in an isolated session and a `tool_used: Skill` grader says whether the skill
+was actually chosen, so a description change can be checked before it is committed instead
+of being audited months later by counting transcripts.
+
+The command needs a plugin root, so `claude/.claude-plugin/plugin.json` wraps this directory
+as a plugin named `dotfiles-skills`. A plugin auto-discovers its skills in `skills/`, which
+is already the layout here, so nothing moved and no symlink was needed. The manifest is inert
+outside eval runs: `install.ps1` links `settings.json`, `CLAUDE.md` and each skill folder
+individually, never this directory, so Claude Code has no path by which to load it as a plugin
+in a normal session.
+
+Cases live in `claude/evals/<case>/`, one `prompt.md` plus one or more graders:
+
+```powershell
+claude plugin eval ./claude --ablation none --runs 3   # trigger suite, no judge calls
+claude plugin eval ./claude --case adhd-* --runs 1     # one case while iterating
+```
+
+`--ablation none` runs only the with-plugin arm. The default also runs every case again with
+no plugin loaded and reports `Δ`, the contribution of the plugin, which doubles the cost and
+tells you nothing extra when the grader is "was this skill invoked" (that check cannot pass
+without the plugin, so the eval excludes it from the score in both arms anyway).
+
+Keep graders free where possible: `regex`, `tool_used`, `tool_order` and `file_exists` are
+computed from the transcript, while `llm` and `baseline` call a judge model. The three trigger
+cases cost about $0.20 each per run of the suite, all of it the agent runs themselves.
+
+The first run of `claude plugin validate ./claude` paid for the whole exercise: it found that
+`project-architecture`'s `description` was an unquoted YAML scalar containing `week six: where
+does this file go`, which fails to parse, so the skill had been loading with **empty metadata**
+and no description at all. It could never have been auto-invoked. The description is now a
+folded block scalar (`description: >`), the same shape the Pocock skills use.
+
+Note that the `skill-creator` plugin has its own `evals/evals.json` format, which is
+unrelated and incompatible with this one.
+
+
 ## Zed
 
 `settings.json` is symlinked from `%APPDATA%\Zed` on Windows and from
