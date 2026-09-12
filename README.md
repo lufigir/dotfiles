@@ -91,6 +91,31 @@ is a skill that does not exist.
 **Updating:** there's no auto-update — re-copy from upstream and re-apply the description
 edits above. `agents/openai.yaml` is dropped from each skill (it's Codex config).
 
+### Vendored skill (ayghri)
+
+- `i-have-adhd` — vendored from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)
+  (MIT) at commit `6f1f982`. Ten rules that shape the answer itself, not just its length:
+  the first line is an action, multi-step work is numbered, state is restated every turn
+  ("step 3 of 5 done"), tangents wait their turn, estimates come in minutes, and wins are
+  named in concrete terms. It also lists the six cases where the rules yield (explanations,
+  destructive actions, debug spirals, real ambiguity). It complements the `Concise` output
+  style rather than repeating it: `Concise` cuts the narration, this one orders what is left.
+
+**Local modifications** — two, both in the frontmatter, plus one line in the body:
+
+- `disable-model-invocation: true` dropped, so it fires on its own instead of only on
+  `/i-have-adhd`. The shaping is wanted by default, not as an occasional verb.
+- The description gained **Spanish trigger phrases** and a list of the situations that
+  should fire it (instructions, steps, fixes, plans, status updates), for the same reason
+  the Pocock ones did: `claude/settings.json` sets `"language": "Español"`.
+- The off switch in the body also accepts `modo normal`, alongside upstream's
+  `stop adhd mode` and `normal mode`.
+
+**Not vendored:** the always-on `SessionStart` hook, the `.cursor` mirror and the
+per-runtime manifests (Pi, OMP, OpenCode, Qwen, Kimi, Gemini). Auto-invocation already
+covers what the hook is for, and the rest are for runtimes this machine does not use.
+
+
 #### Opt-in model (per-project enablement)
 
 All skills live globally (symlinked, synced), but the global default is **lean**: only the universal ones stay ON. Situational/single-project skills are OFF by default via `skillOverrides` in `claude/settings.json` and get turned on **per project** in that repo's own `.claude/settings.json` (project config overrides the global one).
