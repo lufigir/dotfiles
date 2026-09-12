@@ -1,6 +1,28 @@
 ---
 name: project-architecture
-description: Senior-level architecture for a product, in two modes. **Bootstrap** starts a project from zero (discovery, ERD, layered folders, data access layer, lint guardrails, design tokens) instead of shipping whatever the framework CLI left behind. **Convention** answers architecture questions mid-build so the rules set in week one still hold in week six: where does this file go, may this layer import that one, how do I model this table, does this query stay inside the tenant, is this endpoint safe, why is this route slow. Use when starting/creating/bootstrapping/scaffolding a project, and whenever work touches folder structure, layer boundaries, data access, schema design, migrations, multi-tenancy, API contracts, background jobs, file uploads, security, performance or observability. Use it too for the screens most products are made of — any list, table or feed with filters, sorting, search, pagination or shareable URLs, and any form or mutation (validation errors, pending and optimistic states, cache invalidation after a write) — and whenever setting up or tightening lint rules that enforce boundaries or reject sloppy TypeScript. Reach for it as well when designing the app's URLs and route space (where the tenant lives, ids vs slugs, redirects that keep old links alive), when a managed backend lets the browser query the database directly, and when making a table, form or custom control keyboard- and screen-reader-usable. Spanish triggers: "proyecto nuevo", "crea la estructura", "monta el proyecto", "dónde va este archivo", "en qué capa", "cómo modelo esta tabla", "esto rompe la arquitectura", "está bien así", "tabla con filtros", "listado", "paginación", "ordenar por", "buscador", "filtros en la url", "compartir el link con los filtros", "formulario", "validar el formulario", "server action", "estado optimista", "reglas de lint", "linter", "código limpio", "estructura de urls", "rutas de la app", "slug", "redirecciones", "accesibilidad", "a11y", "lector de pantalla", "navegación por teclado", "supabase", "rls".
+description: >
+  Senior-level architecture for a product, in two modes. **Bootstrap** starts a project from zero
+  (discovery, ERD, layered folders, data access layer, lint guardrails, design tokens) instead of
+  shipping whatever the framework CLI left behind. **Convention** answers architecture questions
+  mid-build so the rules set in week one still hold in week six: where does this file go, may this
+  layer import that one, how do I model this table, does this query stay inside the tenant, is
+  this endpoint safe, why is this route slow. Use when starting/creating/bootstrapping/scaffolding
+  a project, and whenever work touches folder structure, layer boundaries, data access, schema
+  design, migrations, multi-tenancy, API contracts, background jobs, file uploads, security,
+  performance or observability. Use it too for the screens most products are made of — any list,
+  table or feed with filters, sorting, search, pagination or shareable URLs, and any form or
+  mutation (validation errors, pending and optimistic states, cache invalidation after a write) —
+  and whenever setting up or tightening lint rules that enforce boundaries or reject sloppy
+  TypeScript. Reach for it as well when designing the app's URLs and route space (where the tenant
+  lives, ids vs slugs, redirects that keep old links alive), when a managed backend lets the
+  browser query the database directly, and when making a table, form or custom control keyboard-
+  and screen-reader-usable. Spanish triggers: "proyecto nuevo", "crea la estructura", "monta el
+  proyecto", "dónde va este archivo", "en qué capa", "cómo modelo esta tabla", "esto rompe la
+  arquitectura", "está bien así", "tabla con filtros", "listado", "paginación", "ordenar por",
+  "buscador", "filtros en la url", "compartir el link con los filtros", "formulario", "validar el
+  formulario", "server action", "estado optimista", "reglas de lint", "linter", "código limpio",
+  "estructura de urls", "rutas de la app", "slug", "redirecciones", "accesibilidad", "a11y",
+  "lector de pantalla", "navegación por teclado", "supabase", "rls".
 ---
 
 # Project architecture
