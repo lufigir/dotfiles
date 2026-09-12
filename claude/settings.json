@@ -9,8 +9,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
-  "outputStyle": "Concise",
+  "model": "opus[1m]",
   "skillOverrides": {
     "felipego-projects": "off",
     "claude-in-chrome": "off"
@@ -51,8 +50,14 @@
     "cowork-plugin-management@inline": false,
     "skill-creator@claude-plugins-official": true
   },
+  "outputStyle": "Concise",
   "language": "Español",
   "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "medium"
+    }
+  },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "voice": {
@@ -60,7 +65,7 @@
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "agentPushNotifEnabled": true
+  "voiceEnabled": true
 }
