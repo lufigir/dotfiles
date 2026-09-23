@@ -39,6 +39,8 @@ The wrapper rule is where most codebases fail, including official example dashbo
 
 Semantic tokens, never literal colors. `bg-primary`, not `bg-blue-500`.
 
+This rule and the variant rule below are linted, not remembered: `@shadcn/lint` in the lint preset rejects palette colours, arbitrary values and classes passed onto a component, and its errors name the declared token or variant to use. `lint-guardrails.md` has the setup.
+
 The reason is what happens at rebrand. Define `--blue` and use `bg-blue` everywhere, then decide the brand is green: you update the variable's value, but its *name* still says blue, so now you also open every component to rename it. The refactor is the entire codebase.
 
 Define `--primary` instead and rebranding is one value in one file. Every component reads from the token and updates for free.

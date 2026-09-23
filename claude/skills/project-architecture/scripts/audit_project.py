@@ -147,7 +147,7 @@ def audit(root: Path) -> Report:
         else:
             r.fails("11 lint", f"{oxlint_config.name} has no no-restricted-imports: no linted boundaries")
 
-        for plugin, what in (("anti-slop", "evidence rules"), ("house", "house rules")):
+        for plugin, what in (("anti-slop", "evidence rules"), ("@shadcn/lint", "design-system rules")):
             if plugin in oxlint_text:
                 r.passed("11 lint", f"{what} ({plugin}) are registered")
             else:

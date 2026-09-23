@@ -16,13 +16,12 @@ lint/
 ├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
 ├── ci.yml                      the workflow that makes the rules bite
 ├── tools/oxlint/anti-slop/     vendored evidence rules
-├── tools/oxlint/house/         house rules: no-literal-colors
 └── rule-tests/                 code that MUST fail, and the checker that proves it does
 ```
 
 Its `README.md` carries the five install steps. Read this file for the reasoning, then copy the preset rather than reconstructing it from these paragraphs. Reconstructing it is how the two drift.
 
-## Three families, three different jobs
+## Four families, four different jobs
 
 Keep them separate in your head, because they fail differently and they are configured differently.
 
@@ -30,23 +29,24 @@ Keep them separate in your head, because they fail differently and they are conf
 |---|---|---|
 | **Boundaries** | May this file import that file? | Layer erosion: the page that calls the ORM, the component that imports Stripe |
 | **Evidence** | Does this code prove what it claims? | Types that look safe and are not: `as` chains, `unknown` in signatures, dictionaries of `any` |
+| **Design system** | Does this UI use the tokens and variants that exist? | `bg-blue-500`, `p-[13px]`, a `<Button className="p-4">` that bypasses its own sizes |
 | **Framework correctness** | Am I using the framework as it works? | The rules the framework's own plugin already ships, left at "warn" and ignored |
 
-A project with only the third family — which is what the framework CLI leaves you — has a linter that formats and nothing that defends the architecture.
+A project with only the last family — which is what the framework CLI leaves you — has a linter that formats and nothing that defends the architecture.
 
 ## One vendor: oxc
 
-Oxlint for all three families, oxfmt for formatting. No ESLint, no Prettier, and this is not a half-finished migration.
+Oxlint for all four families, oxfmt for formatting. No ESLint, no Prettier, and this is not a half-finished migration.
 
 The reason it can be a clean break, verified against oxlint 1.80.0 rather than assumed: `eslint/no-restricted-imports`, `react/exhaustive-deps`, `react/rules-of-hooks`, the whole `nextjs` plugin and the type-aware rules are all present. Those were the four things that used to justify keeping `eslint-config-next` alongside. There is a migration helper, `@oxlint/migrate`, for a project that already has an ESLint config.
 
 Two things are worth knowing before you assume a rule exists:
 
-**The rules reference lists rules the binary does not have.** `eslint/no-restricted-syntax` is documented and unimplemented; ask for it and the config fails to parse. That is why the literal-colours rule in the preset is a house plugin rather than a selector. Check a rule against the binary, not against the docs page.
+**The rules reference lists rules the binary does not have.** `eslint/no-restricted-syntax` is documented and unimplemented; ask for it and the config fails to parse. Check a rule against the binary, not against the docs page.
 
 **Two environment requirements fail with unhelpful messages.** The `.ts` config does not load unless `package.json` has `"type": "module"`. `--type-aware` does not start unless `oxlint-tsgolint` is installed. Neither error names what is missing.
 
-> **VERIFY:** the current oxlint major and whether `defineConfig`, `categories`, `options.typeAware`, `jsPlugins` and `excludeFiles` are still the config shape; whether `eslint/no-restricted-syntax` has landed, which would make the house colour rule unnecessary; whether `oxlint-tsgolint` is still a separate package; and where oxfmt is on the road to 1.0. Everything in this file was checked against oxlint 1.80.0 and oxfmt 0.65.0. The fastest way to answer the second one is not the docs, which already list that rule: it is `firecrawl_developer_search`, or running it.
+> **VERIFY:** the current oxlint major and whether `defineConfig`, `categories`, `options.typeAware`, `jsPlugins` and `excludeFiles` are still the config shape; whether `eslint/no-restricted-syntax` has landed, which a house rule would otherwise have to write longhand; whether `oxlint-tsgolint` is still a separate package; and where oxfmt is on the road to 1.0. Everything in this file was checked against oxlint 1.80.0 and oxfmt 0.65.0. The fastest way to answer that one is not the docs, which already list that rule: it is `firecrawl_developer_search`, or running it.
 
 ### Type-aware rules earn their cost
 
@@ -110,11 +110,41 @@ The plugin is **vendored, not depended on**. The author's own instruction, and t
 
 Add the plugin directory and the agent tooling directories to `ignorePatterns`, so the linter does not lint itself.
 
+## Design system rules: @shadcn/lint
+
+`design-system.md` sets the rules: semantic tokens, never literal colours; a variant, never classes passed in from outside. Both have a syntactic signature, so both belong here. `@shadcn/lint` is the plugin that checks them, and it works on any Tailwind v4 project, not only shadcn/ui ones.
+
+What sets it apart from a regex over class names is that it **reads the design system it enforces**: `components.json`, the theme's `@theme` tokens, and the `cva` variants in each component file. So the error names the fix, not only the violation:
+
+```text
+"p-4" is not allowed on <Button>: <Button> owns its spacing. Use a size (default, sm, lg),
+or margin here or gap on the parent for space around it.
+```
+
+That message is the whole argument for it. An agent that gets "literal colour, use a token" guesses which token; one that gets the list of declared tokens, or the nearest one in OKLab, picks it. The preset enables all six rules at `error`:
+
+| Rule | Catches |
+|---|---|
+| `no-restyle` | Restyling a design-system component through `className` instead of a variant |
+| `no-raw-colors` | Palette colours (`bg-blue-500`) and tokens the theme never declared |
+| `no-arbitrary-values` | `p-[13px]` when the scale has a value; suggests it |
+| `no-inline-styles` | `style` props and `<style>` elements |
+| `no-unknown-classes` | Classes this project's Tailwind cannot generate (`rounded-huge`), by asking the installed Tailwind |
+| `require-static-classes` | `` `bg-${tone}` `` on a component: a class the linter cannot read is one nobody can check |
+
+Two options carry the policy. `allow: ["layout"]` on `no-restyle` and `no-arbitrary-values` leaves placement to the page (margin, width, grid position) and appearance to the variant. When a component legitimately needs more, a **contract** opens it for that component only, `{ pattern: "^CardTitle$", allow: ["layout", "typography"] }`, instead of loosening the rule for everything.
+
+Inside `components/ui/` the three caller-side rules (`no-restyle`, `no-arbitrary-values`, `require-static-classes`) are off, since a component styles itself and calls its own variant function. The other three stay on: a raw colour inside the Button is as wrong as one outside it.
+
+Discovery is where it breaks quietly. Without `components.json` it looks for `components/ui` and for the stylesheet that imports Tailwind; a design system somewhere else needs `settings.shadcn` on the **root** config, because oxlint does not merge `settings` from extended configs. `no-unknown-classes` also needs `tailwindcss` installed, or it falls back to a grammar check and warns. The fixture stages a `components.json`, a theme and a `cva` Button for exactly this reason.
+
+It is a dependency, not vendored: unlike anti-slop, it publishes versioned releases. It is also 0.x and a few weeks old, with open issues against `no-restyle` around custom `@utility` classes and named spacing scales. When one bites, a contract or a scoped `off` in an override is the fix, with the reason beside it.
+
+> **VERIFY:** the current `@shadcn/lint` version and rule list, whether the `allow` categories and contract shape have changed, and whether the `no-restyle` issues with `@utility` classes ([#4](https://github.com/shadcn-ui/lint/issues/4), [#18](https://github.com/shadcn-ui/lint/issues/18)) are closed. Everything here was checked against 0.2.0 on oxlint 1.80.
+
 ## House rules
 
-Between "the framework's plugin ships it" and "anti-slop covers it" there is a gap, and a project will always have one or two rules that live in it. The preset's is `house/no-literal-colors`, which enforces the semantic tokens from `design-system.md`.
-
-It is worth reading as a pattern rather than a single rule. It exists as a JS plugin because the rule it replaces, `no-restricted-syntax`, is not implemented in oxlint — and writing it out longhand turned out better than the selector it replaced: it catches template literals, which is where classes end up the moment somebody introduces a condition, and its message names the offending class.
+Between what the framework's plugin, anti-slop and `@shadcn/lint` ship there is a gap, and a project will sometimes have a rule that lives in it. It goes in `tools/oxlint/house/` as a JS plugin written with `defineRule` from `@oxlint/plugins`, the same shape as anti-slop's rules, with a fixture in `rule-tests/` that proves it fires. The preset ships none: its last one, a literal-colour check, was replaced by `no-raw-colors`, which reads the theme instead of guessing at it.
 
 When a convention you have had to explain twice keeps coming back, this is where it goes. Explaining a convention repeatedly is the signal that prose is not the right medium for it.
 
@@ -130,7 +160,7 @@ The preset inverts the test. `rule-tests/fixtures/` is code that **must** fail, 
 node tools/oxlint/rule-tests/check.mjs
 ```
 
-Run it after bumping oxlint, after re-vendoring anti-slop, and after adapting the boundary table to a project's layer names. That last one is the point: it is what distinguishes a negation that reopens a legal import from one that swallowed the whole rule.
+Run it after bumping oxlint or `@shadcn/lint`, after re-vendoring anti-slop, and after adapting the boundary table to a project's layer names. That last one is the point: it is what distinguishes a negation that reopens a legal import from one that swallowed the whole rule.
 
 Two mechanics worth knowing if you touch the checker. Oxlint honours `.gitignore` and `--no-ignore` does not override it, so the staging directory has to live outside the repo. And `jsPlugins` specifiers and `overrides` globs both resolve against the **config file's directory**, not the working directory, which is why the preset only behaves as shipped when the config sits at the project root with `tools/` beside it.
 
@@ -173,6 +203,8 @@ Both modes: the rules are only real if CI runs them. Lint failures block the mer
 | Adapting the boundary table without adapting the fixtures | The rule tests pass while testing nothing |
 | A pinned lockfile in the preset | The rule tests can never catch a toolchain change, which is their only job |
 | `anti-slop` installed as a pinned dependency | Coupled to a young package instead of owning the rules |
+| A design system outside `components/ui` with no `settings.shadcn` | Discovery finds nothing and `no-restyle` checks no component |
+| `no-restyle` loosened globally for one component | Every component loses the rule; a contract opens just that one |
 | Assertions allowed with no stated invariant | No way to tell a checked assertion from a hopeful one |
 | Expecting lint to catch missing tenant filters | Semantic bugs need tests; the linter never sees them |
 | Expecting lint to catch slop | It has no syntactic signature; that is `deslop`, on the diff |
