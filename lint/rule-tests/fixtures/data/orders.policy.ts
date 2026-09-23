@@ -2,6 +2,6 @@
 import { revalidatePath } from "next/cache";
 
 export const puedeVer = () => {
-	revalidatePath("/");
-	return true;
+  revalidatePath("/");
+  return true;
 };

@@ -82,6 +82,9 @@ const EXPECTED = [
   ["evidence.fixture.ts", "no-runtime-typeof", 1],
   ["evidence.fixture.ts", "no-conditional-empty-object-spread", 1],
 
+  // La regla type-aware: si el tsconfig del stage deja de cargar, cae esta.
+  ["async.fixture.ts", "no-floating-promises", 1],
+
   // Las tres formas en que una clase literal llega a un componente, template
   // literal incluido.
   ["colors.fixture.tsx", "no-literal-colors", 3],
@@ -123,7 +126,6 @@ try {
           module: "preserve",
           moduleResolution: "bundler",
           jsx: "preserve",
-          baseUrl: ".",
           paths: { "@/*": ["./*"] },
         },
       },

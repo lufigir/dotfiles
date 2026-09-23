@@ -14,12 +14,12 @@ export const bare = payload as User;
 
 // anti-slop/no-unknown-parameters
 export function acceptsUnknown(value: unknown) {
-	return value;
+  return value;
 }
 
 // anti-slop/no-unknown-returns + no-known-value-widening
 export function returnsUnknown(): unknown {
-	return 1;
+  return 1;
 }
 
 // anti-slop/no-unknown-type-aliases
@@ -30,7 +30,7 @@ export const dictionary: Record<string, unknown> = {};
 
 // anti-slop/no-runtime-typeof
 export function branchOnTypeof(input: string | number) {
-	return typeof input === "string" ? input : String(input);
+  return typeof input === "string" ? input : String(input);
 }
 
 // anti-slop/no-conditional-empty-object-spread
