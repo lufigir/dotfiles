@@ -3,13 +3,14 @@ import { defineConfig } from "oxlint";
 /**
  * El único linter del proyecto. No hay `eslint.config.mjs`.
  *
- * Tres familias, que fallan distinto y se configuran distinto:
+ * Cuatro familias, que fallan distinto y se configuran distinto:
  *
- *   Boundaries  ¿puede este archivo importar aquel?   -> `no-restricted-imports`
- *   Evidencia   ¿este código prueba lo que afirma?    -> el plugin `anti-slop`
- *   Framework   ¿uso el framework como funciona?      -> `nextjs`, `react`, `jsx-a11y`
+ *   Boundaries     ¿puede este archivo importar aquel?       -> `no-restricted-imports`
+ *   Evidencia      ¿este código prueba lo que afirma?        -> el plugin `anti-slop`
+ *   Design system  ¿usa los tokens y variantes que existen?  -> `@shadcn/lint`
+ *   Framework      ¿uso el framework como funciona?          -> `nextjs`, `react`, `jsx-a11y`
  *
- * Un proyecto con solo la tercera familia, que es lo que deja el CLI del framework,
+ * Un proyecto con solo la última familia, que es lo que deja el CLI del framework,
  * tiene un linter que formatea y nada que defienda la arquitectura.
  *
  * Todo a `error`. Una regla en `warn` es una regla que se viola para siempre: los
@@ -57,7 +58,8 @@ export default defineConfig({
 
   jsPlugins: [
     { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-    { name: "house", specifier: "./tools/oxlint/house/index.ts" },
+    // Dependencia, no vendorizado como anti-slop: tiene releases y semver.
+    "@shadcn/lint",
   ],
 
   rules: {
@@ -109,8 +111,24 @@ export default defineConfig({
     //   { name: "anti-slop-effect", specifier: "./tools/oxlint/anti-slop/effect/index.ts" }
     //   "anti-slop-effect/no-service-constructor-imports": "error"
 
-    // --- Design system --------------------------------------------------------
-    "house/no-literal-colors": "error",
+    // --- Design system: @shadcn/lint ------------------------------------------
+    //
+    // Lee `components.json`, el theme de Tailwind v4 y las variantes `cva` de cada
+    // componente, y cada error dice qué usar en vez de lo que se escribió: la
+    // variante, el token más cercano o el valor de la escala. No hace falta
+    // shadcn/ui; sin `components.json` busca `components/ui` y la hoja que importa
+    // Tailwind.
+    //
+    // `allow: ["layout"]` deja a la página decidir dónde va un componente (margen,
+    // ancho, grid) y a la variante decidir cómo se ve. Para abrir más en un
+    // componente concreto, un contrato: `contracts: [{ pattern: "^CardTitle$",
+    // allow: ["layout", "typography"] }]`.
+    "shadcn/no-restyle": ["error", { allow: ["layout"] }],
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-arbitrary-values": ["error", { allow: ["layout"] }],
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error",
   },
 
   overrides: [
@@ -246,9 +264,16 @@ export default defineConfig({
       // Propiedad del CLI del design system (shadcn y compañía). Editarlo
       // significa perder el cambio en la siguiente actualización, así que
       // queda exento de las reglas de este repo. Se envuelve, no se edita.
+      //
+      // Salvo tres de @shadcn/lint: un componente se estiliza a sí mismo y llama
+      // a sus propias variantes, así que las reglas de quien lo USA sobran aquí,
+      // pero un color crudo, un `style` inline o una clase que Tailwind no genera
+      // están mal también dentro del componente.
       files: ["components/ui/**"],
       rules: {
-        "house/no-literal-colors": "off",
+        "shadcn/no-restyle": "off",
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/require-static-classes": "off",
         "typescript/no-floating-promises": "off",
       },
     },

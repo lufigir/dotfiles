@@ -4,13 +4,13 @@ The executable part of the architecture. Everything else in
 `claude/skills/project-architecture/references/` is prose somebody has to remember; this
 is the part a machine remembers.
 
-One vendor: **oxc**. `oxlint` for all three rule families, `oxfmt` for formatting. No
+One vendor: **oxc**. `oxlint` for all four rule families, `oxfmt` for formatting. No
 ESLint, no Prettier, and not a half-finished migration: oxlint today has
 `no-restricted-imports`, `react/exhaustive-deps`, `react/rules-of-hooks`, the `nextjs`
 plugin and type-aware rules, which were the four remaining reasons to keep
 `eslint-config-next` alongside.
 
-## Three families, three jobs
+## Four families, four jobs
 
 Keep them separate, because they fail differently and they are configured differently.
 
@@ -18,9 +18,10 @@ Keep them separate, because they fail differently and they are configured differ
 |---|---|---|
 | **Boundaries** | May this file import that file? | Layer erosion: the page that calls the ORM, the component that imports Stripe |
 | **Evidence** | Does this code prove what it claims? | Types that look safe and are not: `as` chains, `unknown` in signatures, dictionaries of `any` |
+| **Design system** | Does this UI use the tokens and variants that exist? | `bg-blue-500`, `p-[13px]`, a `<Button className="p-4">` that bypasses its own sizes |
 | **Framework** | Am I using the framework as it works? | The rules the framework's own plugin ships, left at `warn` and ignored |
 
-A project with only the third family, which is what the framework CLI leaves you, has a
+A project with only the last family, which is what the framework CLI leaves you, has a
 linter that formats and nothing that defends the architecture.
 
 ## What is here
@@ -32,8 +33,7 @@ lint/
 ├── ci.yml                      the workflow that makes the rules bite
 ├── package.json                tool versions, and the test script
 ├── tools/oxlint/
-│   ├── anti-slop/              vendored from dmmulroy. See its VENDORED.md
-│   └── house/                  house rules: no-literal-colors
+│   └── anti-slop/              vendored from dmmulroy. See its VENDORED.md
 └── rule-tests/
     ├── check.mjs               do the rules still bite?
     └── fixtures/               code that MUST fail. The fixture is the specification
@@ -62,7 +62,7 @@ cp    <dotfiles>/lint/ci.yml           <project>/.github/workflows/ci.yml
 `npm view oxlint version`. `oxlint` and `@oxlint/plugins` must be **the same version**.
 
 ```bash
-npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt
+npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt @shadcn/lint
 ```
 
 **3. Two environment requirements that do not announce themselves.** The `.ts` config
@@ -123,6 +123,12 @@ banning module mocking) worth arguing in real code before inheriting, not oversi
 
 **anti-slop vendored, not depended on.** The author's instruction and the right call
 independently: no releases, outside semver. See `tools/oxlint/anti-slop/VENDORED.md`.
+
+**`@shadcn/lint` depended on, not vendored.** The opposite call for the opposite
+reason: it publishes versioned releases. It is 0.x, so `check.mjs` is what notices a
+release that changes a rule. The fixture stages a `components.json`, a Tailwind v4
+theme and a `cva` Button beside it, because the rules read all three; `tailwindcss`
+is a dev dependency here only so `no-unknown-classes` can ask it which classes exist.
 
 **No lockfile here.** Deliberate. `npm install` takes the latest within the range, and
 `check.mjs` reports when a new oxlint drops a rule. A frozen lockfile would turn this

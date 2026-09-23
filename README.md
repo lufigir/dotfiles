@@ -14,8 +14,8 @@ links each config where that system expects it.
 - `claude/skills/` — personal Claude Code skills (see the opt-in model below)
 - `zed/settings.json` — Zed editor settings (theme, fonts, LSP, agent)
 - `lint/` — the lint preset that every project copies: oxlint with the boundary,
-  evidence and framework families, oxfmt for formatting, `anti-slop` vendored, the
-  house rules, a CI workflow, and `rule-tests/`, which asserts the rules still bite.
+  evidence, design-system (`@shadcn/lint`) and framework families, oxfmt for
+  formatting, `anti-slop` vendored, a CI workflow, and `rule-tests/`, which asserts the rules still bite.
   One vendor (oxc), no ESLint, no Prettier. See `lint/README.md`; the reasoning lives
   in `project-architecture`'s `lint-guardrails.md` reference
 - `zed/extensions.md` — reference list of installed extensions (manual install, see note below)

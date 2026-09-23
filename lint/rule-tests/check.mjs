@@ -85,9 +85,15 @@ const EXPECTED = [
   // La regla type-aware: si el tsconfig del stage deja de cargar, cae esta.
   ["async.fixture.ts", "no-floating-promises", 1],
 
-  // Las tres formas en que una clase literal llega a un componente, template
-  // literal incluido.
-  ["colors.fixture.tsx", "no-literal-colors", 3],
+  // Design system: cada regla de @shadcn/lint contra el theme y el Button de
+  // `fixtures/`. Si falta `components.json` o el theme no carga, varias caen a
+  // la vez, que es la señal de que la discovery se rompió y no una regla.
+  ["design-system.fixture.tsx", "no-raw-colors", 1],
+  ["design-system.fixture.tsx", "no-restyle", 1],
+  ["design-system.fixture.tsx", "no-arbitrary-values", 1],
+  ["design-system.fixture.tsx", "no-inline-styles", 1],
+  ["design-system.fixture.tsx", "no-unknown-classes", 1],
+  ["design-system.fixture.tsx", "require-static-classes", 1],
 
   // La frontera, y la policy que no puede tocar el framework.
   ["boundaries.fixture.ts", "no-restricted-imports", 1],
