@@ -66,7 +66,7 @@ A good comment says **why**, or names an invariant, or warns about something non
 | `over-eng-useless-wrapper` | A function called once that only forwards its arguments |
 | `over-eng-dependency-creep` | A new package for something the existing dependencies already do |
 
-This category is the one to check against the repo, not against taste. `codebase-design`'s deletion test settles most of it: if deleting this layer and inlining it makes the codebase smaller and no harder to read, the layer is slop. `over-eng-dependency-creep` needs the actual `package.json` open, since "the project already has this" is a fact, not an opinion.
+This category is the one to check against the repo, not against taste. The deletion test settles most of it: if deleting this layer and inlining it makes the codebase smaller and no harder to read, the layer is slop. `over-eng-dependency-creep` needs the actual `package.json` open, since "the project already has this" is a fact, not an opinion.
 
 ### Defensive overdose (high)
 
@@ -89,7 +89,7 @@ A `try/catch` earns its place when the catch does something a caller could not: 
 | `test-mirror-implementation` | The test recomputes the expected value the same way the code does |
 | `test-snapshot-abuse` | A snapshot standing in for an assertion about behaviour |
 
-Keep this category whole, and weight it. A suite full of these is worse than no suite: it is red when you refactor and green when you break the product, so it trains everyone to distrust it. The `tdd` skill has the long version, including why a real seam beats a mock.
+Keep this category whole, and weight it. A suite full of these is worse than no suite: it is red when you refactor and green when you break the product, so it trains everyone to distrust it.
 
 ### Style fingerprints (medium)
 
@@ -135,4 +135,4 @@ The bands are a communication device, not a gate. A single `test-mock-everything
 
 **Do not expand scope.** Adjacent code that is old and ugly is not this branch's problem. Mention it in one line; do not touch it.
 
-**One pass, not a rewrite.** `thermo-nuclear`-style restructuring is a different job and belongs to `/improve-codebase-architecture`. This skill removes what should not be there. It does not redesign what is.
+**One pass, not a rewrite.** `thermo-nuclear`-style restructuring is a different job. This skill removes what should not be there. It does not redesign what is.

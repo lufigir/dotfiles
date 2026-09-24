@@ -97,9 +97,8 @@ export default defineConfig({
     //                                          Correcta casi siempre; choca con
     //                                          firmas de librerías que lo piden.
     //   "anti-slop/no-module-mocking"          prohíbe mockear módulos en Vitest o
-    //                                          Jest y exige seams reales. Es la
-    //                                          misma postura que la skill `tdd`;
-    //                                          enciéndela cuando haya tests.
+    //                                          Jest y exige seams reales.
+    //                                          Enciéndela cuando haya tests.
     //   "anti-slop/no-reflect-get"             `Reflect.get` en vez de acceso tipado.
     //   "anti-slop/no-reflect-apply"           `Reflect.apply` en vez de llamada tipada.
     //   "anti-slop/no-shape-in-symbol-names"   prohíbe "shape" en nombres. Muy

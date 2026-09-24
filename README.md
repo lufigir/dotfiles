@@ -46,8 +46,6 @@ symlink into this repo, and the plugin is read-only — the descriptions need ed
 **Auto-invoked** (they fire on their own when the context matches):
 
 - `grilling` — the relentless interview: asks the whole *frontier* of unblocked questions per round, numbered, each with a recommended answer, and dispatches sub-agents to look up facts instead of asking. This is what replaced `superpowers:brainstorming`.
-- `tdd` — red→green loop, seams, and the test anti-patterns worth naming
-- `codebase-design` — the deep-module vocabulary (module, interface, depth, seam, adapter, leverage, locality) and the deletion test
 - `diagnosing-bugs` — diagnosis loop for hard bugs, starting from a failing repro
 - `writing-for-agents` — how to write skills, `CLAUDE.md` and `AGENTS.md`
 
@@ -55,16 +53,14 @@ symlink into this repo, and the plugin is read-only — the descriptions need ed
 verbs you trigger, not criteria that fire on their own):
 
 - `/grill-me` — one-line alias that runs a `grilling` session
-- `/improve-codebase-architecture` — scans git history for hot spots, applies the deletion test, and emits a visual HTML report of deepening opportunities to the temp dir
 
-**Local modifications** — only the `description` frontmatter, plus one line in `tdd`:
+**Local modifications** — only the `description` frontmatter:
 
 - Each description gained **Spanish trigger phrases**. Upstream only lists English ones, and `claude/settings.json` sets `"language": "Español"`, so a prompt like *"no funciona el login"* or *"vamos a armar el dashboard"* would never have matched.
 - `grilling`'s description also carries the "MUST use before any creative work" framing that made `superpowers:brainstorming` fire reliably.
-- `tdd`'s refactoring line points at Claude Code's built-in `/code-review` instead of Pocock's `code-review` skill, which isn't vendored (the built-in is stronger: multi-agent cloud review, `--fix`, inline PR comments) and would have collided on name.
 
 **Deliberately not vendored:** `research` (would bypass the Executor rule in `CLAUDE.md`),
-`code-review` (name collision, see above), `setup-matt-pocock-skills` (writes its own repo
+`code-review` (collides with Claude Code's built-in `/code-review`), `setup-matt-pocock-skills` (writes its own repo
 context file, which `AGENTS.md` already is), the `to-spec`/`to-tickets`/`implement`
 pipeline, and the human-facing set (`teach`, `triage`, `wizard`, `wayfinder`, `handoff`, `wait-what`, `prototype`).
 
@@ -79,13 +75,15 @@ times:
   reads `AGENTS.md`.
 - `resolving-merge-conflicts` never fired because the scenario does not arise: work is solo
   and `commit-and-push` lands everything on `main`.
+- `tdd`, `codebase-design` and `/improve-codebase-architecture` were dropped in a second
+  count: zero invocations over 28 sessions (2026-09-13 to 2026-09-24), even after
+  `project-architecture` started routing into the first two.
 
 The same count explained the rest. `mcp-integrations` (13 invocations), `grilling` (11) and
 `commit-and-push` (9) are the only ones with real usage, and the only ones with a **routing
 mechanism**: the first is named in `CLAUDE.md`, the second carries a "MUST use before any
 creative work" framing, the third is a verb you type. The others were islands — nothing
-pointed at them. `project-architecture` now routes into `tdd`, `codebase-design` and
-`diagnosing-bugs` at the moments they apply, which is the fix: a good skill nothing reaches
+pointed at them. `project-architecture` now routes into `diagnosing-bugs` at the moment it applies, which is the fix: a good skill nothing reaches
 is a skill that does not exist.
 
 **Updating:** there's no auto-update — re-copy from upstream and re-apply the description
