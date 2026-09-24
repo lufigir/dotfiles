@@ -29,7 +29,8 @@ links each config where that system expects it.
 - `deslop` — taste-level review of a branch's diff for the patterns that mark AI-written
   code: narrated comments, placeholder names, wrappers around one call, defensive
   catches that swallow, tests that mock everything. Twenty-four rules in six categories,
-  with a verdict band. Slash-only (`/deslop`), and deliberately the complement of the
+  with a verdict band. Runs inside `commit-and-push` on every diff that touches code
+  (safe fixes applied, the rest reported) and on demand as `/deslop`. Deliberately the complement of the
   linter rather than an overlap: lint owns the rules with a syntactic shape, this owns
   the ones with only a smell
 

@@ -13,19 +13,26 @@ can understand *what* changed and *why* without reading the diff.
 1. **Review first.** Run `git status` and `git diff` (and `git diff --staged`
    if something is already staged). Understand the change before writing about
    it. Never commit secrets, `.env` values, tokens, or unrelated debug output.
-2. **Group by intent.** Unrelated changes become **separate commits**, each
+2. **Deslop the code.** If the diff touches source code, read
+   `../deslop/SKILL.md` (next to this skill's folder) and run its procedure on
+   the uncommitted diff (`git diff HEAD` plus untracked files) instead of
+   `main...HEAD`. Apply its fixes, leave the findings its guardrails call
+   arguable in the report, and give the verdict in one line before committing. Done when
+   every category has been walked and the fixes are in the working tree. A
+   diff of only docs, config or skill prose goes straight to step 3.
+3. **Group by intent.** Unrelated changes become **separate commits**, each
    with the type/scope that fits it — not one mixed commit.
-3. **Version bump (web only).** If it's a web project, bump the version in
+4. **Version bump (web only).** If it's a web project, bump the version in
    `package.json` according to the change (patch/minor/major). Skip for
    non-web repos.
-4. **Stage and commit** each group following the message convention below.
+5. **Stage and commit** each group following the message convention below.
    Written in **English**. Never use `Co-Authored-By: Claude` or
    `git commit --amend`.
-5. **Land on main:**
+6. **Land on main:**
    - Already on `main` (or `master`) → push.
    - On another branch → integrate into main and clean up (see *Branch
      handling*).
-6. **If push is rejected** because the remote is ahead: `git pull --rebase`,
+7. **If push is rejected** because the remote is ahead: `git pull --rebase`,
    resolve if needed, then push again.
 
 ## Branch handling
