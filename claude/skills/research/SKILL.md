@@ -7,7 +7,8 @@ description: >
   task needs finding something out before answering or building: comparing tools or options,
   checking a claim, a state of the art or literature review, references for a paper, thesis or
   course deliverable, recent studies, prior art and patents, technical standards, market or
-  industry evidence, Colombian data or regulation. Spanish triggers: "investiga", "investigar",
+  industry evidence, Colombian data or regulation, or what a notebook of sources says (Firecrawl,
+  NotebookLM and the library, and when each fits). Spanish triggers: "investiga", "investigar",
   "averigua", "busca información", "compara", "estado del arte", "revisión de literatura",
   "antecedentes", "busca artículos", "busca papers", "referencias", "Scopus", "biblioteca",
   "patentes", "normas técnicas".
@@ -28,10 +29,44 @@ answers it and others that only look like they do.
 | Open scientific literature (arXiv, PubMed, bioRxiv) | `firecrawl_research_*` |
 | Indexed literature: journals, conferences, citation counts, quartiles | **Scopus in Brave** (below) |
 | Theses, Latin American journals, patents, standards, Colombian data and regulation | The matching UNAL base, from [`references/bases-unal.md`](references/bases-unal.md) |
+| What a known set of sources says: a course's notes and recordings, a project's documents, the papers already chosen | NotebookLM `notebook_query` on the notebook that holds them |
+| A quick first map of a topic, to import as sources | NotebookLM `research_start` (`fast` ~10 sources, `deep` ~40), then `research_import` |
 
 A question often spans several rows: a technology choice for a project wants the web for the
 options, `developer_search` for their failure modes, and Scopus when the choice has been studied.
 The answer names its sources and says which rows were not searched.
+
+## Three tools, three jobs
+
+The three research surfaces are complements, and each is best at one job:
+
+- **UNAL library** (Brave): *finding and vouching*. It decides which scholarly works exist on a
+  question, how cited they are and whether their journal counts, and it opens paywalled full
+  text. What it finds is authoritative; reaching it costs a live session and human-scale use.
+- **Firecrawl**: *reading and reaching the open world*. Web pages, open papers, PDFs, developer
+  reality, long syntheses. Fast and scriptable, but its scholarly index stops at arXiv and PubMed.
+- **NotebookLM**: *holding a corpus and answering from it*. Once the sources are chosen, a
+  notebook answers questions grounded in exactly those sources, with citations, and turns them
+  into study material (audio, slides). Its own discovery (`research_start`) is a web search, so
+  a scholarly claim found there is still verified in Scopus.
+
+They chain in that order when the work is substantial:
+
+1. **Discover** in Scopus (and the base that fits), screen, and keep the list in the review
+   matrix.
+2. **Read** open works with Firecrawl and paywalled ones in Brave; fill the matrix from what
+   the sources say.
+3. **Hold** the corpus in NotebookLM when it will be queried again over weeks (a thesis, a
+   course, a long project): add the open-access papers by URL, the user's own documents and
+   notes, and the matrix itself as text. Licensed PDFs stay out of it, because they are licensed
+   for reading, not for feeding to another AI service; their abstract and your matrix row carry
+   what the notebook needs.
+
+A notebook already made for the work comes first: for a course or a project with one (its
+`README` or the repo's docs name it), query it before searching outward, because what was said in
+class or decided in the project outranks the general literature for that work. The NotebookLM
+MCP is off by default (`/mcp` to switch it on), so ask the user to enable it when a step needs
+it.
 
 ## Scholarly sources through the UNAL library
 
