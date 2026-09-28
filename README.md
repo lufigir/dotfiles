@@ -25,6 +25,7 @@ links each config where that system expects it.
 - `commit-and-push` — git add + version bump + commit + push
 - `mcp-integrations` — Notion, Context7, Supabase, Vercel through Executor (Notion and Supabase have 2 accounts each: `felipegiraldo` and `centrodeprototipado`)
 - `project-architecture` — two modes: bootstrap a new project with a layered architecture, and answer architecture questions mid-build against the repo's own `AGENTS.md`; 12 references (layers, routing, DAL, schema and migrations, multi-tenancy, API contracts, async work, uploads, security, performance, operations, design system) whose version-specific claims are always verified against the live docs
+- `research` — the entry point for research of any kind: a table that sends each kind of question to its source (Context7, Firecrawl's tools, or the UNAL library), and the route to scholarly literature through the UNAL subscriptions (Scopus, Web of Science and ~130 more) in the personal Brave via the `brave` MCP. `references/bases-unal.md` maps questions to bases (full text by field, Latin America, theses, patents, standards, Colombian data); `references/literature-review.md` carries the review method (search equations, recency window, review matrix, gap wording, citation checks). Always on, and routed from `CLAUDE.md`
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
 - `deslop` — taste-level review of a branch's diff for the patterns that mark AI-written
   code: narrated comments, placeholder names, wrappers around one call, defensive
@@ -60,7 +61,7 @@ verbs you trigger, not criteria that fire on their own):
 - Each description gained **Spanish trigger phrases**. Upstream only lists English ones, and `claude/settings.json` sets `"language": "Español"`, so a prompt like *"no funciona el login"* or *"vamos a armar el dashboard"* would never have matched.
 - `grilling`'s description also carries the "MUST use before any creative work" framing that made `superpowers:brainstorming` fire reliably.
 
-**Deliberately not vendored:** `research` (would bypass the Executor rule in `CLAUDE.md`),
+**Deliberately not vendored:** Pocock's `research` (would bypass the Executor rule in `CLAUDE.md`; the personal `research` skill above is a different one),
 `code-review` (collides with Claude Code's built-in `/code-review`), `setup-matt-pocock-skills` (writes its own repo
 context file, which `AGENTS.md` already is), the `to-spec`/`to-tickets`/`implement`
 pipeline, and the human-facing set (`teach`, `triage`, `wizard`, `wayfinder`, `handoff`, `wait-what`, `prototype`).
@@ -151,13 +152,14 @@ hand from the editor (`Ctrl+Shift+X` or the `zed: extensions` command palette).
 
 ## MCP and plugins
 
-Three MCP servers are part of the baseline. None of them lives in the repo (they're registered in `~/.claude.json`, which isn't symlinkable) — the `claude` component of `install.ps1` adds all three with `claude mcp add`.
+Four MCP servers are part of the baseline. None of them lives in the repo (they're registered in `~/.claude.json`, which isn't symlinkable) — the `claude` component of `install.ps1` adds all four with `claude mcp add`.
 
 - **Executor** (`mcp__executor__execute`) — all external integrations (Notion, Context7, Supabase, Vercel) go through this single MCP server hosted at executor.sh, which centralizes connections and supports multiple accounts per integration (2 Notion workspaces, 2 Supabase organizations, etc.). Connections themselves are managed in the Executor dashboard, not in this repo. The first time, authorize it with `/mcp`.
 - **Chrome DevTools** (`mcp__chrome-devtools__*`) — browser automation and debugging: navigate, click/fill, snapshots and screenshots, console and network inspection, performance traces. Runs locally over stdio (`npx -y chrome-devtools-mcp@latest`, needs **Node 22+** and Google Chrome) and drives its **own dedicated Chrome profile**, so it never touches the personal one. The profile persists, so any sign-in only has to happen once. This replaces the Claude in Chrome extension.
+- **Brave** (`mcp__brave__*`) — the same `chrome-devtools-mcp`, attached to the **personal Brave** instead of a dedicated profile (`--auto-connect --user-data-dir <Brave's User Data>`, path chosen per OS by the installer). It exists for the sign-ins the isolated Chrome can't complete, above all the UNAL library proxy, and the `research` skill is what drives it. Needs Chromium 144+ and **Remote Debugging** switched on at `brave://inspect/#remote-debugging`; Brave asks to allow the first connection. It acts in the real browser with every open session, so it works in tabs it opens and leaves the user's own alone.
 - **NotebookLM** (`mcp__notebooklm-mcp__*`) — NotebookLM notebooks as a long-context knowledge system: query a notebook (`notebook_query`), add sources (`source_add`), generate/download studio content, share, etc. Runs locally over stdio from PyPI (`uvx --from notebooklm-mcp-cli notebooklm-mcp`, needs [uv](https://docs.astral.sh/uv/): `winget install astral-sh.uv`, `brew install uv`, or `curl -LsSf https://astral.sh/uv/install.sh | sh`), so nothing is installed permanently. Auth is **cookie-based per Google account**: run `uvx --from notebooklm-mcp-cli nlm login` once (it opens a browser). It exposes ~43 tools, so keep it **toggled off with `/mcp`** unless the project actually uses a notebook. It uses undocumented internal APIs, so it can break without notice.
 - **Plugins:** only **`skill-creator`** is used. Plugins don't live in the repo (they're installed from the Claude Code store); `install.ps1` runs `claude plugin install skill-creator@claude-plugins-official`. **`superpowers` was dropped** — its skill set is replaced by the vendored Matt Pocock skills below, which cover the same ground in a fraction of the words and don't force a fixed idea→ship pipeline.
-- **Cleanup:** at the end, `install.ps1` leaves Claude on this exact baseline. It detects whatever's extra on the other PC (plugins ≠ skill-creator, MCP ≠ executor/chrome-devtools/notebooklm-mcp, loose skills in `~/.claude/skills`, and unmanaged `rules`/`settings.local.json`), shows the plan, and asks for **one single confirmation** (default No) before deleting. If there's nothing outside the baseline, it doesn't ask.
+- **Cleanup:** at the end, `install.ps1` leaves Claude on this exact baseline. It detects whatever's extra on the other PC (plugins ≠ skill-creator, MCP ≠ executor/chrome-devtools/brave/notebooklm-mcp, loose skills in `~/.claude/skills`, and unmanaged `rules`/`settings.local.json`), shows the plan, and asks for **one single confirmation** (default No) before deleting. If there's nothing outside the baseline, it doesn't ask.
 
 ## Installing on a new machine
 
