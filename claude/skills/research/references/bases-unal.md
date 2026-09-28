@@ -6,9 +6,9 @@ other field too (health, law, agriculture, arts, sciences). Each entry opens fro
 proxy. The catalog is the source of truth: when a question falls outside these lists, look there
 before concluding the library has nothing.
 
-Access verified: Scopus through `scopus.unalproxy.elogim.com` (2026-09-27). The rest are listed
-by the catalog and have not been opened yet; note here any that turns out to need something
-different.
+Access verified 2026-09-27: Scopus and IEEE Xplore through the proxy; ACM DL, SciELO and Redalyc
+open. The rest are listed by the catalog and have not been opened yet; note in
+[Driving the bases](#driving-the-bases) any that turns out to need something different.
 
 ## Discover and measure
 
@@ -31,8 +31,8 @@ different.
 | Broad or cross-field | **Academic Search Ultimate**, **Annual Reviews** (reviews that map a field fast), **JSTOR**, **Cambridge**, **Oxford Academic**, **Nature** |
 | Research design and methods | **Sage Research Methods**: guides to designs, sampling, instruments and analysis, quantitative and qualitative |
 
-The ACM Digital Library is not in the catalog. For an ACM paper, take its record from Scopus and
-look for an open copy (arXiv, the author's page) with Firecrawl.
+The **ACM Digital Library** is not in the catalog and needs no proxy: since 2026-01-01 its whole
+corpus is open access (`https://dl.acm.org`), so its papers read with Firecrawl.
 
 ## Latin America and Colombia
 
@@ -71,3 +71,25 @@ through their own APIs.
 - **Zotero**, **Mendeley**, **EndNote Online**: reference managers. They take the RIS export
   straight from Scopus or WoS.
 - **Journal Finder (Elsevier, DOAJ)**, **JCR**: choosing where to publish.
+
+## Driving the bases
+
+Scopus is in `SKILL.md`. For the others, what worked on 2026-09-27:
+
+- **IEEE Xplore** (Brave, proxy):
+  `https://ieeexplore.unalproxy.elogim.com/search/searchresult.jsp?queryText=<query>&ranges=2019_2026_Year&sortType=paper-citations&rowsPerPage=50`.
+  Field syntax is `"Abstract":term`, `"Document Title":term`, with `AND`/`OR` and `*`. Results
+  render as `xpl-results-item` elements, each appearing twice in the DOM; the count is in the
+  "Showing 1-N of M results" line.
+- **ACM DL** (open, Firecrawl `firecrawl_scrape` to markdown):
+  `https://dl.acm.org/action/doSearch?AllField=<query>&AfterYear=2019&sortBy=cited&pageSize=50`.
+  Field syntax is `Title:(…)`, `Abstract:(…)`. Titles come as markdown links to
+  `https://dl.acm.org/doi/<DOI>`, so the DOI comes with the hit. The Basic edition greys out the
+  filters; recall is lower than Scopus for the same concepts, so it serves to confirm coverage and
+  collect DOIs more than to discover.
+- **SciELO** (Brave; Firecrawl gets only the facets):
+  `https://search.scielo.org/?q=<query>&lang=es&count=50&from=0&output=site&format=summary&page=1`.
+  Boolean operators work. Each hit is a `.item` element with the journal in `.source`.
+- **Redalyc** (Brave): `https://www.redalyc.org/busquedaArticuloFiltros.oa?q=<words>` searches
+  full text with no operators, so a topic query returns hundreds of thousands of hits. It serves
+  to find a known title or a Colombian journal, not to screen a topic.

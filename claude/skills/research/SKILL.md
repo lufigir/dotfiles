@@ -16,10 +16,28 @@ description: >
 
 # Research
 
-Research starts by naming what kind of question it is, because each kind has a source that
-answers it and others that only look like they do.
+The user works across university, a job and personal projects, and research serves all three.
+You choose the sources yourself: the user sees the plan, not a menu. Research runs in three steps.
 
-| The question | Go to |
+## 1. Plan
+
+1. **Find the work's corpus.** A project, course or thesis often already holds sources: a
+   NotebookLM notebook named in its `README` or notes, a `referencias.md`, docs, ADRs, earlier
+   research notes. Read or query it first, because what was decided or said in class for that
+   work outranks the general literature, and it tells you what is already known so the search
+   adds rather than repeats.
+2. **Split the question into angles** (the options, their failure modes, the evidence, the local
+   context…) and give each angle the source that answers it, from the routing table below.
+3. **Set the depth by stakes**, from the depth table.
+4. **Announce the plan** in two or three lines (angle → source, and the rows left out with the
+   reason) and start at once; the user corrects course while you work.
+
+**Done:** every angle has a source, the corpus was checked or found absent, and the plan names
+what it leaves out.
+
+### Routing
+
+| The angle | Go to |
 |---|---|
 | How a library, API or framework is used, in the installed version | Context7, through Executor |
 | Whether it actually works: bugs, regressions, what people found | `firecrawl_developer_search` |
@@ -27,84 +45,94 @@ answers it and others that only look like they do.
 | A synthesis across many sites that can wait minutes | `firecrawl_agent` |
 | What a PDF or document says | `firecrawl_parse` (open or user-supplied files only) |
 | Open scientific literature (arXiv, PubMed, bioRxiv) | `firecrawl_research_*` |
-| Indexed literature: journals, conferences, citation counts, quartiles | **Scopus in Brave** (below) |
-| Theses, Latin American journals, patents, standards, Colombian data and regulation | The matching UNAL base, from [`references/bases-unal.md`](references/bases-unal.md) |
-| What a known set of sources says: a course's notes and recordings, a project's documents, the papers already chosen | NotebookLM `notebook_query` on the notebook that holds them |
+| Indexed literature: journals, conferences, citation counts, quartiles | Scopus in Brave, then **follow the venues** (below) |
+| Computing papers (ACM, IEEE conferences and journals) | ACM Digital Library (open access since 2026-01-01) and IEEE Xplore through the proxy |
+| Latin American or Spanish-language literature, a contextual gap | SciELO, Redalyc, Dialnet, LA Referencia |
+| Theses, patents, standards, Colombian data and regulation | The matching base in [`references/bases-unal.md`](references/bases-unal.md) |
+| What a known set of sources says | NotebookLM `notebook_query` on the notebook that holds them |
 | A quick first map of a topic, to import as sources | NotebookLM `research_start` (`fast` ~10 sources, `deep` ~40), then `research_import` |
 
-A question often spans several rows: a technology choice for a project wants the web for the
-options, `developer_search` for their failure modes, and Scopus when the choice has been studied.
-The answer names its sources and says which rows were not searched.
+Firecrawl and Context7 run through Executor (`mcp__executor__execute`); the `mcp-integrations`
+skill says which account to use. NotebookLM is its own MCP (`mcp__notebooklm-mcp__*`); when its
+tools are missing, ask the user to enable it with `/mcp`.
 
-## Three tools, three jobs
+**Follow the venues.** An index answers "what exists"; the venues answer "where this field
+talks". After the first Scopus run, open the *Source title* filter: the conferences and journals
+that dominate are the field's venues. Search each one's own library (ACM DL, IEEE Xplore,
+Springer, the society's site), because a venue's library holds work the index misses and the
+full text the index lacks. Add SciELO or Redalyc whenever the claim is about Latin America,
+Colombia, or work published in Spanish or Portuguese.
 
-The three research surfaces are complements, and each is best at one job:
+### Depth
 
-- **UNAL library** (Brave): *finding and vouching*. It decides which scholarly works exist on a
-  question, how cited they are and whether their journal counts, and it opens paywalled full
-  text. What it finds is authoritative; reaching it costs a live session and human-scale use.
+| Stakes | Coverage |
+|---|---|
+| A quick answer, for the user alone | One source per angle: the one that answers it |
+| A decision: a tool, an architecture, a purchase, a plan at work | The web for the options, `developer_search` for their failure modes, scholarly work when the choice has been studied; two independent sources behind every decisive claim |
+| A deliverable others judge: thesis, paper, proposal, report, a document for the team | The corpus first; an index plus the field's venue libraries, plus the regional bases when the context matters; the full text of every work the argument rests on; [`references/literature-review.md`](references/literature-review.md) |
+
+## 2. Search and read
+
+The three surfaces are complements, each best at one job:
+
+- **UNAL library** (Brave): *finding and vouching*. It decides which scholarly works exist, how
+  cited they are and whether their journal counts, and it opens paywalled full text.
 - **Firecrawl**: *reading and reaching the open world*. Web pages, open papers, PDFs, developer
-  reality, long syntheses. Fast and scriptable, but its scholarly index stops at arXiv and PubMed.
-- **NotebookLM**: *holding a corpus and answering from it*. Once the sources are chosen, a
-  notebook answers questions grounded in exactly those sources, with citations, and turns them
-  into study material (audio, slides). Its own discovery (`research_start`) is a web search, so
-  a scholarly claim found there is still verified in Scopus.
+  reality, long syntheses. Its scholarly index stops at arXiv and PubMed.
+- **NotebookLM**: *holding a corpus and answering from it*, with citations. Its own discovery
+  (`research_start`) is a web search, so a scholarly claim found there is still verified in the
+  index.
 
-They chain in that order when the work is substantial:
+For substantial work they chain: **discover** in the index and the venue libraries, **read**
+open works with Firecrawl and paywalled ones in Brave, **hold** the corpus in NotebookLM when it
+will be queried again over weeks (open-access papers by URL, the user's documents, the review
+matrix as text). Licensed PDFs stay out of NotebookLM and every other service: they are licensed
+for reading, and their abstract and matrix row carry what the notebook needs.
 
-1. **Discover** in Scopus (and the base that fits), screen, and keep the list in the review
-   matrix.
-2. **Read** open works with Firecrawl and paywalled ones in Brave; fill the matrix from what
-   the sources say.
-3. **Hold** the corpus in NotebookLM when it will be queried again over weeks (a thesis, a
-   course, a long project): add the open-access papers by URL, the user's own documents and
-   notes, and the matrix itself as text. Licensed PDFs stay out of it, because they are licensed
-   for reading, not for feeding to another AI service; their abstract and your matrix row carry
-   what the notebook needs.
+A finding rests on what you read. An abstract supports "this work exists and studies X"; a claim
+about a work's method or result needs its full text.
 
-A notebook already made for the work comes first: for a course or a project with one (its
-`README` or the repo's docs name it), query it before searching outward, because what was said in
-class or decided in the project outranks the general literature for that work. The NotebookLM
-MCP is off by default (`/mcp` to switch it on), so ask the user to enable it when a step needs
-it.
+**Done:** every angle in the plan was searched at its depth, and every work the answer leans on
+was read at the level its claim needs.
 
-## Scholarly sources through the UNAL library
+## 3. Report
 
-The user is a UNAL student, so the library's subscriptions are theirs to use, and the `brave`
-MCP (`mcp__brave__*`) drives their real Brave, where they are already signed in. In information
-systems, management and government, `firecrawl_research_*` misses most journals, while Scopus
-finds them. Scholarly work is three moves:
+Name the sources used per angle, the rows left out and why, and what remains open (unread full
+texts, unsearched bases). When the work has a notes or references file, the findings and the
+search log go there, so the next session starts from them.
 
-| Move | Tool | Why |
-|---|---|---|
-| **Discover** | Scopus in Brave; Web of Science when Scopus is thin | Widest indexed coverage, citation counts, filters by year, type and area |
-| **Read** | Open access: Firecrawl (`research_read_paper`, `scrape`, `parse`). Paywalled: the article page in Brave through the proxy | Licensed full text stays inside the licensed session |
-| **Verify** | The Scopus record, the DOI, and Scimago or JCR for the journal's quartile | A reference is real, indexed and says what you cite it for |
+## The UNAL library in Brave
+
+The user is a UNAL student, and the `brave` MCP (`mcp__brave__*`) drives their real Brave, where
+they are already signed in.
 
 ### Access
 
-- Start with `list_pages`: it shows the user's tabs and whether a proxied base is already
-  open. Work in a tab you open with `new_page`, and leave the user's tabs as they are.
-- Subscribed bases live behind the proxy, rewritten under `*.unalproxy.elogim.com`
-  (Scopus is `https://scopus.unalproxy.elogim.com`). The catalog with each base's entry link is
-  `https://bases.unal.edu.co`; a single article opens through
-  `http://ezproxy.unal.edu.co/login?url=<article URL>`.
+- Start with `list_pages`, then work in a tab you open with `new_page`; the user's tabs stay as
+  they are.
+- Subscribed bases live behind the proxy: the original host plus `.unalproxy.elogim.com`, dots
+  kept (`scopus.unalproxy.elogim.com`, `ieeexplore.unalproxy.elogim.com`,
+  `webofscience.unalproxy.elogim.com`), and any path on the original site works on the proxied
+  host. The catalog `https://bases.unal.edu.co` lists each base's entry link; read it there when
+  a host is unknown. The `ezproxy.unal.edu.co/login?url=` form returns 404.
+- How to drive each base (URLs, result selectors, quirks) is in
+  [`references/bases-unal.md`](references/bases-unal.md#driving-the-bases).
 - A login page means the session expired: ask the user to sign in in Brave, then continue.
   Credentials stay with the user.
 - No `mcp__brave__*` tools means Remote Debugging is off: tell the user to switch it on at
   `brave://inspect/#remote-debugging` and restart Claude Code. Until then, research with
-  Firecrawl only and say which indexes that leaves out.
+  Firecrawl and the open libraries (ACM DL, SciELO, OpenAlex), and say which indexes that leaves
+  out.
 
 ### Licensed use
 
 Elsevier and the other publishers reserve text and data mining and AI training. Work the way a
-person at the keyboard does: run a search, read the result list and the records the task
-needs, open the papers you will actually read. When a task needs hundreds of records (a
-systematic review, a bibliometric map), the user runs Scopus's **Export** (CSV or RIS) and hands
-you the file. Licensed PDFs are read in Brave, never uploaded to Firecrawl, NotebookLM or any
-other service.
+person at the keyboard does: run a search, read the result list and the records the task needs,
+open the papers you will actually read. When a task needs hundreds of records (a systematic
+review, a bibliometric map), the user runs the base's **Export** (CSV or RIS) and hands you the
+file.
 
-### Discover in Scopus
+### Scopus
 
 Advanced search takes field codes, which make a search reproducible:
 
@@ -113,15 +141,18 @@ TITLE-ABS-KEY(("technical debt" OR "code smell*") AND ("large language model*" O
 AND PUBYEAR > 2020 AND (LIMIT-TO(DOCTYPE, "ar") OR LIMIT-TO(DOCTYPE, "cp"))
 ```
 
-- Aim for a result set you can screen (50–250). Widen with synonyms joined by `OR` inside a
-  concept; narrow with another concept joined by `AND`, a year range or a subject area.
-- Sort by **Cited by** to find the foundations, by **Date** to find the current work.
-- For each keeper, record authors, year, title, source, DOI and citation count straight from
-  the record, so the reference list is built from what the index says.
+- Aim for a set you can screen (50–250). Widen with synonyms joined by `OR` inside a concept;
+  narrow with another concept, a year range, a subject area or `AFFILCOUNTRY(...)`.
+- Sort by citations for the foundations, by date for the current work.
+- Record authors, year, title, source, DOI and citation count from the record itself.
 
-## Literature reviews
+Driving it from Brave:
 
-When the output is a state of the art or a reference list (a paper, a thesis, a project
-proposal, a report, a decision document), follow [`references/literature-review.md`](references/literature-review.md): search
-equations, the recency window, the review matrix, how to state a knowledge gap, and the checks
-every citation passes.
+- `https://scopus.unalproxy.elogim.com/results/results.uri?sort=cp-f&src=s&sot=a&s=<URL-encoded query>`
+  runs an advanced search directly (`sort=cp-f` by citations, `plf-f` newest first).
+- The list renders after navigation: wait until `table tbody tr` has rows. Each result is a row of
+  six cells (number, title, authors, source, year, citations).
+- The page offset persists across searches in a session. After paging, go back with the `1`
+  button inside the pagination control; `offset` in the URL is ignored.
+- The **Show all abstracts** button expands every abstract on the page, which is how to screen ten
+  results in one read.
