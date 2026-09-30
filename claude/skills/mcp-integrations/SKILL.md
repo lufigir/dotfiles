@@ -1,6 +1,6 @@
 ---
 name: mcp-integrations
-description: Use whenever the task involves an external integration connected through Executor — Notion, Context7, Supabase, Vercel, or any other MCP surfaced by mcp__executor__execute. Ensures these are always accessed through Executor instead of a direct MCP server, the public API, or the CLI.
+description: Use whenever the task involves an external integration connected through Executor (Notion, Context7, Firecrawl, Supabase, Neon, Vercel, PostHog, Cloudinary, Higgsfield, or any other MCP surfaced by mcp__executor__execute), and before doing by hand something a connected service already does (testing a migration on a branch, tuning a slow query, reading production logs, checking RLS). Ensures these are always accessed through Executor instead of a direct MCP server, the public API, or the CLI, and says which direct MCPs are the exception.
 ---
 
 All external integrations go **through Executor** (`mcp__executor__execute`), never a direct MCP server, the public API, or a CLI shortcut. Call `skills({ name: "execute" })` inside Executor first if you're unsure how to write the sandboxed code.
@@ -20,6 +20,42 @@ Which integrations are split across several accounts changes over time, so check
 - `felipegiraldo` is the default; `centrodeprototipado` is only for that project.
 - Use the account the user tells you to use — it's the source of truth.
 - If the user didn't specify and it isn't obvious, **ask before writing** (reading from the wrong account is harmless; creating/editing, migrations, deploys, or branches are not).
+- **Firecrawl is the exception**: `lgiraldoo` and `lufigir` are two free plans (1,000 credits a month each, on different billing dates), not two contexts. Use whichever has credits, and check with `firecrawl_credit_usage` before a batch or when a call fails for credits.
+
+### Health and budgets
+
+`connections.list` returns each connection's `lastHealth`. An `expired` OAuth connection fails every call until the user signs in again in Executor, so when a task needs one, say so up front instead of discovering it mid-task.
+
+Firecrawl's free plan allows roughly ten requests a minute per account, and the counter is shared with any other session using the key. Fan out at most five calls at once; pace a longer list sequentially. A `query` or `json` format costs about five credits against one for plain markdown, so ask a targeted question only when it replaces reading the page.
+
+## Reach by intent
+
+The integrations hold more than the obvious half of their tools. Before doing by hand something a connected service already does, check this table, then find the exact tool with `tools.search`.
+
+| The task | Reach for |
+|---|---|
+| Try a schema change before it touches real data | Neon's migration flow (apply on a temporary branch, test, then complete or discard); branches on Neon or Supabase |
+| A slow query, or which queries are slow | Neon's slow-query list, explain and query-tuning flow on a temporary branch |
+| Check a Supabase project after DDL: missing RLS, unsafe functions, unindexed keys | Supabase advisors. Run them after every migration |
+| Database types for the app | Supabase's TypeScript type generation |
+| A production error, a failed deploy, what the server logged | Vercel runtime logs and deployment events |
+| Feature flags | Vercel flags or PostHog, whichever the project uses |
+| How users use a product: events, funnels, insights | PostHog. Its single `exec` tool fronts the whole API; read its description first |
+| Store, transform or find images and video | Cloudinary, including visual similarity search and generation |
+| Generated video, audio, 3D or a quick website | Higgsfield |
+| Pages, databases, meeting notes, custom agents in Notion | Notion |
+| Structured records across many entities: companies, packages, repos, filings | Firecrawl's Alexandria providers (below) |
+
+## Outside Executor
+
+A few MCPs are connected directly because Executor cannot hold them. The rule "through Executor" covers what Executor has; these have no Executor path, so use them as they are:
+
+| MCP | For | Not for |
+|---|---|---|
+| `brave` | The user's own Brave with their sessions: the UNAL library, anything behind their login (per the `research` skill) | Pages a clean browser can reach; use Firecrawl |
+| `chrome-devtools` | The local app: console, network, Lighthouse audits, performance traces, screenshots | The user's logged-in sites |
+| `notebooklm-mcp` | Holding and querying a corpus of sources over weeks | One-off reading |
+| claude.ai connectors (Claude Docs, Google Drive, Canva) | Documents to share, the user's Drive files, designs | Anything Executor also connects |
 
 ## Context7 (`context7_mcp`)
 
@@ -56,6 +92,10 @@ Three tools, and the difference is how much you already know about where the ans
 | Neither | `firecrawl_search` | Web, news or images. Supports `site:`, `-term`, `inurl:`, quoted phrases. Pass `categories: ["developer"]` to get the developer index alongside the web results in one call |
 
 `firecrawl_crawl` is the fourth, and the one to reach for last. It walks a whole site and the result is enormous; bound it with `limit`, `includePaths` and `maxDepth` every time. Reasonable use: pulling a full documentation set once. Unreasonable use: anything `map` plus two `scrape` calls would have answered.
+
+### Structured data: Alexandria
+
+When a task needs the same fields across many entities (companies, people, package registries, GitHub repos, filings, prices, public records), Firecrawl has typed data providers under the name Alexandria. `firecrawl_search` already returns matching providers in `data.tools`; `firecrawl_find_tools` browses them and returns a provider's contract, and discovery is free; `firecrawl_scrape` with an `alexandria` body runs one and returns sourced records. Prefer a provider over scraping several pages for the same fields. For reading docs or articles it changes nothing.
 
 ### Documents
 
