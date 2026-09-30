@@ -52,6 +52,27 @@ Swapping Stripe for something else touches layer 5 and maybe 4. Nothing above no
 
 Each layer has its own reference: `api-design.md` for transport, `data-layer.md` for how the domain reaches persistence, `security.md` for what may cross the server boundary at all.
 
+## The style: a modular monolith
+
+What this skill builds has a name: a **modular monolith**. One deployable, with the layers and the modules inside `data/` separated by boundaries a tool enforces. It is the default for a new product, and the reasons are specific:
+
+- **Service boundaries are only knowable later.** Splitting into services first means guessing where the seams are before the domain is understood, and a wrong seam between services costs a network call and a data migration to move. Inside a monolith it costs a refactor.
+- **Distribution is a tax paid on every request.** Separate services bring network latency, partial failure, distributed transactions and one pipeline per service. That price buys independent deploys for independent teams, which a product with one team does not need.
+- **Modularity is what makes a later split cheap**, not the split itself. A module that only talks to others through its public functions can be extracted when there is a reason; a monolith without boundaries cannot, which is why "we will split it later" usually never happens.
+
+Leave the style when a concrete force appears, not when the codebase feels big: a part of the system with a genuinely different scaling or runtime profile (heavy media processing, a long-running worker), a team that must deploy independently, or a compliance boundary. The first case is usually a worker process beside the web app (`async-work.md`), not a new service.
+
+## Decisions you cannot cheaply reverse
+
+Most choices are cheap to change: a component, a folder, a helper. A few are not: the database engine, the tenancy model, the auth provider, the URL scheme, a vendor that holds your data. Those deserve a written record, an **architecture decision record**: one short file per decision in `docs/adr/`, with the context, the options considered, what was chosen and the consequences accepted.
+
+The value is the *why*. `AGENTS.md` says what the convention is; the ADR says what it cost and what would justify revisiting it, which is exactly what the next person needs before undoing it. An ADR is never edited after it is accepted: a changed mind is a new ADR that supersedes the old one.
+
+Two habits keep the expensive decisions reversible in practice:
+
+- **Put a seam around every vendor.** The capability layer exists for this. Changing email providers is a one-folder change only if nothing above the capability ever named the provider.
+- **Keep the schema portable where it costs nothing.** Standard SQL types and constraints over engine-specific features, unless the feature earns its lock-in. `maintenance.md` names the parts that are honestly Postgres-only.
+
 ## Folder structure
 
 ### Single app profile (default)
@@ -152,6 +173,7 @@ Lives at the repo root. It is the file coding agents look for, so it holds the c
 
 Contents:
 
+- The problem framing and the Scope table, at the top, in the shape `problem-framing.md` defines.
 - The dependency rule, stated plainly, with the illegal imports named.
 - File naming convention.
 - Where a new feature goes: which files to create, in which order.
@@ -171,6 +193,8 @@ Contents:
 | Domain logic inside a route handler | The rule is unreusable and untestable, and transport absorbed the layer below it |
 | Business decisions in a capability | The facade now knows the product, so it is no longer swappable |
 | Reaching for the monorepo profile first | Package ceremony bought before there is a second deployable to justify it |
+| Starting with microservices | Service seams guessed before the domain is known, and every call pays the network |
+| An expensive decision with no ADR | The next person undoes it without knowing what it was protecting |
 | A package manifest that contradicts the dependency diagram | The architecture is already broken; the diagram is documentation of a past state |
 | A folder of components that becomes a route | Colocation without a private folder turns helpers into URLs that render nothing |
 | Colocating a file used by three routes | The file lives inside one of them, so the other two import across the tree |

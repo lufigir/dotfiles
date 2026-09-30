@@ -4,6 +4,12 @@ Before a single line of code, the schema decides whether the application is soli
 
 A model can generate tables. It cannot decide what your product is. **A production-ready database is designed, not generated.**
 
+## Which kind of database
+
+Choose from the access patterns, not from the fashion. A relational database is the default for a product's core data: users, organizations, orders, anything with relationships and transactions. It handles flexible fields too (a JSON column), so "the schema might change" is not a reason to leave it.
+
+Add another store only when an access pattern clearly diverges from what the core database does well, and name the pattern when you do: full-text relevance ranking (a search index), similarity search (vectors), large files (object storage, per `file-uploads.md`), high-volume timestamped events or heavy historical aggregation (analytics storage). Each extra store is a second thing to back up, secure, keep consistent and delete personal data from, so it is a decision for an ADR (`architecture.md`), not a dependency added in passing. Many of these begin as an extension of the relational database and graduate only when volume demands it.
+
 ## The order of steps
 
 Do not reorder these. Each one produces the input to the next.
@@ -198,6 +204,7 @@ Neither is a wrong answer. What is wrong is choosing on benchmark headlines and 
 | Delete behavior left to the default | Either an unremovable row or a cascade that erases history |
 | One-to-one without a unique FK | Silently a one-to-many |
 | Generating the schema from a prompt | Missing relationships, wrong types, phantom tables |
+| A document or second database chosen "for flexibility" | Relationships and transactions rebuilt by hand, and one more store to secure and back up |
 | Schema pushed directly to production | No reviewable SQL, no history, no rollback, and inferred column drops |
 | Assuming a declared relation created an index | Neither tool does; the join gets slow months later |
 | Applying a generated rename migration unread | The old column is dropped with its data |
