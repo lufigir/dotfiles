@@ -13,7 +13,7 @@ description: >
   publishing, or updating a felipego.com project, a portfolio project item, the
   Notion Projects/Proyectos databases, generating project documentation, or
   making a Mintlify wiki for a repo — even if they don't spell out every step.
-  Uses Notion (via the Executor MCP hub) and the Chrome DevTools MCP.
+  Uses Notion (via the Executor MCP hub) and the Brave MCP.
 ---
 
 # felipego.com project publisher
@@ -60,7 +60,7 @@ decorative filler.
   `notion-create-pages`, `notion-update-page`) maps to
   `tools.notion_mcp.user.felipegiraldo.<name_with_underscores>` inside an
   `execute` call — e.g. `notion-search` → `tools.notion_mcp.user.felipegiraldo.notion_search`.
-  Also load the Chrome DevTools MCP (`mcp__chrome-devtools__new_page`,
+  Also load the Brave MCP (`mcp__brave__new_page`,
   `navigate_page`, `take_snapshot`, `take_screenshot`, `click`, `fill`) and
   `WebFetch`. In Claude Code these may be deferred — load them with one
   `ToolSearch` call.
@@ -180,7 +180,7 @@ short:
    in Phase 3 — don't decorate or invent structure.
 2. **Wrap** it with the shared CSS kit: `node scripts/wrap-diagram.mjs
    body.html --out diagram.html` (inlines `assets/diagram-style.css`).
-3. **Preview it in both light and dark** with the Chrome DevTools MCP before
+3. **Preview it in both light and dark** with the Brave MCP before
    publishing — this is live, public content.
 4. **Ship it** with `scripts/notion-html.mjs add/replace`, run from the
    felipego.com site repo checkout (needs `@notionhq/client` +

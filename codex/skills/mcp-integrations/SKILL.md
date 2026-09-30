@@ -65,7 +65,7 @@ Use it when the question is genuinely a synthesis ("compare how these four libra
 
 `firecrawl_interact` opens a remote browser session: navigate, click, fill, or run Bash/Python/Node against the page. Two things to keep straight:
 
-- It is **not the user's browser**. The Chrome DevTools MCP drives Chrome on this machine, which is what you want for debugging the local app, inspecting the console, or anything needing the user's logged-in session. Firecrawl's is a clean remote browser, which is what you want for a site that blocks scraping or needs a form filled to reveal content.
+- It is **not the user's browser**. The Brave MCP drives the user's Brave on this machine, which is what you want for debugging the local app, inspecting the console, or anything needing the user's logged-in session. Firecrawl's is a clean remote browser, which is what you want for a site that blocks scraping or needs a form filled to reveal content.
 - It **acts on the live site**. Submitting a form is a real, external side effect. Confirm before anything that writes.
 
 Close it with `firecrawl_interact_stop` when done.

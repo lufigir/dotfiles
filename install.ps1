@@ -131,13 +131,13 @@ function Link-Config($target, $source) {
 
 # Leaves Claude Code on the dotfiles baseline: only the skill-creator
 # plugin, only the
-# executor + chrome-devtools + brave + notebooklm-mcp MCPs, and only the skills symlinked from this repo. Computes
+# executor + brave + notebooklm-mcp MCPs, and only the skills symlinked from this repo. Computes
 # everything that's extra, shows it grouped, and asks for ONE single confirmation
 # (default No) before deleting. Doesn't touch project repos, dotfiles-managed symlinks,
 # or claude.ai connectors (Canva/Drive live on the account, not in ~/.claude.json).
 function Clean-ClaudeBaseline($repo) {
     $plugins = @(); $mcp = @(); $skills = @(); $other = @()
-    $keepMcp = @('executor', 'chrome-devtools', 'brave', 'notebooklm-mcp')
+    $keepMcp = @('executor', 'brave', 'notebooklm-mcp')
     $keepPlugins = @('skill-creator')
 
     # 1. Plugins outside the baseline (ignores inline/harness ones, which aren't
@@ -223,24 +223,15 @@ function Install-ClaudeExtras($repo) {
         Write-Ok "executor $($c.Dim)already configured$($c.Reset)"
     }
 
-    # Chrome DevTools: browser automation + debugging (navigate, click, screenshots,
-    # console/network, performance traces). Runs locally over stdio via npx (needs Node 22+)
-    # and drives its own dedicated Chrome profile, so it never touches the personal one.
+    # Brave: the only browser MCP. chrome-devtools-mcp (navigate, click, screenshots,
+    # console/network, Lighthouse, performance traces) attached to the personal Brave, so it
+    # also acts with the user's real sign-ins (the UNAL library proxy, Scopus, GitHub, ...).
+    # Runs over stdio via npx (needs Node 22+). --auto-connect needs Chromium 144+ and
+    # Remote Debugging switched on at brave://inspect/#remote-debugging; Brave asks to allow
+    # the first connection.
     # NOTE: the stdio separator must be quoted ('--'). `claude` resolves to claude.ps1, and
     # PowerShell swallows a bare -- as its end-of-parameters token, so the CLI would then
     # parse the command's own flags (-y, --from) as claude options and fail.
-    if ((claude mcp list 2>$null) -notmatch "chrome-devtools") {
-        claude mcp add chrome-devtools --scope user '--' npx -y chrome-devtools-mcp@latest | Out-Null
-        Write-Ok "chrome-devtools $($c.Dim)added$($c.Reset)"
-    } else {
-        Write-Ok "chrome-devtools $($c.Dim)already configured$($c.Reset)"
-    }
-
-    # Brave: the same DevTools MCP, attached to the personal Brave instead of a dedicated
-    # profile, so it acts with the user's real sign-ins (the UNAL library proxy, Scopus, ...)
-    # that the isolated Chrome can't complete. --auto-connect needs Chromium 144+ and
-    # Remote Debugging switched on at brave://inspect/#remote-debugging; Brave asks to allow
-    # the first connection. The research skill is what drives it.
     $braveData = if ($IsWindows) { Join-Path $env:LOCALAPPDATA 'BraveSoftware' 'Brave-Browser' 'User Data' }
                  elseif ($IsMacOS) { Join-Path $HOME 'Library' 'Application Support' 'BraveSoftware' 'Brave-Browser' }
                  else { Join-Path $HOME '.config' 'BraveSoftware' 'Brave-Browser' }
@@ -261,6 +252,11 @@ function Install-ClaudeExtras($repo) {
         Write-Ok "notebooklm-mcp $($c.Dim)added, authenticate with nlm login$($c.Reset)"
     } else {
         Write-Ok "notebooklm-mcp $($c.Dim)already configured$($c.Reset)"
+    }
+    # nlm login opens its own isolated profile in whichever Chromium it finds; point it at
+    # Brave so no machine needs Google Chrome.
+    if (Get-Command nlm -ErrorAction SilentlyContinue) {
+        nlm config set auth.browser brave | Out-Null
     }
 
     # Only plugin we keep is skill-creator.
@@ -504,7 +500,6 @@ if ('wezterm' -in $selected) {
 if ('claude' -in $selected) {
     $next += "run /mcp in Claude Code to authorize Executor"
     $next += "authenticate NotebookLM: uvx --from notebooklm-mcp-cli nlm login"
-    $next += "the Chrome DevTools MCP also needs Google Chrome installed"
     $next += "for the brave MCP, switch on Remote Debugging at brave://inspect/#remote-debugging"
 }
 if ('zed' -in $selected) {

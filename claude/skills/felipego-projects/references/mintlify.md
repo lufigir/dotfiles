@@ -1,4 +1,4 @@
-# Mintlify reference — generate the wiki (Chrome DevTools MCP)
+# Mintlify reference — generate the wiki (Brave MCP)
 
 Goal: produce (or refresh) `https://mintlify.wiki/<owner>/<repo>` for the
 project's GitHub repo, so Phase 3 can read it as the source of truth.
@@ -13,10 +13,10 @@ yet) — that's a real access grant and stays the user's action.
 
 ## Account
 
-The Chrome DevTools MCP drives its **own dedicated Chrome profile**, not the
-personal one, so sessions there start signed out. The profile is persistent: if
-a step needs the user signed in to GitHub or Mintlify, hand off once and it
-carries over to later runs.
+The Brave MCP drives the user's **personal Brave**, so GitHub and Mintlify are
+usually already signed in. Work in a tab you open with `new_page` and leave the
+user's own tabs alone. Being signed in is not permission: the rules below about
+OAuth screens hold exactly as they would in a signed-out browser.
 
 The user's Mintlify notify-email is **`luisgir827@gmail.com`**. Typing this into
 a plain "email to notify" field is not a credential and not a sign-in — you may
