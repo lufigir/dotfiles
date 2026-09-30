@@ -2,11 +2,11 @@
 """Audita un proyecto contra los no-negociables de la skill.
 
 `check_skill.py` revisa la salud de la skill. Este revisa la salud del
-*proyecto*: cuáles de los quince no-negociables de SKILL.md están puestos,
+*proyecto*: cuáles de los dieciséis no-negociables de SKILL.md están puestos,
 cuáles faltan, y cuáles esta herramienta no puede decidir.
 
 El problema que resuelve no es de tamaño sino de seguimiento. El bootstrap
-tiene nueve fases y diecinueve referencias, y el contexto de una sesión se
+tiene nueve fases y veintidós referencias, y el contexto de una sesión se
 pierde antes de llegar al final. Una lista que alguien marca a mano dice
 "hecho" de cosas que no lo están; esto mira el repo.
 
@@ -15,6 +15,10 @@ Tres resultados, y la diferencia entre los dos últimos es la que importa:
     OK        la comprobación pasó
     MISSING   el repo dice que no está, con certeza suficiente para actuar
     BY HAND   tiene firma semántica, no sintáctica: lo decide una persona
+    SKIPPED   el concern está fuera del alcance que el proyecto decidió
+
+El alcance sale de la sección `## Scope` de AGENTS.md (ver
+references/problem-framing.md). Sin ella, todo cuenta como dentro.
 
 Un no-negociable en BY HAND no es un aprobado. Es la lista de lo que queda por
 mirar, que es justo lo que se pierde cuando el contexto rueda.
@@ -53,6 +57,14 @@ DB_PACKAGES = (
     "drizzle-orm", "kysely", "mongoose", "typeorm", "pg",
 )
 
+# SDKs de analítica de producto. Importarlos fuera de la capability rompe el
+# no-negociable 16: el consentimiento y el catálogo pierden su único punto de
+# control. Lista corta a propósito, como DB_PACKAGES.
+ANALYTICS_PACKAGES = (
+    "posthog-js", "posthog-node", "@posthog/", "@amplitude/",
+    "mixpanel", "@segment/analytics",
+)
+
 LITERAL_PALETTE = re.compile(
     r"\b(?:bg|text|border|ring|fill|stroke|from|via|to|divide|placeholder)"
     r"-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo"
@@ -67,6 +79,7 @@ class Report:
     ok: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     manual: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
 
     def passed(self, rule: str, msg: str) -> None:
         self.ok.append(f"{rule}  {msg}")
@@ -76,6 +89,9 @@ class Report:
 
     def by_hand(self, rule: str, msg: str) -> None:
         self.manual.append(f"{rule}  {msg}")
+
+    def skip(self, rule: str, concern: str, status: str) -> None:
+        self.skipped.append(f"{rule}  {concern} is '{status}' in the Scope")
 
 
 def source_files(root: Path) -> list[Path]:
@@ -104,8 +120,35 @@ def load_package_json(root: Path) -> dict:
         return {}
 
 
+# Una fila de la tabla Scope: `| concern | status | razón |`.
+SCOPE_ROW = re.compile(r"^\|\s*`?([a-z-]+)`?\s*\|\s*(applies|later|no)\s*\|", re.MULTILINE)
+
+# Qué no-negociable depende de qué concern. Los demás valen en todo proyecto.
+CONDITIONAL = {
+    "3 tenant": "multi-tenancy",
+    "10 URL": "list-views",
+    "12 URLs": "url-design",
+    "16 events": "product-analytics",
+}
+
+
+def read_scope(root: Path) -> dict[str, str] | None:
+    """Devuelve concern -> status, o None si AGENTS.md no tiene sección Scope."""
+    text = read(root / "AGENTS.md")
+    match = re.search(r"^## Scope\b(.*?)(?=^## |\Z)", text, re.DOTALL | re.MULTILINE)
+    if not match:
+        return None
+    return dict(SCOPE_ROW.findall(match.group(1)))
+
+
 def audit(root: Path) -> Report:
     r = Report()
+    scope = read_scope(root)
+    excluded = {
+        rule: (concern, scope[concern])
+        for rule, concern in CONDITIONAL.items()
+        if scope and scope.get(concern, "applies") != "applies"
+    }
     pkg = load_package_json(root)
     deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
     files = source_files(root)
@@ -217,6 +260,24 @@ def audit(root: Path) -> Report:
     else:
         r.passed("2 DAL", "only the DAL imports the database")
 
+    # --- 16. Los eventos de producto son un contrato -------------------------
+    # La capability vive en `analytics/` (lib/analytics en app única,
+    # packages/analytics en monorepo). Cualquier otro import del SDK se salta
+    # el catálogo tipado y el control de consentimiento.
+    if "16 events" not in excluded:
+        analytics_users = [
+            f.relative_to(root).as_posix() for f in files
+            if any(package in read(f) for package in ANALYTICS_PACKAGES)
+        ]
+        leaks = [rel for rel in analytics_users if "analytics/" not in rel]
+        if not analytics_users:
+            r.by_hand("16 events", "recognised no analytics SDK; if the product measures usage, check the catalog and the capability by hand")
+        elif leaks:
+            r.fails("16 events", f"{len(leaks)} files outside the analytics capability import the SDK: {sample(leaks)}")
+        else:
+            r.passed("16 events", "only the analytics capability imports the SDK")
+            r.by_hand("16 events", "are events declared once in a typed catalog, and business events emitted after the write commits?")
+
     # --- 6. server-only es un error de build, no una convención --------------
     if "server-only" in deps:
         marked = sum(1 for f in files if "server-only" in read(f))
@@ -292,7 +353,17 @@ def audit(root: Path) -> Report:
         ("12 URLs", "does any route encode a relationship that can move? A shared link is a contract"),
         ("13 a11y", "native element before any ARIA? Is focus owned rather than assumed?"),
     ):
-        r.by_hand(rule, question)
+        if rule not in excluded:
+            r.by_hand(rule, question)
+
+    for rule, (concern, status) in excluded.items():
+        r.skip(rule, concern, status)
+
+    # --- Fase 1. El alcance decidido, escrito donde la próxima sesión lo lee --
+    if (root / "AGENTS.md").exists() and scope is None:
+        r.fails("p1 scope", "AGENTS.md has no Scope section: every concern counts as in scope, including the ones never chosen")
+    elif scope:
+        r.passed("p1 scope", f"Scope records {len(scope)} concern(s)")
 
     return r
 
@@ -328,6 +399,10 @@ def main() -> int:
         print()
     for line in r.manual:
         print(f"BY HAND  {line}")
+    if r.skipped:
+        print()
+    for line in r.skipped:
+        print(f"SKIPPED  {line}")
 
     print()
     if r.missing:
