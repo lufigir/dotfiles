@@ -1,6 +1,6 @@
 # Operations
 
-Two questions this answers. When something breaks in production, can you find out what happened? And when a required setting is missing, do you find out at deploy time or from a user?
+Three questions this answers. When something breaks in production, can you find out what happened? Do you know how the product feels to its users before they tell you? And when a required setting is missing, do you find out at deploy time or from a user?
 
 Both are decided before launch and both are miserable to retrofit, because the instrumentation has to be in the code paths that already ran.
 
@@ -72,6 +72,27 @@ Alert on metrics and on new or spiking errors. Alerting on log lines directly pr
 
 > **VERIFY:** the current instrumentation entry point for the framework, how the error tracker wants to be initialized for server, client and edge runtimes separately, and whether tracing is now built in rather than added. This setup has changed with recent releases and the per-runtime split is easy to get half-right.
 
+## Measure what users feel
+
+Server metrics say the server is fine while users on a mid-range phone wait four seconds. Two measurements close that gap.
+
+**Service level objectives.** Pick the few indicators users would notice (the share of requests that succeed, the latency of the pages that matter) and set a target for each: 99.5 percent of checkout requests succeed, the dashboard responds within 800 ms at the 95th percentile. The target is deliberately not 100 percent. The gap is the **error budget**: while it lasts, ship; when a bad week spends it, the next work is reliability. That turns "is it stable enough" from a debate into a number, and it is what alerts should fire on: the budget burning fast, not a single slow request.
+
+**Real user monitoring.** Lab tests measure your laptop. Field data measures your users. Report the Core Web Vitals (loading, responsiveness to input, layout stability) from real sessions and judge them at the **75th percentile, split by mobile and desktop**, because an average hides exactly the users who are suffering. Send them where product events go (`product-analytics.md`) so a slow page and a dropping funnel can be seen side by side.
+
+> **VERIFY:** the current Core Web Vitals and their "good" thresholds (they have been replaced before), and the framework's hook or instrumentation file for reporting them.
+
+## Recovery
+
+A backup nobody has restored is a hope. Decide two numbers per system with whoever owns the product, because they are business decisions with a price:
+
+- **RPO**, recovery point objective: how much data you can afford to lose. It sets how often you back up, or whether you need point-in-time recovery.
+- **RTO**, recovery time objective: how long the product can be down. It sets how automated the restore must be.
+
+Then **restore on a schedule**, into a separate environment, and time it. The first restore is where you learn the backup excluded file storage, or that the restore takes six hours against a one-hour RTO. Database and file storage are backed up together or they drift: rows pointing at objects that no longer exist, per the split in `file-uploads.md`.
+
+A deploy is also something you recover from. Keep the previous release one action away, and remember that a rollback of code is not a rollback of a migration; `database.md` covers why schema changes roll forward.
+
 ## Configuration that fails loudly
 
 The default behavior for a missing environment variable is that it is `undefined`. The app builds, deploys, starts, serves every path that does not need it, and then throws in production when a user reaches the one that does. Sometimes it does not throw at all and just behaves wrongly.
@@ -128,6 +149,9 @@ If a secret reaches version control, rotation is **urgent, not optional**. Chang
 | Logging whole request bodies | Tokens and PII in a system many people can read |
 | Redaction left to developer discipline | It holds until the one time it does not |
 | Alerting on log lines | Noise, then ignored alerts, then false confidence |
+| A 100 percent reliability target | No error budget, so every incident is a crisis and no release is safe |
+| Judging performance from lab runs or averages | The slow devices and the tail of users never show up |
+| Backups that were never restored | The first restore happens during the outage, and fails |
 | `process.env` read directly | Typos return `undefined`; missing values surface as production bugs |
 | No schema validation at build | A missing secret deploys and fails on a user |
 | Production credentials on laptops | Rotation becomes guesswork |
