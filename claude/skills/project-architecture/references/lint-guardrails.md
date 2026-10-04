@@ -134,13 +134,15 @@ That message is the whole argument for it. An agent that gets "literal colour, u
 
 Two options carry the policy. `allow: ["layout"]` on `no-restyle` and `no-arbitrary-values` leaves placement to the page (margin, width, grid position) and appearance to the variant. When a component legitimately needs more, a **contract** opens it for that component only, `{ pattern: "^CardTitle$", allow: ["layout", "typography"] }`, instead of loosening the rule for everything.
 
+The default errors already name the fix from the project's own components ("Use a size (sm, lg)"), so a custom `message` earns its place only by carrying policy the code cannot show: where a new variant goes and when one is justified, or which file owns the theme. Write one when an agent keeps fixing the same error the wrong way, for example by adding a one-off variant for every padding it was denied. A message set per category (`message: { spacing: "..." }`) or per contract replaces the default text for that case only, and placeholders (`{{component}}`, `{{sizes}}`, `{{file}}`) keep it accurate as the design system grows. The preset ships none, because the policy is the project's.
+
 Inside `components/ui/` the three caller-side rules (`no-restyle`, `no-arbitrary-values`, `require-static-classes`) are off, since a component styles itself and calls its own variant function. The other three stay on: a raw colour inside the Button is as wrong as one outside it.
 
 Discovery is where it breaks quietly. Without `components.json` it looks for `components/ui` and for the stylesheet that imports Tailwind; a design system somewhere else needs `settings.shadcn` on the **root** config, because oxlint does not merge `settings` from extended configs. `no-unknown-classes` also needs `tailwindcss` installed, or it falls back to a grammar check and warns. The fixture stages a `components.json`, a theme and a `cva` Button for exactly this reason.
 
 It is a dependency, not vendored: unlike anti-slop, it publishes versioned releases. It is also 0.x and a few weeks old, with open issues against `no-restyle` around custom `@utility` classes and named spacing scales. When one bites, a contract or a scoped `off` in an override is the fix, with the reason beside it.
 
-> **VERIFY:** the current `@shadcn/lint` version and rule list, whether the `allow` categories and contract shape have changed, and whether the `no-restyle` issues with `@utility` classes ([#4](https://github.com/shadcn-ui/lint/issues/4), [#18](https://github.com/shadcn-ui/lint/issues/18)) are closed. Everything here was checked against 0.2.0 on oxlint 1.80.
+> **VERIFY:** the current `@shadcn/lint` version and rule list, whether the `allow` categories, contract shape and message placeholders have changed, and whether the `no-restyle` issues with `@utility` classes ([#4](https://github.com/shadcn-ui/lint/issues/4), [#18](https://github.com/shadcn-ui/lint/issues/18)) are closed. Everything here was checked against 0.2.0 on oxlint 1.80.
 
 ## House rules
 
