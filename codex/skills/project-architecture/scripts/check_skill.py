@@ -165,7 +165,7 @@ def check(skill_dir: Path) -> Report:
             word
             for count, word in NUMBER_WORDS.items()
             if count != len(refs)
-            and re.search(rf"all {word}\b", skill_text)
+            and re.search(rf"all {word}(?![\w-])", skill_text)
         ]
         for word in stale:
             r.error(

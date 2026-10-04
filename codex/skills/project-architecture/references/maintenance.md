@@ -16,7 +16,7 @@ The clearest example in this skill's own history: caching used to be on by defau
 
 ## The refresh procedure
 
-Four steps, and the order is what makes it trustworthy.
+Five steps, and the order is what makes it trustworthy.
 
 **1. Research broadly, to find out what changed.** Ask what is current for the whole stack — the framework major, the ORM, auth, styling, the database — and specifically what *invalidated previous guidance*. That last phrasing matters: asking "what is the best practice for X" returns a confident answer whether or not anything moved. Asking what changed and what it broke returns the delta, which is the thing you are shopping for.
 
