@@ -38,6 +38,18 @@ links each config where that system expects it.
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
 
+### Vendored skills (unslop)
+
+`unslop` is vendored from [cursor/plugins](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop)
+(MIT, Lauren Tan) at commit `e43c7ee`. It is 33 numbered rules for cutting AI tells from prose,
+picked over nine other anti-slop skills because it targets technical writing and matches the house
+rules already in memory (no em dashes, name the mechanism, active voice). It is the prose
+complement of `deslop`, which reviews code. `CLAUDE.md` routes prose to it.
+
+**Local modifications:** only the frontmatter. Upstream is `disable-model-invocation: true` with a
+one-line description; here it is model-invoked, with a description that names the kinds of prose
+it covers and Spanish triggers.
+
 ### Vendored skills (Matt Pocock)
 
 Vendored from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT) at commit

@@ -16,6 +16,7 @@
   - The UI adds "Other" by itself, so never spend an option on "something else". When part of the answer is open (a date, a number), say in the question text that it goes in "Other".
   - `multiSelect: true` only when the choices genuinely combine, and there **never** tag options `(Recomendado)`: state the recommendation in the question instead.
   - A call caps at **4 tabs** and a tab at **4 options**. More decisions means chaining back-to-back calls; more candidates means the decision is badly grouped, so split or merge it.
+- **Prose a person will read** (docs, READMEs, skills, reports, PR and commit bodies) goes through the `unslop` skill before it ships.
 - Surgical changes: only touch what the task asks for; don't "improve" adjacent code or delete unrelated dead code (mention it instead).
 
 ## Engineering principles
