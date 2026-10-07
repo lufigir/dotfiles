@@ -3,7 +3,7 @@ name: research
 description: >
   Research of any kind: picks the source for the question, from the open web and library
   behaviour to scholarly literature through the UNAL library subscriptions (Scopus, Web of
-  Science, IEEE Xplore, ScienceDirect and ~130 more) in the user's own Brave. Use whenever a
+  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's own Brave. Use whenever a
   task needs finding something out before answering or building: comparing tools or options,
   checking a claim, a state of the art or literature review, references for a paper, thesis or
   course deliverable, recent studies, prior art and patents, technical standards, market or
@@ -117,7 +117,10 @@ they are already signed in.
   a host is unknown. The `ezproxy.unal.edu.co/login?url=` form returns 404.
 - How to drive each base (URLs, result selectors, quirks) is in
   [`references/bases-unal.md`](references/bases-unal.md#driving-the-bases).
-- A login page means the session expired: ask the user to sign in in Brave, then continue.
+- A login page means the session expired: the proxy's own (`unalproxy.elogim.com/auth-meta/login.php`)
+  or a publisher's, as Scopus sending to Elsevier's sign-in (a personal Elsevier ID, which the user
+  has had since 2026-10-06; it mails a one-time code). Ask the user to sign in in Brave, and
+  meanwhile keep going on the open indexes (OpenAlex for discovery), saying which base is pending.
   Credentials stay with the user.
 - No `mcp__brave__*` tools means Remote Debugging is off: tell the user to switch it on at
   `brave://inspect/#remote-debugging` and restart Claude Code. Until then, research with
