@@ -1,0 +1,4 @@
+# Saltos de línea LF en el repo y en la copia de trabajo, en cualquier sistema:
+# oxfmt exige LF, y con core.autocrlf=true Windows sacaba CRLF y todo salía
+# "mal formateado". text=auto deja quietos los binarios (PDF, imágenes).
+* text=auto eol=lf
