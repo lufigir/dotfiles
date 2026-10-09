@@ -65,6 +65,20 @@ export default defineConfig({
   rules: {
     "import/no-cycle": "error",
     "typescript/no-floating-promises": "error",
+    // --- Seguridad --------------------------------------------------------------
+    //
+    // Sinks donde un dato ajeno se vuelve código. El lint no prueba que la
+    // autorización sea correcta (eso es revisión); solo cierra estas puertas.
+    // `iframe-missing-sandbox` atrapó un XSS real en vicerrectoria-app: un blob
+    // hereda el origen de la app. Un uso legítimo de `no-danger` (un script
+    // constante, p. ej.) va con disable y un comentario SAFETY.
+    "no-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "react/no-danger": "error",
+    "react/iframe-missing-sandbox": "error",
+    "react/jsx-no-script-url": "error",
+    "react/jsx-no-target-blank": "error",
 
     // --- Evidencia: anti-slop -------------------------------------------------
     //

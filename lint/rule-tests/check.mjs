@@ -85,6 +85,15 @@ const EXPECTED = [
   // La regla type-aware: si el tsconfig del stage deja de cargar, cae esta.
   ["async.fixture.ts", "no-floating-promises", 1],
 
+  // Seguridad: los sinks de `security.fixture.tsx`.
+  ["security.fixture.tsx", "no-eval", 1],
+  ["security.fixture.tsx", "no-new-func", 1],
+  ["security.fixture.tsx", "no-script-url", 1],
+  ["security.fixture.tsx", "no-danger", 1],
+  ["security.fixture.tsx", "iframe-missing-sandbox", 1],
+  ["security.fixture.tsx", "jsx-no-script-url", 1],
+  ["security.fixture.tsx", "jsx-no-target-blank", 1],
+
   // Design system: cada regla de @shadcn/lint contra el theme y el Button de
   // `fixtures/`. Si falta `components.json` o el theme no carga, varias caen a
   // la vez, que es la señal de que la discovery se rompió y no una regla.
