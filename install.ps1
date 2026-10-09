@@ -25,6 +25,14 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 $repo = $PSScriptRoot
 $backupDir = Join-Path $HOME '.dotfiles-backup'
 
+# Claude Code plugins the baseline installs and the cleanup keeps.
+$baselinePlugins = @(
+    'skill-creator@claude-plugins-official'
+    'insecure-defaults@trailofbits'
+    'static-analysis@trailofbits'
+    'supply-chain-risk-auditor@trailofbits'
+)
+
 # --- Presentation ------------------------------------------------------------
 # Colors collapse to empty strings when output is redirected, NO_COLOR is set, or
 # $PSStyle is missing (7.0/7.1), so piping to a file stays clean.
@@ -138,7 +146,7 @@ function Link-Config($target, $source) {
 function Clean-ClaudeBaseline($repo) {
     $plugins = @(); $mcp = @(); $skills = @(); $other = @()
     $keepMcp = @('executor', 'brave', 'notebooklm-mcp')
-    $keepPlugins = @('skill-creator')
+    $keepPlugins = @($baselinePlugins | ForEach-Object { $_.Split('@')[0] })
 
     # 1. Plugins outside the baseline (ignores inline/harness ones, which aren't
     # uninstallable). A plugin installed in more than one scope is listed once per
@@ -259,12 +267,21 @@ function Install-ClaudeExtras($repo) {
         nlm config set auth.browser brave | Out-Null
     }
 
-    # Only plugin we keep is skill-creator.
-    if ((claude plugin list 2>$null) -notmatch "skill-creator") {
-        claude plugin install skill-creator@claude-plugins-official | Out-Null
-        Write-Ok "skill-creator $($c.Dim)installed$($c.Reset)"
-    } else {
-        Write-Ok "skill-creator $($c.Dim)already installed$($c.Reset)"
+    # Plugins of the baseline: skill-creator, and three Trail of Bits audit skills
+    # (fail-open defaults, Semgrep/CodeQL, dependency risk). settings.json declares
+    # the trailofbits marketplace; the clone is added here when it is missing.
+    if ((claude plugin marketplace list 2>$null) -notmatch "trailofbits") {
+        claude plugin marketplace add trailofbits/skills | Out-Null
+    }
+    $installed = claude plugin list 2>$null
+    foreach ($plugin in $baselinePlugins) {
+        $name = $plugin.Split('@')[0]
+        if ($installed -notmatch [regex]::Escape($plugin)) {
+            claude plugin install $plugin --scope user | Out-Null
+            Write-Ok "$name $($c.Dim)installed$($c.Reset)"
+        } else {
+            Write-Ok "$name $($c.Dim)already installed$($c.Reset)"
+        }
     }
 
     # Git on Windows checks symlinks out as plain (broken) text files unless this is on,
@@ -408,8 +425,9 @@ function Select-ComponentsNumbered($catalog) {
     Write-Section "Components"
     for ($i = 0; $i -lt $names.Count; $i++) {
         $n = $names[$i]
-        Write-Host "  $($c.Cyan)$($i + 1))$($c.Reset) $($n.PadRight($nameWidth))  $($c.Dim)$($catalog[$n].Summary)$($c.Reset)"
+        Write-Host "  $($c.Cyan)$($i + 1)`)$($c.Reset) $($n.PadRight($nameWidth))  $($c.Dim)$($catalog[$n].Summary)$($c.Reset)"
     }
+
     Write-Host ""
     $ans = Read-Host "  Pick them comma-separated, by number or name $($c.Dim)(Enter = all)$($c.Reset)"
     if (-not $ans -or -not $ans.Trim()) { return $names }
