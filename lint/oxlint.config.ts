@@ -160,9 +160,10 @@ export default defineConfig({
 
     // --- Tipos: lo que solo el chequeador ve ------------------------------------
     //
-    // `switch-exhaustiveness-check` es la que más rinde: en las tres apps donde
-    // se midió encontró un estado de la unión sin caso (`"dismissed"`, `"text"`)
-    // que caía en silencio al final del switch.
+    // `switch-exhaustiveness-check` exige nombrar cada miembro de la unión, aunque
+    // haya `default`. En las apps donde se midió, los dos casos que marcó
+    // (`"dismissed"`, `"text"`) eran omisiones a propósito; lo que la regla
+    // evita es que un miembro que se agregue mañana caiga igual de callado.
     // `checksVoidReturn.attributes: false` deja `onClick={async () => ...}`, que
     // React maneja; lo que sigue prohibido es pasar una promesa donde nadie la
     // espera, como un `forEach(async ...)`.
