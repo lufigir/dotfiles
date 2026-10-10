@@ -485,9 +485,36 @@ export default defineConfig({
 
     {
       // Scripts de una sola ejecución: seeds, migraciones de datos, probes.
-      // Secuenciales a propósito y con su salida en consola.
+      // Secuenciales a propósito, con su salida en consola, y fuera de los
+      // límites de tamaño: no crecen con el producto ni los lee nadie dos veces.
       files: ["scripts/**"],
-      rules: { "no-console": "off", "no-await-in-loop": "off" },
+      rules: {
+        "no-console": "off",
+        "no-await-in-loop": "off",
+        complexity: "off",
+        "max-lines": "off",
+        "max-params": "off",
+        "max-depth": "off",
+      },
+    },
+
+    {
+      // El tamaño de un archivo de tests es su número de casos, y un helper de
+      // tabla con cinco posicionales se lee mejor que con un objeto. Los
+      // límites miden código de producto.
+      files: ["**/*.test.*", "**/*.spec.*", "**/__tests__/**"],
+      rules: {
+        complexity: "off",
+        "max-lines": "off",
+        "max-params": "off",
+        "max-depth": "off",
+      },
+    },
+
+    {
+      // Este archivo: largo por los comentarios que explican cada regla.
+      files: ["oxlint.config.ts"],
+      rules: { "max-lines": "off" },
     },
   ],
 });
