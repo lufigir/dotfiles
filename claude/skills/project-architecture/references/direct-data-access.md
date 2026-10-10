@@ -61,6 +61,8 @@ The reason many products take on direct client access at all. Three mechanisms, 
 - **Presence** for who is online, converging across clients. The trap is not the API — it is that browsers suspend background tabs and connections, so a user who switched tabs looks online forever. Watch page visibility and re-announce when the tab returns.
 - **Database change streams** for reacting to writes. The critical property: **the subscriber only receives rows they are allowed to read**, because the stream is filtered by the same read policies. A subscription that silently returns nothing is usually a missing policy, not a broken subscription — and if it is *not* filtered, you are broadcasting other tenants' writes to every listener.
 
+Every delivery is metered. A change stream counts one message **per subscriber**, and a handler that answers each event by refetching the whole page turns one write into a full render in every open tab, background tabs included. Filter the subscription to the rows and columns that matter, debounce, and defer the refresh while the tab is hidden; `resource-budget.md` has the arithmetic.
+
 Realtime is not a substitute for invalidation. The user's own write should update their screen through the mutation path in `mutations.md`; realtime is for changes *other people* made. Wiring your own writes back through a subscription adds a round trip and a race to something that was already correct.
 
 ## Staying portable
@@ -84,4 +86,5 @@ This is the same argument as the capabilities layer in `architecture.md`, applie
 | Unthrottled broadcast | Subscribers flooded by one active user |
 | Presence never re-announced after a tab wakes | Users shown as online long after they left |
 | Own writes reflected back through a subscription | An extra round trip and a race, replacing invalidation that worked |
+| Every change event answered with a full page refresh | Writes × open tabs × requests per render, spent against the quotas |
 | Provider client imported directly across the UI | The vendor is now in fifty files instead of one layer |

@@ -4,6 +4,8 @@ Almost every slow page comes from one of three things: work that happened in seq
 
 Measure before you touch anything. The production build prints the JavaScript shipped per route and marks each route static or dynamic. That output is the map: it tells you which route is heavy and whether it is being rendered ahead of time at all. Guessing from a dev server tells you nothing, since dev is unoptimized by design.
 
+This file is about what the user waits for. What the work consumes (requests, queries, connections, memory, quotas) is `resource-budget.md`; the two meet often, because a request that does not happen is both faster and cheaper.
+
 ## Waterfalls
 
 A waterfall is a request that could not start until an unrelated one finished. The classic:

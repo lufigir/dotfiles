@@ -40,7 +40,7 @@ Present, compactly:
 3. **The route space**: the URLs the product will have, where the tenant sits in them, and what identifies a resource. Per `url-design.md`. It belongs in the blueprint rather than emerging from the folder tree, because URLs become a public contract the moment anyone shares one.
 4. **Folder tree**: the actual tree you will create, per `architecture.md` and the chosen profile.
 5. **Stack and exact versions**: resolved in phase 2, plus anything the live docs corrected.
-6. **Measurement and data**, for the concerns in scope: the core events of the tracking plan if `product-analytics` applies; the personal fields, their purpose and the hosting region of every vendor that receives them if `privacy` applies. Per `product-analytics.md` and `privacy.md`.
+6. **Measurement and data**, for the concerns in scope: the core events of the tracking plan if `product-analytics` applies; the personal fields, their purpose and the hosting region of every vendor that receives them if `privacy` applies. Per `product-analytics.md` and `privacy.md`. Always, the **resource budget**: the units of work, what each costs, and the expected peak load against every quota and capacity the stack has. Per `resource-budget.md`.
 7. **Decisions you cannot cheaply reverse**: database, tenancy model, auth provider, URL scheme, each with the one-line reason. They become the first ADRs. Per `architecture.md`.
 8. **What you will not do**: explicitly out of scope for this scaffold.
 
@@ -58,11 +58,11 @@ In this order, so the project works end to end at every step:
 6. **One vertical slice.** Pick a single real entity from the ERD and build it all the way through: DTO, policy, DAL, action, and a page that renders it. This is the template every future feature copies, and it is what proves the architecture actually runs. Per `data-layer.md`. If the entity has a list — and most do — build the list the way `list-views.md` describes and the write the way `mutations.md` does, because whatever this slice does is what every later feature will copy. The URL-state dependency enters here and only here: install it when the slice actually has filters to put in the URL, not as part of the baseline, so a project without a list never carries it. **Write its tests here**, the set `testing.md` lists. The slice is the template every later feature copies, so whatever testing habit it establishes is the one the project keeps: a slice shipped without a test teaches the agent that features do not come with tests.
 7. **Security baseline**: security headers, the server-only markers, environment variable split, locked-down install scripts. Per `security.md`.
 8. **Configuration and logging**: the environment schema that fails the build when a variable is missing, plus structured logging with a trace id. Per `operations.md`. If `product-analytics` applies, its capability goes in here too, with the core events typed in the catalog and the vertical slice emitting its business event. Per `product-analytics.md`.
-9. **`AGENTS.md`** at the repo root: the framing and the Scope table at the top, then the conventions, the dependency rule, the resolved versions, and every vendor that receives personal data. A `CLAUDE.md` that points at `AGENTS.md` rather than duplicating it. Next to it, `docs/adr/` with one record per decision from blueprint item 7.
+9. **`AGENTS.md`** at the repo root: the framing and the Scope table at the top, then the conventions, the dependency rule, the resolved versions, every vendor that receives personal data, and the resource budget. A `CLAUDE.md` that points at `AGENTS.md` rather than duplicating it. Next to it, `docs/adr/` with one record per decision from blueprint item 7.
 
 ## 5. Verify
 
-Run the build, the linter, `node tools/oxlint/rule-tests/check.mjs`, and the slice's tests. The four must pass. If the vertical slice has a page, run the dev server and confirm it renders.
+Run the build, the linter, `node tools/oxlint/rule-tests/check.mjs`, and the slice's tests. The four must pass. If the vertical slice has a page, run the dev server and confirm it renders. Then run the slice once and count what it costs: requests per render, queries per request, calls to each vendor. The measured numbers go into the resource budget in `AGENTS.md`, next to the estimates they confirm or correct. Per `resource-budget.md`.
 
 Then audit the repo against the non-negotiables:
 

@@ -307,6 +307,16 @@ def audit(root: Path) -> Report:
             r.passed("16 events", "only the analytics capability imports the SDK")
             r.by_hand("16 events", "are events declared once in a typed catalog, and business events emitted after the write commits?")
 
+    # --- 17. Cada unidad de trabajo tiene un costo conocido ------------------
+    # El modelo de costo vive en AGENTS.md, donde la próxima sesión lo lee. Si
+    # sigue siendo cierto (requests por render, queries por request, carga en
+    # el pico) no lo decide ninguna herramienta.
+    if re.search(r"^## Resource budget", read(root / "AGENTS.md"), re.MULTILINE):
+        r.passed("17 budget", "AGENTS.md records a resource budget")
+        r.by_hand("17 budget", "do requests per render and queries per request still match the budget, and is every limit's expected peak under half?")
+    else:
+        r.fails("17 budget", "AGENTS.md has no Resource budget section: the first estimate of a limit will be the restriction notice or the outage")
+
     # --- 6. server-only es un error de build, no una convención --------------
     # Next.js resuelve `server-only` sin instalarlo, así que lo que cuenta es el
     # import, no la dependencia.
