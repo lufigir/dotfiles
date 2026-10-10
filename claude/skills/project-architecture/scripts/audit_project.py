@@ -34,19 +34,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 # Extensiones que cuentan como código fuente del producto.
-SOURCE = (".ts", ".tsx", ".js", ".jsx")
+SOURCE = (".ts", ".tsx", ".mts", ".js", ".jsx", ".mjs", ".cjs")
 
 # Directorios que nunca son fuente del producto, aunque contengan `.ts`.
 NOT_SOURCE = {
     "node_modules", ".next", ".git", "dist", "build", "out",
     "tools", ".claude", ".codex", ".agents",
 }
+
+# El especificador de un import estático, un import dinámico o un require.
+IMPORT_SPECIFIER = re.compile(
+    r"""(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)["']([^"']+)["']"""
+)
 
 # Paquetes que hablan con la base de datos. Un import de estos fuera del DAL
 # rompe el no-negociable 2. La lista es corta a propósito: cubrir todos los ORM
@@ -95,12 +101,23 @@ class Report:
 
 
 def source_files(root: Path) -> list[Path]:
-    return [
-        p for p in root.rglob("*")
-        if p.suffix in SOURCE
-        and p.is_file()
-        and not any(part in NOT_SOURCE for part in p.relative_to(root).parts)
-    ]
+    # Poda al bajar en vez de filtrar al final: con pnpm, `node_modules` es un
+    # bosque de enlaces y recorrerlo entero tarda minutos.
+    found = []
+    for directory, subdirs, names in os.walk(root):
+        subdirs[:] = [d for d in subdirs if d not in NOT_SOURCE]
+        found += [Path(directory) / n for n in names if Path(n).suffix in SOURCE]
+    return found
+
+
+def imports_any(path: Path, packages: tuple[str, ...]) -> bool:
+    """Si el archivo importa alguno de estos paquetes, o una ruta dentro de él.
+
+    Por especificador, no por substring: buscar `pg` como texto marca cualquier
+    archivo que mencione `.jpg`.
+    """
+    specifiers = IMPORT_SPECIFIER.findall(read(path))
+    return any(s == p or s.startswith(p + "/") for s in specifiers for p in packages)
 
 
 def read(path: Path) -> str:
@@ -232,16 +249,20 @@ def audit(root: Path) -> Report:
     offenders, edge_cases = [], []
     found_orm = False
     for f in files:
-        if not any(package in read(f) for package in DB_PACKAGES):
+        if not imports_any(f, DB_PACKAGES):
             continue
         found_orm = True
         rel = f.relative_to(root).as_posix()
         if rel.endswith(".dal.ts") or "/dal/" in rel:
             continue
+        # Seeds, migraciones de datos y probes: herramientas de una ejecución,
+        # no código del producto que se salta la puerta.
+        if rel.startswith("scripts/"):
+            continue
         # `lib/` es donde vive el wrapper del cliente: esos archivos SON la
         # puerta, no alguien saltándosela. Que solo el DAL los llame lo
         # comprueba la regla de fronteras, no esto.
-        if rel.startswith("lib/"):
+        if rel.removeprefix("src/").startswith("lib/"):
             continue
         # El proxy o middleware refresca la sesión en cada petición, así que
         # sostiene un cliente por necesidad. Excepción legítima, y también el
@@ -267,9 +288,17 @@ def audit(root: Path) -> Report:
     if "16 events" not in excluded:
         analytics_users = [
             f.relative_to(root).as_posix() for f in files
-            if any(package in read(f) for package in ANALYTICS_PACKAGES)
+            if imports_any(f, ANALYTICS_PACKAGES)
         ]
-        leaks = [rel for rel in analytics_users if "analytics/" not in rel]
+        # El vendor documenta `instrumentation-client` como el sitio del init: se
+        # mira, no se falla, igual que el cliente que sostiene el proxy.
+        init_files = [rel for rel in analytics_users if Path(rel).stem == "instrumentation-client"]
+        leaks = [
+            rel for rel in analytics_users
+            if "analytics/" not in rel and Path(rel).stem not in ("analytics", "instrumentation-client")
+        ]
+        for rel in init_files:
+            r.by_hand("16 events", f"{rel} imports the SDK: correct if it only initialises it, wrong if it captures events")
         if not analytics_users:
             r.by_hand("16 events", "recognised no analytics SDK; if the product measures usage, check the catalog and the capability by hand")
         elif leaks:
@@ -279,12 +308,13 @@ def audit(root: Path) -> Report:
             r.by_hand("16 events", "are events declared once in a typed catalog, and business events emitted after the write commits?")
 
     # --- 6. server-only es un error de build, no una convención --------------
-    if "server-only" in deps:
-        marked = sum(1 for f in files if "server-only" in read(f))
-        if marked:
-            r.passed("6 server-only", f"the marker is imported in {marked} file(s)")
-        else:
-            r.fails("6 server-only", "server-only is installed but no module imports it: a client import does not fail")
+    # Next.js resuelve `server-only` sin instalarlo, así que lo que cuenta es el
+    # import, no la dependencia.
+    marked = sum(1 for f in files if imports_any(f, ("server-only",)))
+    if marked:
+        r.passed("6 server-only", f"the marker is imported in {marked} file(s)")
+    elif "server-only" in deps:
+        r.fails("6 server-only", "server-only is installed but no module imports it: a client import does not fail")
     else:
         r.fails("6 server-only", "no server-only: nothing turns a client import into a build error")
 
@@ -322,17 +352,33 @@ def audit(root: Path) -> Report:
 
     # --- CI. Las reglas solo son reales si algo bloquea el merge -------------
     workflow_dir = root / ".github" / "workflows"
-    workflows = list(workflow_dir.glob("*.yml")) if workflow_dir.exists() else []
+    workflows = (
+        [*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")] if workflow_dir.exists() else []
+    )
     if not workflows:
         r.fails("CI", "no workflow: the rules run when somebody remembers, which is the same as advisory")
     else:
         ci = "\n".join(read(w) for w in workflows)
+        scripts = pkg.get("scripts", {})
+
+        def runs(needle: str) -> bool:
+            # Directo en el workflow, o a través de un script de package.json
+            # (`pnpm lint`, `npm run typecheck`) cuyo comando lo contiene.
+            if needle in ci:
+                return True
+            return any(
+                needle in command and re.search(
+                    rf"\b(?:npm run|pnpm(?: run)?|yarn(?: run)?|bun run)\s+{re.escape(name)}(?![\w:-])", ci
+                )
+                for name, command in scripts.items()
+            )
+
         for needle, what in (
             ("oxlint", "the linter"),
             ("rule-tests/check.mjs", "the rule verifier"),
             ("tsc", "the type check"),
         ):
-            if needle in ci:
+            if runs(needle):
                 r.passed("CI", f"{what} runs in CI")
             else:
                 r.fails("CI", f"{what} does not run in CI")
