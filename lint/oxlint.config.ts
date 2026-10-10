@@ -184,7 +184,13 @@ export default defineConfig({
     // limit), un disable con la razón; si no, `Promise.all` o una sola consulta.
     // `no-console` porque `console.log` no es logging (`operations.md`); el
     // logger queda exento abajo. `no-array-sort` porque `sort` muta el arreglo
-    // que recibiste: `toSorted`.
+    // que recibiste: `toSorted`. `no-accumulating-spread` porque un spread en el
+    // acumulador de un `reduce` copia todo en cada vuelta, O(n²).
+    //
+    // `oxc/no-map-spread` queda fuera a propósito: su arreglo recomendado es
+    // `Object.assign(item, ...)`, que muta el objeto de entrada dentro del `map`.
+    // Sobre props, estado o una caché eso es un bug a cambio de una copia
+    // superficial que casi nunca pesa.
     eqeqeq: ["error", "always", { null: "ignore" }],
     "no-shadow": "error",
     "preserve-caught-error": "error",
@@ -192,7 +198,6 @@ export default defineConfig({
     "no-console": "error",
     "unicorn/no-array-sort": "error",
     "oxc/no-accumulating-spread": "error",
-    "oxc/no-map-spread": "error",
 
     // --- Escala: límites de tamaño ------------------------------------------------
     //
