@@ -31,9 +31,11 @@ lint/
 ├── oxlint.config.ts            the config; the boundaries block is adapted per project
 ├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
 ├── ci.yml                      the workflow that makes the rules bite
+├── knip.json                   dead code: unused files, exports and dependencies
 ├── package.json                tool versions, and the test script
 ├── tools/oxlint/
-│   └── anti-slop/              vendored from dmmulroy. See its VENDORED.md
+│   ├── anti-slop/              vendored from dmmulroy. See its VENDORED.md
+│   └── house/                  the server/client boundary rules no plugin ships
 └── rule-tests/
     ├── check.mjs               do the rules still bite?
     └── fixtures/               code that MUST fail. The fixture is the specification
@@ -55,6 +57,7 @@ cp -r <dotfiles>/lint/tools           <project>/tools
 cp -r <dotfiles>/lint/rule-tests      <project>/tools/oxlint/rule-tests
 cp    <dotfiles>/lint/oxlint.config.ts <project>/
 cp    <dotfiles>/lint/.oxfmtrc.json    <project>/
+cp    <dotfiles>/lint/knip.json        <project>/
 cp    <dotfiles>/lint/ci.yml           <project>/.github/workflows/ci.yml
 ```
 
@@ -62,7 +65,7 @@ cp    <dotfiles>/lint/ci.yml           <project>/.github/workflows/ci.yml
 `npm view oxlint version`. `oxlint` and `@oxlint/plugins` must be **the same version**.
 
 ```bash
-npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt @shadcn/lint
+npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt @shadcn/lint knip
 ```
 
 **3. Two environment requirements that do not announce themselves.** The `.ts` config
@@ -116,6 +119,14 @@ the code needs fixing; there is no third case, and `warn` resolves neither.
 **Boundaries that deny by default.** A rule forbidding the four illegal imports you
 thought of is silent about the fifth directory added next month. So each block closes a
 whole group and reopens the few legal exceptions with `!`.
+
+**Rules named, not left to a category.** `plugins` replaces oxlint's default set, so
+`unicorn` and `oxc` are listed by hand. `correctness` leaves out `react/rules-of-hooks`
+and `switch-exhaustiveness-check`, so the config names them. Each has a row in `check.mjs`,
+because losing one turns nothing red.
+
+**Five strict rules commented out.** `strict-boolean-expressions` and four more give 100
+to 320 errors on an existing app. Turn them on at bootstrap, where they cost nothing.
 
 **Ten of anti-slop's fifteen rules.** The other five sit in the config, commented, with
 the reasoning attached. They are strong design positions (banning `object` in inputs,

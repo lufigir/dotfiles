@@ -15,7 +15,9 @@ lint/
 ├── oxlint.config.ts            the config; the boundaries block is adapted per project
 ├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
 ├── ci.yml                      the workflow that makes the rules bite
+├── knip.json                   dead-code check: unused files, exports, dependencies
 ├── tools/oxlint/anti-slop/     vendored evidence rules
+├── tools/oxlint/house/         the server/client boundary rules no plugin ships
 └── rule-tests/                 code that MUST fail, and the checker that proves it does
 ```
 
@@ -38,15 +40,15 @@ A project with only the last family — which is what the framework CLI leaves y
 
 Oxlint for all four families, oxfmt for formatting. No ESLint, no Prettier, and this is not a half-finished migration.
 
-The reason it can be a clean break, verified against oxlint 1.80.0 rather than assumed: `eslint/no-restricted-imports`, `react/exhaustive-deps`, `react/rules-of-hooks`, the whole `nextjs` plugin and the type-aware rules are all present. Those were the four things that used to justify keeping `eslint-config-next` alongside. There is a migration helper, `@oxlint/migrate`, for a project that already has an ESLint config.
+The reason it can be a clean break, verified against oxlint 1.80.0 and again against 1.87.0 rather than assumed: `eslint/no-restricted-imports`, `react/exhaustive-deps`, `react/rules-of-hooks`, the whole `nextjs` plugin and the type-aware rules are all present. Those were the four things that used to justify keeping `eslint-config-next` alongside. There is a migration helper, `@oxlint/migrate`, for a project that already has an ESLint config.
 
 Two things are worth knowing before you assume a rule exists:
 
 **The rules reference lists rules the binary does not have.** `eslint/no-restricted-syntax` is documented and unimplemented; ask for it and the config fails to parse. Check a rule against the binary, not against the docs page.
 
-**Two environment requirements fail with unhelpful messages.** The `.ts` config does not load unless `package.json` has `"type": "module"`. `--type-aware` does not start unless `oxlint-tsgolint` is installed. Neither error names what is missing.
+**Three config behaviours fail silently, and this preset hit all three.** Declaring `plugins` *replaces* the default set instead of extending it, so a list without `unicorn` and `oxc` drops their two dozen `correctness` rules. `categories: { correctness: "error" }` does not include everything that sounds like correctness: `react/rules-of-hooks` and `typescript/switch-exhaustiveness-check` are `pedantic`, and stayed off until the config named them. And `no-restricted-imports` accepts a `regex` key inside `patterns` and ignores it, so the rule looks configured and reports nothing; use `group`. The rule tests have a row for each, because none of them turns anything red on its own. **Two environment requirements fail with unhelpful messages, too.** The `.ts` config does not load unless `package.json` has `"type": "module"`. `--type-aware` does not start unless `oxlint-tsgolint` is installed. Neither error names what is missing.
 
-> **VERIFY:** the current oxlint major and whether `defineConfig`, `categories`, `options.typeAware`, `jsPlugins` and `excludeFiles` are still the config shape; whether `eslint/no-restricted-syntax` has landed, which a house rule would otherwise have to write longhand; whether `oxlint-tsgolint` is still a separate package; and where oxfmt is on the road to 1.0. Everything in this file was checked against oxlint 1.80.0 and oxfmt 0.65.0. The fastest way to answer that one is not the docs, which already list that rule: it is `firecrawl_developer_search`, or running it.
+> **VERIFY:** the current oxlint major and whether `defineConfig`, `categories`, `options.typeAware`, `jsPlugins` and `excludeFiles` are still the config shape; whether `eslint/no-restricted-syntax` has landed, which a house rule would otherwise have to write longhand; whether `oxlint-tsgolint` is still a separate package; and where oxfmt is on the road to 1.0. Everything in this file was checked against oxlint 1.87.0 and oxfmt 0.72.0. The fastest way to answer that one is not the docs, which already list that rule: it is `firecrawl_developer_search`, or running it.
 
 ### Type-aware rules earn their cost
 
@@ -81,6 +83,8 @@ Three details decide whether this works in practice:
 **The database client is the interesting exception.** `shared` and the database client flow upward to everyone, per the dependency rule — but the whole point of `data-layer.md` is that only the DAL may *call* the ORM. So the boundary rule needs to keep the ORM import restricted to the DAL directory even though the client itself is a foundation. Get this one wrong and non-negotiable #2 is unenforced while looking enforced.
 
 Note that the exclusion key inside an `overrides` block is `excludeFiles`, not ESLint's `ignores`. A config carried over from ESLint fails to parse on that alone.
+
+**Between modules of the data layer there is a second boundary, and its strict form is wrong.** Forbidding one module's DAL from importing another's breaks real code: a `need.dal` resolving a neighbourhood through `geo.dal`, or a `requests.dal` reading the session through `auth.dal`, is reuse, not erosion. The preset closes something narrower: no module imports another module's `*.actions`, since an action is a public endpoint and the entry point of its own module, and nothing escapes with `../`, so every cross-module dependency is spelled with the alias and stays visible to a grep and to the rule. `import/no-cycle` is what stops two modules depending on each other.
 
 In the monorepo profile the package graph does part of this for you: a package cannot import what it does not depend on. It does not do all of it — nothing stops a package from adding the dependency — so keep the lint rules in both profiles and let the package boundaries be the second layer.
 
@@ -146,7 +150,9 @@ It is a dependency, not vendored: unlike anti-slop, it publishes versioned relea
 
 ## House rules
 
-Between what the framework's plugin, anti-slop and `@shadcn/lint` ship there is a gap, and a project will sometimes have a rule that lives in it. It goes in `tools/oxlint/house/` as a JS plugin written with `defineRule` from `@oxlint/plugins`, the same shape as anti-slop's rules, with a fixture in `rule-tests/` that proves it fires. The preset ships none: its last one, a literal-colour check, was replaced by `no-raw-colors`, which reads the theme instead of guessing at it.
+Between what the framework's plugin, anti-slop and `@shadcn/lint` ship there is a gap, and a project will sometimes have a rule that lives in it. It goes in `tools/oxlint/house/` as a JS plugin written with `defineRule` from `@oxlint/plugins`, the same shape as anti-slop's rules, with a fixture in `rule-tests/` that proves it fires.
+
+The preset ships three, all on the server/client boundary, where a slip costs the most and no published plugin looks. `no-server-code-in-client` rejects a `"use client"` file importing a `*.dal`, `server-only`, a database client other than the browser one, or the server env (type-only imports pass). `dal-imports-server-only` requires the marker in every `*.dal.ts`. `action-asserts-identity` rejects an exported action that never goes through identity: no `requireUser()`, no `XDAL.create()` or `XDAL.public()`, no call into a `*.dal`. Its first version demanded identity in the first statement and flagged a dozen correct actions that validated first, the order `data-layer.md` prescribes; what it reports now is the action that touches none of the three, and on its first run that was a real hole, a privileged role cookie set for anyone who posted. Other identity names go in `identity: ["^getSession$"]`.
 
 When a convention you have had to explain twice keeps coming back, this is where it goes. Explaining a convention repeatedly is the signal that prose is not the right medium for it.
 
@@ -189,7 +195,7 @@ There is a second thing it cannot do, and it is the one this reference used to b
 - **Bootstrap**: the guardrails step. Copy the preset, adapt the boundaries, run the rule tests, *before* the vertical slice, so the slice is the first thing the rules are checked against. A boundary rule added after twenty files exist is a boundary rule you will weaken to make the build pass.
 - **Convention**: when a rule you had to explain twice keeps coming back, it wants to become a house rule rather than another paragraph in `AGENTS.md`.
 
-Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs format, lint, the rule tests, types and build, in that order — cheapest first.
+Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs a secret scan over the push history (gitleaks), then format, lint, the rule tests, a dead-code check (knip), types and build, in that order, cheapest first. The dead-code step matters more in this stack than elsewhere: a server action nothing imports is still a public POST endpoint.
 
 ## Common mistakes
 

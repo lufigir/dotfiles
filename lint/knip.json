@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/**/*.{ts,mts,js,mjs}"],
+  "ignore": ["components/ui/**", "src/components/ui/**", "tools/**"],
+  "ignoreExportsUsedInFile": true
+}

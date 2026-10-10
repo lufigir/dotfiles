@@ -38,3 +38,7 @@ export function External({ href }: { href: string }) {
 export function SafeExternal({ href }: { href: string }) {
   return <a href={href} target="_blank" rel="noreferrer">Abrir</a>; // CLEAN: sin opener.
 }
+
+export function notify(target: Window, message: string): void {
+  target.postMessage(message);
+}

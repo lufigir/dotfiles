@@ -28,6 +28,7 @@ import {
   cpSync,
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -93,6 +94,33 @@ const EXPECTED = [
   ["security.fixture.tsx", "iframe-missing-sandbox", 1],
   ["security.fixture.tsx", "jsx-no-script-url", 1],
   ["security.fixture.tsx", "jsx-no-target-blank", 1],
+  ["security.fixture.tsx", "require-post-message-target-origin", 1],
+  ["practices.fixture.ts", "no-process-env", 1],
+  ["practices.fixture.ts", "no-restricted-properties", 1],
+
+  // React: lo que la categoría `correctness` no trae.
+  ["hooks.fixture.tsx", "rules-of-hooks", 1],
+  ["hooks.fixture.tsx", "no-unstable-nested-components", 1],
+  ["hooks.fixture.tsx", "no-array-index-key", 1],
+  ["hooks.fixture.tsx", "jsx-no-constructed-context-values", 1],
+  ["hooks.fixture.tsx", "button-has-type", 1],
+
+  // Tipos, y una regla de cada plugin que `plugins` reemplaza: si `unicorn`,
+  // `oxc` o `promise` salen de la lista, cae su fila.
+  ["types.fixture.ts", "switch-exhaustiveness-check", 1],
+  ["types.fixture.ts", "only-throw-error", 1],
+  ["types.fixture.ts", "no-misused-promises", 1],
+  ["types.fixture.ts", "no-new-array", 1],
+  ["types.fixture.ts", "const-comparisons", 1],
+  ["types.fixture.ts", "no-multiple-resolved", 1],
+
+  // Buenas prácticas y escala.
+  ["practices.fixture.ts", "eqeqeq", 1],
+  ["practices.fixture.ts", "no-await-in-loop", 1],
+  ["practices.fixture.ts", "no-console", 1],
+  ["practices.fixture.ts", "no-array-sort", 1],
+  ["practices.fixture.ts", "max-params", 1],
+  ["barrel.fixture.ts", "no-barrel-file", 1],
 
   // Design system: cada regla de @shadcn/lint contra el theme y el Button de
   // `fixtures/`. Si falta `components.json` o el theme no carga, varias caen a
@@ -107,6 +135,15 @@ const EXPECTED = [
   // La frontera, y la policy que no puede tocar el framework.
   ["boundaries.fixture.ts", "no-restricted-imports", 1],
   ["orders.policy.ts", "no-restricted-imports", 1],
+
+  // Entre módulos: las actions ajenas y el `../`, dos imports que deben caer.
+  // Las líneas CLEAN prueban que leer el DAL de otro módulo sigue abierto.
+  ["billing.dal.ts", "no-restricted-imports", 2],
+
+  // Casa: la frontera servidor/cliente.
+  ["billing.dal.ts", "dal-imports-server-only", 1],
+  ["billing.actions.ts", "action-asserts-identity", 1],
+  ["order-card.fixture.tsx", "no-server-code-in-client", 1],
 ];
 
 // Fuera del repo, en el temporal del sistema. Dentro no sirve: oxlint respeta
@@ -251,17 +288,9 @@ function* noisyOnCleanLines(diagnostics) {
 }
 
 function findFixture(file) {
-  const candidates = [
-    join(here, "fixtures", file),
-    join(here, "fixtures", "app", file),
-    join(here, "fixtures", "data", file),
-  ];
-  return candidates.find((path) => {
-    try {
-      readFileSync(path);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const fixtures = join(here, "fixtures");
+  const match = readdirSync(fixtures, { recursive: true }).find(
+    (path) => String(path).replaceAll("\\", "/").split("/").at(-1) === file,
+  );
+  return match === undefined ? undefined : join(fixtures, String(match));
 }

@@ -10,6 +10,9 @@ import { defineConfig } from "oxlint";
  *   Design system  ¿usa los tokens y variantes que existen?  -> `@shadcn/lint`
  *   Framework      ¿uso el framework como funciona?          -> `nextjs`, `react`, `jsx-a11y`
  *
+ * Y las reglas de la casa (`tools/oxlint/house/`), que cierran la frontera
+ * servidor/cliente donde ningún plugin publicado llega.
+ *
  * Un proyecto con solo la última familia, que es lo que deja el CLI del framework,
  * tiene un linter que formatea y nada que defienda la arquitectura.
  *
@@ -18,10 +21,33 @@ import { defineConfig } from "oxlint";
  * agente, que ve un muro de avisos preexistentes y concluye razonablemente que el
  * suyo es normal.
  *
- * Requisitos del entorno, los dos verificados contra oxlint 1.80.0:
+ * Requisitos del entorno, los dos verificados contra oxlint 1.87.0:
  *   - `package.json` necesita `"type": "module"`, o el config `.ts` no carga.
  *   - `--type-aware` necesita `oxlint-tsgolint` instalado.
  */
+/**
+ * La frontera entre módulos de `data/`. Un módulo puede leer de otro (su DTO, su
+ * DAL, su policy): un lookup compartido como `geo.dal` o la identidad de
+ * `auth.dal` es reutilización, no erosión. Lo que no puede es:
+ *
+ *   - Importar las `*.actions` de otro módulo. Una action es un endpoint, la
+ *     puerta de entrada de su módulo; una action que llama a otra encadena dos
+ *     endpoints públicos y sus dos validaciones.
+ *   - Escapar con `../`. Lo que cruza módulos va por `@/data/...`, para que el
+ *     acoplamiento se vea en un grep y que esta misma regla lo alcance.
+ *
+ * Lo que impide la dependencia mutua (`orders` usa `billing` y `billing` usa
+ * `orders`) es `import/no-cycle`, no esto.
+ *
+ * Ojo con `regex` en vez de `group`: oxlint 1.87 acepta la clave y la ignora en
+ * silencio, así que la regla parece configurada y no reporta nada.
+ */
+const CROSS_MODULE = {
+  group: ["@/data/*/*.actions", "../**"],
+  message:
+    "A module reaches another one through @/data/<module>/..., and never through its *.actions: an action is a public endpoint, the entry point of its own module. Compose in your own action instead.",
+};
+
 export default defineConfig({
   ignorePatterns: [
     // Normalmente lo cubre `.gitignore`, que oxlint respeta. Explícito de todas
@@ -42,9 +68,25 @@ export default defineConfig({
     ".windsurf/**",
   ],
 
-  plugins: ["import", "typescript", "react", "nextjs", "jsx-a11y"],
+  // Declarar `plugins` REEMPLAZA el set por defecto (`eslint`, `typescript`,
+  // `unicorn`, `oxc`), no lo amplía. Sin `unicorn` y `oxc` en esta lista se
+  // pierden en silencio sus reglas de `correctness`: `no-new-array`,
+  // `missing-throw`, `const-comparisons` y una veintena más.
+  plugins: [
+    "import",
+    "typescript",
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "unicorn",
+    "oxc",
+    "promise",
+    "node",
+  ],
 
-  // El suelo. Todo lo que es directamente incorrecto o inútil.
+  // El suelo. Todo lo que es directamente incorrecto o inútil. Ojo: la categoría
+  // NO trae todo lo que suena a corrección. `react/rules-of-hooks` es `pedantic`
+  // y `switch-exhaustiveness-check` también; por eso van abajo por nombre.
   categories: { correctness: "error" },
 
   options: {
@@ -60,6 +102,7 @@ export default defineConfig({
     { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
     // Dependencia, no vendorizado como anti-slop: tiene releases y semver.
     "@shadcn/lint",
+    { name: "house", specifier: "./tools/oxlint/house/index.ts" },
   ],
 
   rules: {
@@ -79,6 +122,114 @@ export default defineConfig({
     "react/iframe-missing-sandbox": "error",
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": "error",
+    // Un `postMessage` sin origen destino entrega el mensaje a cualquier ventana.
+    "unicorn/require-post-message-target-origin": "error",
+    // `Math.random` no es criptográfico. Un token, un id de invitación o un
+    // nonce que se pueda adivinar es una cuenta tomada.
+    "no-restricted-properties": [
+      "error",
+      {
+        object: "Math",
+        property: "random",
+        message:
+          "Math.random is predictable. Use crypto.randomUUID() or crypto.getRandomValues() for anything an attacker could guess; for animation jitter, a disable comment that says so.",
+      },
+    ],
+    // Los secretos salen del objeto `env` validado, nunca de `process.env`: un
+    // typo devuelve `undefined` para siempre. Ver `operations.md`. Los archivos
+    // que validan el entorno y los configs de herramientas quedan exentos abajo.
+    "node/no-process-env": "error",
+
+    // --- React: las reglas de hooks que `correctness` no trae ------------------
+    //
+    // `rules-of-hooks` es `pedantic` en oxlint, así que la categoría no la
+    // enciende. Las demás son las del React Compiler que viven en `suspicious` y
+    // `perf`: dependencias de efectos y memos que sobran o faltan, estado
+    // derivado en un efecto (un render de más y un frame inconsistente),
+    // componentes definidos dentro de otro (remontan en cada render).
+    "react/rules-of-hooks": "error",
+    "react/hooks": "error",
+    "react/exhaustive-effect-dependencies": "error",
+    "react/memo-dependencies": "error",
+    "react/no-deriving-state-in-effects": "error",
+    "react/no-unstable-nested-components": "error",
+    "react/jsx-no-constructed-context-values": "error",
+    "react/no-array-index-key": "error",
+    "react/button-has-type": "error",
+    "react/jsx-no-useless-fragment": "error",
+
+    // --- Tipos: lo que solo el chequeador ve ------------------------------------
+    //
+    // `switch-exhaustiveness-check` es la que más rinde: en las tres apps donde
+    // se midió encontró un estado de la unión sin caso (`"dismissed"`, `"text"`)
+    // que caía en silencio al final del switch.
+    // `checksVoidReturn.attributes: false` deja `onClick={async () => ...}`, que
+    // React maneja; lo que sigue prohibido es pasar una promesa donde nadie la
+    // espera, como un `forEach(async ...)`.
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/consistent-type-imports": "error",
+    "promise/no-multiple-resolved": "error",
+    "promise/no-promise-in-callback": "error",
+
+    // --- Buenas prácticas ---------------------------------------------------------
+    //
+    // `no-await-in-loop` es el N+1 de `resource-budget.md` con firma sintáctica:
+    // una consulta por vuelta. Si el orden importa de verdad (paginación, rate
+    // limit), un disable con la razón; si no, `Promise.all` o una sola consulta.
+    // `no-console` porque `console.log` no es logging (`operations.md`); el
+    // logger queda exento abajo. `no-array-sort` porque `sort` muta el arreglo
+    // que recibiste: `toSorted`.
+    eqeqeq: ["error", "always", { null: "ignore" }],
+    "no-shadow": "error",
+    "preserve-caught-error": "error",
+    "no-await-in-loop": "error",
+    "no-console": "error",
+    "unicorn/no-array-sort": "error",
+    "oxc/no-accumulating-spread": "error",
+    "oxc/no-map-spread": "error",
+
+    // --- Escala: límites de tamaño ------------------------------------------------
+    //
+    // No miden calidad, miden cuándo un archivo dejó de tener una sola razón para
+    // cambiar. Un módulo de 400 líneas o una función con complejidad 15 no es un
+    // error en sí; es el punto en que partirlo cuesta menos que seguir leyéndolo.
+    // `no-barrel-file` con umbral 0: un `export *` hace que importar una cosa
+    // cargue el módulo entero, y en dev de Next eso es tiempo de compilación.
+    "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+    complexity: ["error", 15],
+    "max-depth": ["error", 4],
+    "max-params": ["error", 4],
+    "import/max-dependencies": ["error", { max: 20 }],
+    "oxc/no-barrel-file": ["error", { threshold: 0 }],
+
+    // --- Estrictas: apagadas por decisión, no por olvido --------------------------
+    //
+    // Medidas en tres apps reales, cada una da entre 100 y 320 errores. Son la
+    // misma postura que anti-slop (el código prueba lo que afirma), llevada al
+    // flujo de control. Enciéndelas en un proyecto nuevo, desde el primer día:
+    // adoptarlas después es una migración.
+    //
+    //   "typescript/strict-boolean-expressions"  `if (count)` con count = 0.
+    //   "typescript/no-unnecessary-condition"    ramas que los tipos dicen muertas.
+    //   "typescript/no-unsafe-type-assertion"    `as` que estrecha sin probar.
+    //   "typescript/no-non-null-assertion"       `!` es un `as` disfrazado.
+    //   "max-lines-per-function"                 80 líneas; choca con componentes JSX.
+
+    // --- Casa ---------------------------------------------------------------------
+    //
+    // `no-server-code-in-client`: un `"use client"` que importa un DAL, un
+    // cliente de base de datos o el env del servidor lo manda al bundle.
+    // `action-asserts-identity`: una server action es un POST público; su primera
+    // sentencia llama a `requireUser()` o a `XDAL.create()`. Si el proyecto usa
+    // otros nombres, `identity: ["^getSession$"]`. `dal-imports-server-only` va
+    // en el override de `*.dal.ts`.
+    "house/no-server-code-in-client": "error",
+    "house/action-asserts-identity": "error",
 
     // --- Evidencia: anti-slop -------------------------------------------------
     //
@@ -214,9 +365,23 @@ export default defineConfig({
                 message:
                   "Only *.dal.ts talks to the database. A DTO, a policy or an action that queries breaks the single door in.",
               },
+              CROSS_MODULE,
             ],
           },
         ],
+      },
+    },
+
+    {
+      // Frontera entre módulos. Un `*.dal.ts` sostiene el cliente de base de
+      // datos, así que no hereda el bloque de arriba; lo único que se le cierra es
+      // lo que acopla módulos.
+      files: ["data/**/*.dal.ts"],
+      rules: {
+        "no-restricted-imports": ["error", { patterns: [CROSS_MODULE] }],
+        // Sin el marcador, un import desde un componente cliente manda las
+        // consultas y los secretos al navegador, y el build no se queja.
+        "house/dal-imports-server-only": "error",
       },
     },
 
@@ -238,6 +403,7 @@ export default defineConfig({
                   "@supabase/*",
                   "next/*",
                   "server-only",
+                  "../**",
                   "!@/data/*/*.dto",
                 ],
                 message:
@@ -288,7 +454,34 @@ export default defineConfig({
         "shadcn/no-arbitrary-values": "off",
         "shadcn/require-static-classes": "off",
         "typescript/no-floating-promises": "off",
+        // Las de React, tamaño y casa que el CLI no cumple: `calendar.tsx` de
+        // shadcn define componentes dentro de otro, y eso no se arregla aquí.
+        "react/no-unstable-nested-components": "off",
+        "react/no-array-index-key": "off",
+        complexity: "off",
+        "max-lines": "off",
+        "oxc/no-barrel-file": "off",
       },
+    },
+
+    {
+      // Donde el entorno se valida y donde las herramientas leen su config. Es
+      // la única puerta a `process.env`; el resto importa el objeto validado.
+      files: ["lib/env*.ts", "*.config.{ts,mts,js,mjs}", "instrumentation*.ts", "scripts/**"],
+      rules: { "node/no-process-env": "off" },
+    },
+
+    {
+      // El logger es el único que escribe en la consola.
+      files: ["lib/log*.ts", "lib/logger/**", "instrumentation*.ts"],
+      rules: { "no-console": "off" },
+    },
+
+    {
+      // Scripts de una sola ejecución: seeds, migraciones de datos, probes.
+      // Secuenciales a propósito y con su salida en consola.
+      files: ["scripts/**"],
+      rules: { "no-console": "off", "no-await-in-loop": "off" },
     },
   ],
 });

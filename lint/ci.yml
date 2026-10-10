@@ -24,6 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks revisa el historial del push, no solo el último árbol: un
+          # secreto que entró y salió en el mismo PR sigue en el historial.
+          fetch-depth: 0
+
+      # Lo primero porque es lo más barato y lo más caro de ignorar: una clave en el
+      # historial ya está filtrada aunque el siguiente commit la borre. En un repo de
+      # organización pide el secret `GITLEAKS_LICENSE` (gratis, gitleaks.io); en uno
+      # personal no.
+      - name: Secretos
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -48,6 +61,12 @@ jobs:
       # config produce exactamente lo que esperas ver: cero errores.
       - name: Las reglas muerden
         run: node tools/oxlint/rule-tests/check.mjs
+
+      # Código muerto: archivos que nadie importa, exports sin uso y dependencias que
+      # sobran. En este stack importa más que en otros: una server action exportada
+      # que ninguna pantalla usa sigue siendo un endpoint POST público.
+      - name: Código muerto
+        run: npx knip
 
       - name: Tipos
         run: npx tsc --noEmit
