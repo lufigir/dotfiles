@@ -79,11 +79,11 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 
 ### The procedure
 
-0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-three references to find out the project never had lint boundaries.
+0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-four references to find out the project never had lint boundaries.
 1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/architecture.md`. If there is no Scope section, run the scope study from `references/problem-framing.md` before recommending any concern the project may never have chosen.
 2. **Check the concern against the scope.** Work that would build a concern marked **later** or **no** is a scope change: stop, say so, and update the Scope row with the user before applying that reference.
 3. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
-4. **Open the one reference for the concern**, not all twenty-three. The table below maps concern to file.
+4. **Open the one reference for the concern**, not all twenty-four. The table below maps concern to file.
 5. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 6. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -101,7 +101,7 @@ A convention that only lives in this skill is a convention the next session lose
 
 ## Reference files
 
-Read the one the work is about. Reading all twenty-three for a question about a foreign key wastes the context the actual task needs.
+Read the one the work is about. Reading all twenty-four for a question about a foreign key wastes the context the actual task needs.
 
 | File | Covers | Reach for it when |
 |---|---|---|
@@ -124,6 +124,7 @@ Read the one the work is about. Reading all twenty-three for a question about a 
 | `operations.md` | Structured logs, trace ids, redaction, error tracking, SLOs and error budgets, real-user performance, backups and restores, incident reviews, environment schema and secrets | Instrumenting the app, setting reliability targets, planning recovery, reviewing an incident, or wiring up configuration |
 | `product-analytics.md` | Tracking plan, typed event catalog, server vs client capture, identity and tenant groups, route templates, feature flags and experiments | Measuring how users use the product, adding an event, a flag or an A/B test |
 | `privacy.md` | Data inventory, purpose and minimisation, recorded consent, deletion and export, hosting regions and transfers, retention, Ley 1581 | The product stores personal data, adds a vendor that receives it, or a user asks to see or delete theirs |
+| `testing.md` | What each layer's tests are for, integration against a real database, the cross-tenant and DTO tests, actions tested as public endpoints, where mocks belong, the slice's test set, regression tests, coverage | Writing the slice's tests, adding a feature, fixing a bug, or deciding what a test should mock |
 | `lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, design-system rules (`@shadcn/lint`), house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
 | `design-system.md` | Component ownership, semantic tokens, variants vs. wrappers, theming | Styling anything |
 | `accessibility.md` | Semantic markup, table and sort semantics, focus lifecycle, live regions, form errors, what tooling misses | Building a table, a form, a modal or any custom interactive control |

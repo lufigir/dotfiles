@@ -195,7 +195,7 @@ There is a second thing it cannot do, and it is the one this reference used to b
 - **Bootstrap**: the guardrails step. Copy the preset, adapt the boundaries, run the rule tests, *before* the vertical slice, so the slice is the first thing the rules are checked against. A boundary rule added after twenty files exist is a boundary rule you will weaken to make the build pass.
 - **Convention**: when a rule you had to explain twice keeps coming back, it wants to become a house rule rather than another paragraph in `AGENTS.md`.
 
-Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs a secret scan over the push history (gitleaks), then format, lint, the rule tests, a dead-code check (knip), types and build, in that order, cheapest first. The dead-code step matters more in this stack than elsewhere: a server action nothing imports is still a public POST endpoint.
+Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs a secret scan over the push history (gitleaks), then format, lint, the rule tests, a dead-code check (knip), types, tests and build, in that order, cheapest first. The dead-code step matters more in this stack than elsewhere: a server action nothing imports is still a public POST endpoint.
 
 ## Common mistakes
 

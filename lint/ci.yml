@@ -71,6 +71,13 @@ jobs:
       - name: Tipos
         run: npx tsc --noEmit
 
+      # Después de los tipos: un test que no compila no merece un runner. Los de
+      # integración necesitan una base de datos real (un service container de
+      # Postgres o una rama desechable); ver `testing.md`. `--if-present` deja pasar
+      # el scaffold antes de que exista el primer test, no después.
+      - name: Tests
+        run: npm run test --if-present
+
       # Al final, porque es lo más lento y las cuatro etapas de arriba cazan casi todo
       # lo que lo rompería.
       - name: Build
