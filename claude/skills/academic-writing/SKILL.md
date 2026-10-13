@@ -1,5 +1,5 @@
 ---
-name: redaccion-academica
+name: academic-writing
 description: >
   Academic writing in Spanish: edit a university deliverable (informe, evaluación, propuesta,
   ensayo, artículo, ponencia, tesis) so it reads as its authors wrote it, cutting AI tells while
@@ -9,7 +9,7 @@ description: >
   redacción".
 ---
 
-# Redacción académica
+# Academic writing
 
 A model writes the most probable next word, so its prose makes the choice that fits every reader
 and every subject. A student writes for one teacher about one dataset, so their choices are uneven

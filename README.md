@@ -34,7 +34,7 @@ links each config where that system expects it.
   (safe fixes applied, the rest reported) and on demand as `/deslop`. Deliberately the complement of the
   linter rather than an overlap: lint owns the rules with a syntactic shape, this owns
   the ones with only a smell
-- `redaccion-academica` — edits university deliverables in Spanish (informes, evaluaciones,
+- `academic-writing` — edits university deliverables in Spanish (informes, evaluaciones,
   propuestas, tesis) so they read as their authors wrote them: a 23-pattern catalogue for Spanish
   academic prose in `references/patrones.md`, a claim check that catches citations the text
   misattributes, and the Find and replace procedure for editing a Google Doc through Brave.
@@ -56,7 +56,7 @@ complement of `deslop`, which reviews code. `CLAUDE.md` routes prose to it.
 
 **Local modifications:** only the frontmatter. Upstream is `disable-model-invocation: true` with a
 one-line description; here it is model-invoked, with a description that names the kinds of prose
-it covers. Spanish-language triggers belong to `redaccion-academica`.
+it covers. Spanish-language triggers belong to `academic-writing`.
 
 ### Vendored skills (Matt Pocock)
 
