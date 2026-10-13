@@ -9,7 +9,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
   "skillOverrides": {
     "felipego-projects": "off",
     "claude-in-chrome": "off"
