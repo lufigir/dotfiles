@@ -1,10 +1,9 @@
 ---
 name: unslop
 description: >
-  Cut AI tells from prose a person will read: docs, READMEs, skills, reports, PR and commit
-  bodies, messages. Use when writing or editing any of them, and for a pass over a draft. Spanish
-  triggers: "suena a IA", "quítale lo de IA", "sin em dashes", "pule este texto", "revisa la
-  redacción".
+  Cut AI tells from prose a person will read: docs, READMEs, skills, technical reports, PR and
+  commit bodies, messages. Use when writing or editing any of them, and for a pass over a draft.
+  University deliverables in Spanish go to redaccion-academica.
 ---
 
 # Unslop

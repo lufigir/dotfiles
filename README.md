@@ -34,6 +34,14 @@ links each config where that system expects it.
   (safe fixes applied, the rest reported) and on demand as `/deslop`. Deliberately the complement of the
   linter rather than an overlap: lint owns the rules with a syntactic shape, this owns
   the ones with only a smell
+- `redaccion-academica` — edits university deliverables in Spanish (informes, evaluaciones,
+  propuestas, tesis) so they read as their authors wrote them: a 23-pattern catalogue for Spanish
+  academic prose in `references/patrones.md`, a claim check that catches citations the text
+  misattributes, and the Find and replace procedure for editing a Google Doc through Brave.
+  `references/evidencia.md` holds the studies behind the catalogue and what the evaluations of AI
+  detectors found. Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT,
+  Siqi Chen; `LICENSE` in the skill folder). Owns academic Spanish; `unslop` keeps docs, PRs and
+  messages
 
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
@@ -48,7 +56,7 @@ complement of `deslop`, which reviews code. `CLAUDE.md` routes prose to it.
 
 **Local modifications:** only the frontmatter. Upstream is `disable-model-invocation: true` with a
 one-line description; here it is model-invoked, with a description that names the kinds of prose
-it covers and Spanish triggers.
+it covers. Spanish-language triggers belong to `redaccion-academica`.
 
 ### Vendored skills (Matt Pocock)
 
