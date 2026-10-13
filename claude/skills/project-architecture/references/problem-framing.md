@@ -53,8 +53,9 @@ The concern names are the reference names, so the same word is used in the frami
 | `product-analytics` | The outcome is measured from user behaviour | later for a prototype, applies for a product |
 | `privacy` | The product stores personal data about real people | applies whenever it does |
 | `reliability` | Downtime or data loss has a real cost (the SLO and recovery sections of `operations.md`) | later for a prototype |
+| `testing` | Code carries a risk beyond the floor: security in the database, a model's output feeding a decision, a flow whose breakage is the outage. The reason names the kinds taken on (`testing.md`) | applies, with the floor and the kinds the risks call for |
 
-Always in scope, because they are how the code is built rather than features: the layering and naming in `architecture.md`, the DAL in `data-layer.md`, the schema in `database.md`, `security.md`, `performance.md`, `resource-budget.md` (its depth scaled to the stakes), `lint-guardrails.md`, `design-system.md`, `accessibility.md`, `routing.md`, and the logging and configuration half of `operations.md`.
+Always in scope, because they are how the code is built rather than features: the layering and naming in `architecture.md`, the DAL in `data-layer.md`, the schema in `database.md`, `security.md`, `performance.md`, `resource-budget.md` (its depth scaled to the stakes), `lint-guardrails.md`, the testing floor in `testing.md`, `design-system.md`, `accessibility.md`, `routing.md`, and the logging and configuration half of `operations.md`.
 
 Concerns outside this skill still get a row when the framing raises them (payments, email, internationalisation, search, realtime, offline), so the decision is recorded even though no reference governs it.
 
