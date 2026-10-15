@@ -54,12 +54,13 @@ decorative filler.
   outward-facing. Show the user the content you're about to write and get a clear
   yes before calling the Notion write tools.
 - **Load the tools you need up front.** Notion runs through **Executor**
-  (`mcp__executor__execute`), not a direct MCP server. This skill's databases
-  live in the **`felipegiraldo`** workspace, so every Notion tool named below in
-  short form (`notion-fetch`, `notion-search`, `notion-query-data-sources`,
-  `notion-create-pages`, `notion-update-page`) maps to
-  `tools.notion_mcp.user.felipegiraldo.<name_with_underscores>` inside an
-  `execute` call — e.g. `notion-search` → `tools.notion_mcp.user.felipegiraldo.notion_search`.
+  (`mcp__executor__call`, or `execute` to chain calls), not a direct MCP server.
+  This skill's databases live in the personal workspace (account **`lufigir`**), so every
+  Notion tool named below in short form (`notion-fetch`, `notion-search`,
+  `notion-query-data-sources`, `notion-create-pages`, `notion-update-page`) maps
+  to `tools["notion-mcp"].<name_with_underscores>` with the `lufigir`
+  account: `{ accountId, input }`, taking the `accountId` from `search` —
+  e.g. `notion-search` → `tools["notion-mcp"].notion_search`.
   Also load the Brave MCP (`mcp__brave__new_page`,
   `navigate_page`, `take_snapshot`, `take_screenshot`, `click`, `fill`) and
   `WebFetch`. In Claude Code these may be deferred — load them with one

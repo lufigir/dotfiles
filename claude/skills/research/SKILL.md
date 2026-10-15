@@ -40,11 +40,11 @@ what it leaves out.
 | The angle | Go to |
 |---|---|
 | How a library, API or framework is used, in the installed version | Context7, through Executor |
-| Whether it actually works: bugs, regressions, what people found | `firecrawl_developer_search` |
-| Anything on the open web: products, pricing, news, docs, comparisons | `firecrawl_search`, then `firecrawl_scrape` on the pages that matter |
-| A synthesis across many sites that can wait minutes | `firecrawl_agent` |
-| What a PDF or document says | `firecrawl_parse` (open or user-supplied files only) |
-| Open scientific literature (arXiv, PubMed, bioRxiv) | `firecrawl_research_*` |
+| Whether it actually works: bugs, regressions, what people found | Firecrawl `developer.developerSearch` |
+| Anything on the open web: products, pricing, news, docs, comparisons | Firecrawl `search.searchAndScrape`, then `scraping.scrapeAndExtractFromUrl` on the pages that matter |
+| A synthesis across many sites that can wait minutes | Firecrawl `agent.startAgent` |
+| What a PDF or document says | Firecrawl `scraping.scrapeAndExtractFromUrl` on its URL, or `scraping.parseFile` for a small user-supplied file |
+| Open scientific literature (arXiv, PubMed, bioRxiv) | Firecrawl `research.*` |
 | Indexed literature: journals, conferences, citation counts, quartiles | Scopus in Brave, then **follow the venues** (below) |
 | Computing papers (ACM, IEEE conferences and journals) | ACM Digital Library (open access since 2026-01-01) and IEEE Xplore through the proxy |
 | Latin American or Spanish-language literature, a contextual gap | SciELO, Redalyc, Dialnet, LA Referencia |
@@ -52,7 +52,7 @@ what it leaves out.
 | What a known set of sources says | NotebookLM `notebook_query` on the notebook that holds them |
 | A quick first map of a topic, to import as sources | NotebookLM `research_start` (`fast` ~10 sources, `deep` ~40), then `research_import` |
 
-Firecrawl and Context7 run through Executor (`mcp__executor__execute`); the `mcp-integrations`
+Firecrawl and Context7 run through Executor (`mcp__executor__*`); the `mcp-integrations`
 skill says which account to use. NotebookLM is its own MCP (`mcp__notebooklm-mcp__*`); when its
 tools are missing, ask the user to enable it with `/mcp`.
 

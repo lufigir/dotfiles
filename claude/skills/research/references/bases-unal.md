@@ -106,7 +106,7 @@ Scopus is in `SKILL.md`. For the others, what worked on 2026-09-27 (2026-10-06 w
   Field syntax is `"Abstract":term`, `"Document Title":term`, with `AND`/`OR` and `*`. Results
   render as `xpl-results-item` elements, each appearing twice in the DOM; the count is in the
   "Showing 1-N of M results" line.
-- **ACM DL** (open, Firecrawl `firecrawl_scrape` to markdown):
+- **ACM DL** (open, Firecrawl `scraping.scrapeAndExtractFromUrl` to markdown):
   `https://dl.acm.org/action/doSearch?AllField=<query>&AfterYear=2019&sortBy=cited&pageSize=50`.
   Field syntax is `Title:(…)`, `Abstract:(…)`. Titles come as markdown links to
   `https://dl.acm.org/doi/<DOI>`, so the DOI comes with the hit. The Basic edition greys out the

@@ -5,10 +5,11 @@ and schema live every time — never hardcode or remember them, they can drift
 if the databases get restructured.
 
 > **Access path:** all `notion-*` tool references in this file route through
-> **Executor** — call them inside `mcp__executor__execute` as
-> `tools.notion_mcp.user.felipegiraldo.<name_with_underscores>` (e.g.
-> `notion-fetch` → `tools.notion_mcp.user.felipegiraldo.notion_fetch`). These
-> databases are in the `felipegiraldo` workspace.
+> **Executor** — call them with `mcp__executor__call` (or inside `execute`) as
+> `tools["notion-mcp"].<name_with_underscores>` (e.g. `notion-fetch` →
+> `tools["notion-mcp"].notion_fetch`), passing `{ accountId, input }`. These
+> databases are in the personal workspace, account `lufigir`: take its `accountId` from
+> Executor's `search`.
 
 ## Where the databases live
 
