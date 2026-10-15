@@ -188,7 +188,7 @@ A linter checks the shape of code, not its meaning. It will never tell you that 
 
 The split is: **the linter owns the rules with a syntactic signature; the DAL, the policy layer and the type system own the rest.** A rule you cannot express syntactically is a rule that belongs in `AGENTS.md` and in a test, not in a regex someone will fight.
 
-There is a second thing it cannot do, and it is the one this reference used to be quiet about: a linter cannot tell you the code reads like a tutorial. Narrated comments, `*Helper` suffixes, a wrapper called once, a test that asserts nothing but the absence of a throw — none of that has a syntactic signature, and all of it is what an agent produces under time pressure. That is the `deslop` skill's job, on the diff, before the merge. The linter and that skill do not overlap; they fail at different things.
+There is a second thing it cannot do, and it is the one this reference used to be quiet about: a linter cannot tell you the code reads like a tutorial. Narrated comments, `*Helper` suffixes, a wrapper called once, a test that asserts nothing but the absence of a throw — none of that has a syntactic signature, and all of it is what an agent produces under time pressure.
 
 ## Where this fits
 
@@ -215,5 +215,5 @@ Both modes: the rules are only real if CI runs them. Lint failures block the mer
 | `no-restyle` loosened globally for one component | Every component loses the rule; a contract opens just that one |
 | Assertions allowed with no stated invariant | No way to tell a checked assertion from a hopeful one |
 | Expecting lint to catch missing tenant filters | Semantic bugs need tests; the linter never sees them |
-| Expecting lint to catch slop | It has no syntactic signature; that is `deslop`, on the diff |
+| Expecting lint to catch slop | It has no syntactic signature; it takes reading the diff |
 | Lint failures that do not block the merge | The rules are advisory, which is the same as absent |

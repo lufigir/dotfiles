@@ -159,8 +159,7 @@ The split: **the linter owns the rules with a syntactic signature; the DAL, the 
 layer and the type system own the rest.** A rule you cannot express syntactically
 belongs in `AGENTS.md` and in a test, not in a regex somebody will fight.
 
-It also cannot tell you the code reads like a tutorial. That is the `deslop` skill's
-job, on the diff, before the merge.
+It also cannot tell you the code reads like a tutorial; that takes reading the diff.
 
 ## Updating
 

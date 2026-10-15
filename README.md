@@ -27,13 +27,6 @@ links each config where that system expects it.
 - `project-architecture` — two modes: bootstrap a new project with a layered architecture, and answer architecture questions mid-build against the repo's own `AGENTS.md`; 23 references (the bootstrap phases, problem framing and scope, layers, URLs, routing, DAL, list views, mutations, schema and migrations, multi-tenancy, direct data access, API contracts, async work, uploads, security, performance, operations, product analytics, privacy, lint guardrails, design system, accessibility, maintenance) whose version-specific claims are always verified against the live docs. `scripts/check_skill.py` checks the skill's structure; `scripts/audit_project.py` audits a project against the non-negotiables
 - `research` — the entry point for research of any kind: a table that sends each kind of question to its source (Context7, Firecrawl's tools, NotebookLM, or the UNAL library) and says how the three research surfaces chain: the library finds and vouches, Firecrawl reads, NotebookLM holds a chosen corpus to query, and the route to scholarly literature through the UNAL subscriptions (Scopus, Web of Science and ~170 more) in the personal Brave via the `brave` MCP. `references/bases-unal.md` maps questions to bases (full text by field, Latin America, theses, patents, standards, Colombian data); `references/literature-review.md` carries the review method (search equations, recency window, review matrix, gap wording, citation checks). Always on, and routed from `CLAUDE.md`
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
-- `deslop` — taste-level review of a branch's diff for the patterns that mark AI-written
-  code: narrated comments, placeholder names, wrappers around one call, defensive
-  catches that swallow, tests that mock everything. Twenty-four rules in six categories,
-  with a verdict band. Runs inside `commit-and-push` on every diff that touches code
-  (safe fixes applied, the rest reported) and on demand as `/deslop`. Deliberately the complement of the
-  linter rather than an overlap: lint owns the rules with a syntactic shape, this owns
-  the ones with only a smell
 - `academic-writing` — edits university deliverables in Spanish (informes, evaluaciones,
   propuestas, tesis) so they read as their authors wrote them: a 23-pattern catalogue for Spanish
   academic prose in `references/patrones.md`, a claim check that catches citations the text
@@ -51,8 +44,7 @@ scope — the list above is descriptive, not the source of truth; `claude/settin
 `unslop` is vendored from [cursor/plugins](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop)
 (MIT, Lauren Tan) at commit `e43c7ee`. It is 33 numbered rules for cutting AI tells from prose,
 picked over nine other anti-slop skills because it targets technical writing and matches the house
-rules already in memory (no em dashes, name the mechanism, active voice). It is the prose
-complement of `deslop`, which reviews code. `CLAUDE.md` routes prose to it.
+rules already in memory (no em dashes, name the mechanism, active voice). `CLAUDE.md` routes prose to it.
 
 **Local modifications:** only the frontmatter. Upstream is `disable-model-invocation: true` with a
 one-line description; here it is model-invoked, with a description that names the kinds of prose
