@@ -6,3 +6,6 @@
 
 # Eval run output (reports, transcripts, mock recordings)
 /claude/evals/results/
+
+# Python bytecode cache from skill scripts
+__pycache__/
