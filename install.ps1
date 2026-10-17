@@ -222,9 +222,11 @@ function Install-ClaudeExtras($repo) {
     }
 
     # Executor: single MCP hub for all external integrations (Notion, Context7, Vercel, ...).
-    # Connections themselves are managed at executor.sh; first use prompts an OAuth authorize.
-    $executorUrl = "https://executor.sh/felipe-giraldo-s-organization/mcp"
-    if ((claude mcp list 2>$null) -notmatch "executor") {
+    # Connections themselves are managed at app.executor.sh; first use prompts an OAuth
+    # authorize, where the organization is picked. An entry with another URL is replaced.
+    $executorUrl = "https://mcp.executor.sh/mcp"
+    if (((claude mcp get executor 2>$null) -join "`n") -notmatch [regex]::Escape("URL: $executorUrl")) {
+        claude mcp remove executor --scope user 2>$null | Out-Null
         claude mcp add --transport http executor $executorUrl --scope user | Out-Null
         Write-Ok "executor $($c.Dim)added, run /mcp to authorize$($c.Reset)"
     } else {
