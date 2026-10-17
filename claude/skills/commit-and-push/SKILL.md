@@ -1,6 +1,7 @@
 ---
 name: commit-and-push
 description: Use when asked to commit, push, save, or ship work to git — writes well-scoped Conventional Commits with informative bodies, then lands everything on main (merging and deleting any working branch).
+model: claude-haiku-5-5
 ---
 
 # Commit and push
