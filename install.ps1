@@ -31,6 +31,12 @@ $baselinePlugins = @(
     'insecure-defaults@trailofbits'
     'static-analysis@trailofbits'
     'supply-chain-risk-auditor@trailofbits'
+    'after@better-claude'
+    'use-haiku@better-claude'
+    'think-hard@better-claude'
+    'token-meter@better-claude'
+    'sub-meter@better-claude'
+    'image-preview@better-claude'
 )
 
 # --- Presentation ------------------------------------------------------------
@@ -269,11 +275,16 @@ function Install-ClaudeExtras($repo) {
         nlm config set auth.browser brave | Out-Null
     }
 
-    # Plugins of the baseline: skill-creator, and three Trail of Bits audit skills
-    # (fail-open defaults, Semgrep/CodeQL, dependency risk). settings.json declares
-    # the trailofbits marketplace; the clone is added here when it is missing.
-    if ((claude plugin marketplace list 2>$null) -notmatch "trailofbits") {
+    # Plugins of the baseline: skill-creator, three Trail of Bits audit skills
+    # (fail-open defaults, Semgrep/CodeQL, dependency risk) and midudev's better-claude
+    # mods (all but its commit, which the commit-and-push skill covers). settings.json
+    # declares both marketplaces; each clone is added here when it is missing.
+    $marketplaces = claude plugin marketplace list 2>$null
+    if ($marketplaces -notmatch "trailofbits") {
         claude plugin marketplace add trailofbits/skills | Out-Null
+    }
+    if ($marketplaces -notmatch "better-claude") {
+        claude plugin marketplace add midudev/better-claude | Out-Null
     }
     $installed = claude plugin list 2>$null
     foreach ($plugin in $baselinePlugins) {
