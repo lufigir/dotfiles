@@ -43,3 +43,21 @@ Consecuencia práctica: un detector no prueba autoría en ningún sentido. La de
 acusación es el rastro del trabajo (historial de versiones del Docs, scripts, datos, notas), y un
 texto editado con IA puede ser señalado por los detectores de edición aunque las ideas sean
 propias. Si la entrega admite apoyo de IA, decláralo como pida el curso.
+
+## Añadido el 2026-10-19
+
+- **Vázquez-Cano, E. (2026).** Assessing AI-generated academic writing in Spanish across ChatGPT,
+  Gemini, and Claude. *Language Education & Assessment* (Castledown). 90 textos académicos en
+  español: cada modelo deja un perfil sintáctico propio, sobre todo en la coordinación (LDA 91 %
+  entre modelos). No compara con textos humanos. Respalda variar coordinación y subordinación en
+  vez de encadenar "X y Y". Respalda la segunda parte de §10.
+- **Análisis comparativo de textos mediáticos humanos y generados (2025).** *Lengua y Habla*
+  (ULA). Los textos de ChatGPT, Gemini y BingAI tienen más corrección gramatical, sintaxis
+  estandarizada, menos metáfora y menos expresividad; proponen cinco parámetros de "humanidad":
+  variabilidad gramatical, riqueza semántica, relevancia pragmática, organización retórica y
+  expresión estilística. Respalda la postura propia en la sección de rasgos humanos.
+- **Can You Make It Sound Like You? (2026).** arXiv 2604.24444. Estudio preregistrado (n = 81):
+  la posedición acerca el texto al estilo propio, pero sigue más cerca del texto del modelo que
+  de la escritura sin ayuda, y los autores no notan esa distancia. Cambiar palabras sueltas no
+  basta; hay que reestructurar oraciones y poner la postura propia. Respalda el paso 4 de la
+  skill.

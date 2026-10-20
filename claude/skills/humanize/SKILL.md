@@ -1,7 +1,7 @@
 ---
-name: academic-writing
+name: humanize
 description: >
-  Academic writing in Spanish: edit a university deliverable (informe, evaluación, propuesta,
+  Humanize academic writing in Spanish: edit a university deliverable (informe, evaluación, propuesta,
   ensayo, artículo, ponencia, tesis) so it reads as its authors wrote it, cutting AI tells while
   every claim, figure and citation survives, in a pasted text, a local file or a Google Doc
   through Brave. Use when drafting or revising any course or thesis text in Spanish. Spanish
@@ -9,7 +9,7 @@ description: >
   redacción".
 ---
 
-# Academic writing
+# Humanize
 
 A model writes the most probable next word, so its prose makes the choice that fits every reader
 and every subject. A student writes for one teacher about one dataset, so their choices are uneven
@@ -40,6 +40,9 @@ Docs, READMEs, PRs and messages go to `unslop`; this skill owns university deliv
    entry exactly as written; add none. Keep the authors' voice: their person (usually *nosotros*),
    their asides ("Lo que más nos llamó la atención"), their hedges that carry real doubt ("Hasta
    donde revisamos"). Change only the sentences you marked; a clean paragraph stays untouched.
+   Rebuild a marked sentence's structure (where it breaks, what it subordinates, what goes in a
+   parenthesis); swapping words leaves it in the model's style
+   ([`evidencia.md`](references/evidencia.md)).
 5. **Apply.** By where the text lives:
    - *Pasted text:* return the changes and the final text.
    - *Local file:* edit only prose; leave tables, code, citations and the reference list as they are.

@@ -3,7 +3,7 @@ name: unslop
 description: >
   Cut AI tells from prose a person will read: docs, READMEs, skills, technical reports, PR and
   commit bodies, messages. Use when writing or editing any of them, and for a pass over a draft.
-  University deliverables in Spanish go to academic-writing.
+  University deliverables in Spanish go to humanize.
 ---
 
 # Unslop

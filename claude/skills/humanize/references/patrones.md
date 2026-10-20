@@ -89,7 +89,9 @@ revisamos", "Por ahora son asociaciones"). *Débil sola.*
 
 Los textos de GPT en español tienen más oraciones y más puntos que los humanos del mismo género.
 Diagnóstico de párrafo, no de frase: si un párrafo es una fila de oraciones de 12 a 18 palabras,
-une las que comparten sujeto o causa con coma, punto y coma o dos puntos. *Débil sola.*
+une las que comparten sujeto o causa con coma, punto y coma o dos puntos. La misma marca en la
+forma: oración tras oración armada como "X, y Y" (cada modelo deja su huella sobre todo en la
+coordinación). Alterna con una subordinada, un paréntesis o un punto y coma. *Débil sola.*
 
 ## C. Inflación
 
@@ -187,3 +189,7 @@ En el corpus de Alonso Simón et al. (2025), los textos humanos usan más adverb
 comillas, paréntesis, punto y coma y dos puntos, y menos adjetivos que los de GPT. No los añadas
 por cumplir una cuota; consérvalos cuando el autor ya los usa, porque son parte de su voz. Igual
 con el detalle específico, la opinión propia, la duda real y el comentario entre paréntesis.
+
+Cuando el texto ya implica una postura de los autores (qué medida retoman, qué trabajo les queda
+más cerca, qué les sorprendió), dila en su persona: "es la medida que retomamos". Es lo que más
+separa un texto poseditado del estilo del modelo, y no añade ningún hecho.
