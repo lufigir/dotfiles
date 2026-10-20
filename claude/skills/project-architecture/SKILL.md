@@ -32,7 +32,7 @@ Which is why this skill has a second job. Conventions decided in week one are fo
 
 ## Everything version-specific is a moving target
 
-`references/` holds distilled architecture knowledge: layering, the dependency rule, DAL/DTO/policy, ERD design and migrations, tenant isolation, API contracts, list views, mutations, accessibility, async work, uploads, security, performance, operations, product analytics, privacy, resource budgets, lint guardrails and design tokens. Those **principles** hold across versions.
+`references/` holds distilled architecture knowledge: layering, the dependency rule, DAL/DTO/policy, ERD design and migrations, tenant isolation, API contracts, list views, mutations, accessibility, async work, LLM agents, uploads, security, performance, operations, product analytics, privacy, resource budgets, lint guardrails and design tokens. Those **principles** hold across versions.
 
 **Every concrete API, file name, flag, and command in them is a moving target.** The reference files mark those with `VERIFY:` blocks stating exactly what to look up. Resolve them against the live docs before writing code, in **both** modes, not just at bootstrap. Context7 goes through Executor; see the `mcp-integrations` skill for the tool path and the two-step flow. Read the version attached to whatever comes back: it is the difference between "the docs say X" and "the docs for the version installed here say X".
 
@@ -44,7 +44,7 @@ When the live docs contradict a reference file, **the docs win** and you say so 
 
 The compressed form of the rules, for recall. Each one expands in the reference file named; that file is the authority.
 
-Five are conditional and say so. 3, 10 and 16 hold only when their concern is in the project's scope (`problem-framing.md`). 6 and 8 name the mechanism of a React framework with server components; on another stack keep the principle and find its mechanism there, or say it has none (`maintenance.md`). The rest hold in every project, because they are how the code is built rather than what it builds.
+Six are conditional and say so. 3, 10, 16 and 18 hold only when their concern is in the project's scope (`problem-framing.md`). 6 and 8 name the mechanism of a React framework with server components; on another stack keep the principle and find its mechanism there, or say it has none (`maintenance.md`). The rest hold in every project, because they are how the code is built rather than what it builds.
 
 1. **The dependency rule.** UI → Transport → Domain → Capabilities → Vendors, each layer reaching only the one below it. Shared contracts and the database client flow upward to everyone. (`architecture.md`)
 2. **The DAL is the only path to the database.** No ORM call in a page, a component, a route handler, or an action. (`data-layer.md`)
@@ -63,6 +63,7 @@ Five are conditional and say so. 3, 10 and 16 hold only when their concern is in
 15. **One naming format.** kebab-case for source files, snake_case in the database. (`architecture.md`, `database.md`)
 16. **When the product measures usage, events are a contract.** Declared once in a typed catalog, never named from a variable; business events captured on the server after the write commits; the analytics vendor behind a capability like any other. (`product-analytics.md`)
 17. **Every unit of work has a known cost.** The resource budget is part of the design: each quota and each capacity the product depends on has an expected peak load, written down, under half its limit; requests per render and queries per request are recorded numbers. A limit met for the first time in a restriction notice or an outage was never planned. (`resource-budget.md`)
+18. **In a product with an LLM agent, the model's output is untrusted input.** It returns a typed schema that code validates, citations included; code owns the control flow and every write; content the agent reads is data, never instructions; and a prompt or model change ships only after the golden set says it did not regress. (`llm-agents.md`)
 
 ## Bootstrap
 
@@ -82,11 +83,11 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 
 ### The procedure
 
-0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-five references to find out the project never had lint boundaries.
+0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-six references to find out the project never had lint boundaries.
 1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/architecture.md`. If there is no Scope section, run the scope study from `references/problem-framing.md` before recommending any concern the project may never have chosen.
 2. **Check the concern against the scope.** Work that would build a concern marked **later** or **no** is a scope change: stop, say so, and update the Scope row with the user before applying that reference.
 3. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
-4. **Open the one reference for the concern**, not all twenty-five. The table below maps concern to file.
+4. **Open the one reference for the concern**, not all twenty-six. The table below maps concern to file.
 5. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 6. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -104,7 +105,7 @@ A convention that only lives in this skill is a convention the next session lose
 
 ## Reference files
 
-Read the one the work is about. Reading all twenty-five for a question about a foreign key wastes the context the actual task needs.
+Read the one the work is about. Reading all twenty-six for a question about a foreign key wastes the context the actual task needs.
 
 | File | Covers | Reach for it when |
 |---|---|---|
@@ -121,6 +122,7 @@ Read the one the work is about. Reading all twenty-five for a question about a f
 | `direct-data-access.md` | Managed backends where the browser can reach the database, the three postures, RLS as the whole security model, realtime channels, staying portable | Using Supabase or any platform that exposes the database to the client |
 | `api-design.md` | Server actions vs route handlers, contract-first schemas, typed RPC, OpenAPI, error codes, webhooks | Exposing an endpoint or shaping a mutation |
 | `async-work.md` | What leaves the request, job tiers, retries and idempotency, cron, job context | Work that is slow, scheduled, or can fail on its own |
+| `llm-agents.md` | One call vs workflow vs agent loop, agents in the layers, prompts as code, typed and validated output, context, narrow tools, indirect prompt injection, durable and bounded runs, cost and caching by content, traces without content, unit tests with a fake model, golden-set evals, changing a prompt or model, the improvement loop | Building or changing anything that calls a model to decide, extract or act, in any language |
 | `file-uploads.md` | Presigned URLs, content validation, storage keys, metadata split, orphans | Users send you files |
 | `security.md` | server-only, taint, env vars, XSS, security headers, validation, supply chain | Handling secrets, user-supplied content, or public entry points |
 | `performance.md` | Waterfalls, streaming and Suspense, PPR, server vs client components, caching directives, images, bundle | Something is slow, or a route turned dynamic |
