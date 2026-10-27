@@ -52,8 +52,10 @@ what it leaves out.
 | What a known set of sources says | NotebookLM `notebook_query` on the notebook that holds them |
 | A quick first map of a topic, to import as sources | NotebookLM `research_start` (`fast` ~10 sources, `deep` ~40), then `research_import` |
 
-Firecrawl and Context7 run through Executor (`mcp__executor__*`); the `mcp-integrations`
-skill says which account to use. NotebookLM is its own MCP (`mcp__notebooklm-mcp__*`); when its
+Firecrawl and Context7 run through Executor (`mcp__executor__*`); load the `mcp-integrations`
+skill before the first call, because it says which account to use. Firecrawl has four free plans:
+the account with credits is the one to use, and a single account at zero says nothing about the
+other three. NotebookLM is its own MCP (`mcp__notebooklm-mcp__*`); when its
 tools are missing, ask the user to enable it with `/mcp`.
 
 **Follow the venues.** An index answers "what exists"; the venues answer "where this field
