@@ -27,28 +27,18 @@ links each config where that system expects it.
 - `project-architecture` — two modes: bootstrap a new project with a layered architecture, and answer architecture questions mid-build against the repo's own `AGENTS.md`; 23 references (the bootstrap phases, problem framing and scope, layers, URLs, routing, DAL, list views, mutations, schema and migrations, multi-tenancy, direct data access, API contracts, async work, uploads, security, performance, operations, product analytics, privacy, lint guardrails, design system, accessibility, maintenance) whose version-specific claims are always verified against the live docs. `scripts/check_skill.py` checks the skill's structure; `scripts/audit_project.py` audits a project against the non-negotiables
 - `research` — the entry point for research of any kind: a table that sends each kind of question to its source (Context7, Firecrawl's tools, NotebookLM, or the UNAL library) and says how the three research surfaces chain: the library finds and vouches, Firecrawl reads, NotebookLM holds a chosen corpus to query, and the route to scholarly literature through the UNAL subscriptions (Scopus, Web of Science and ~170 more) in the personal Brave via the `brave` MCP. `references/bases-unal.md` maps questions to bases (full text by field, Latin America, theses, patents, standards, Colombian data); `references/literature-review.md` carries the review method (search equations, recency window, review matrix, gap wording, citation checks). Always on, and routed from `CLAUDE.md`
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
-- `humanize` — edits university deliverables in Spanish (informes, evaluaciones,
-  propuestas, tesis) so they read as their authors wrote them: a 23-pattern catalogue for Spanish
-  academic prose in `references/patrones.md`, a claim check that catches citations the text
-  misattributes, and the Find and replace procedure for editing a Google Doc through Brave.
-  `references/evidencia.md` holds the studies behind the catalogue and what the evaluations of AI
-  detectors found. Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT,
-  Siqi Chen; `LICENSE` in the skill folder). Owns academic Spanish; `unslop` keeps docs, PRs and
-  messages
+- `humanize` — edits any prose a person will read, in Spanish or English (university
+  deliverables, docs, PRs, messages, reviews), so it reads as its author wrote it. Two pattern
+  catalogues (`references/patrones.md` for Spanish, `references/patterns.md` for English, which
+  absorbed `unslop`), a claim check that catches misattributed citations, the Find and replace
+  procedure for a Google Doc through Brave, and a detector loop (Pangram, GPTZero) in
+  `references/detectores.md`. `references/evidencia.md` holds the studies behind each pattern.
+  Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, Siqi Chen) and
+  [unslop](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) (MIT, Lauren Tan, at
+  `e43c7ee`); both licenses are in the skill's `LICENSE`
 
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
-
-### Vendored skills (unslop)
-
-`unslop` is vendored from [cursor/plugins](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop)
-(MIT, Lauren Tan) at commit `e43c7ee`. It is 33 numbered rules for cutting AI tells from prose,
-picked over nine other anti-slop skills because it targets technical writing and matches the house
-rules already in memory (no em dashes, name the mechanism, active voice). `CLAUDE.md` routes prose to it.
-
-**Local modifications:** only the frontmatter. Upstream is `disable-model-invocation: true` with a
-one-line description; here it is model-invoked, with a description that names the kinds of prose
-it covers. Spanish-language triggers belong to `humanize`.
 
 ### Vendored skills (Matt Pocock)
 
