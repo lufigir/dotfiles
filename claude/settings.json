@@ -56,7 +56,9 @@
     "think-hard@better-claude": true,
     "token-meter@better-claude": true,
     "sub-meter@better-claude": true,
-    "image-preview@better-claude": true
+    "image-preview@better-claude": true,
+    "context-meter@better-claude": true,
+    "quick-peek@better-claude": true
   },
   "extraKnownMarketplaces": {
     "trailofbits": {
