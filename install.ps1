@@ -37,6 +37,8 @@ $baselinePlugins = @(
     'token-meter@better-claude'
     'sub-meter@better-claude'
     'image-preview@better-claude'
+    'context-meter@better-claude'
+    'quick-peek@better-claude'
 )
 
 # --- Presentation ------------------------------------------------------------
