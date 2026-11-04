@@ -81,6 +81,9 @@
   "modelSettings": {
     "claude-opus-5": {
       "effortLevel": "medium"
+    },
+    "claude-opus-5-5": {
+      "autoCompactWindow": 800000
     }
   },
   "autoUpdatesChannel": "latest",
@@ -90,7 +93,9 @@
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
+  "preferredNotifChannel": "terminal_bell",
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "theme": "dark"
 }
