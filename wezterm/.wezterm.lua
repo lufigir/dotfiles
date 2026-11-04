@@ -8,6 +8,9 @@ if is_windows then
   -- Windows 11 blurs whatever sits behind the window. The background colour below
   -- still tints it, so the purple survives instead of turning into plain grey glass.
   config.win32_system_backdrop = "Acrylic"
+  -- Low enough for the acrylic blur to read, high enough to keep the background dark.
+  -- Windows only: Linux has no blur behind the window, so the desktop showed through raw.
+  config.window_background_opacity = 0.7
 end
 
 config.font = wezterm.font("JetBrainsMono Nerd Font")
@@ -18,9 +21,6 @@ config.font_size = 12
 config.front_end = "WebGpu"
 config.webgpu_power_preference = "HighPerformance"
 config.max_fps = 120
-
--- Low enough for the acrylic blur to read, high enough to keep the background dark
-config.window_background_opacity = 0.7
 
 -- Dim panes that don't have focus, so a split is readable without hunting the cursor
 config.inactive_pane_hsb = {
