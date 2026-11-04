@@ -233,6 +233,8 @@ function Install-ClaudeExtras($repo) {
         return
     }
 
+    Install-BraveAgent
+
     foreach ($profileDir in $claudeProfiles) {
         $isMain = $profileDir -eq $claudeMain
         Write-Section "Claude Code $($c.Dim)MCP servers and plugins · $(Format-Path $profileDir)$($c.Reset)"
@@ -255,6 +257,42 @@ function Install-ClaudeExtras($repo) {
     }
 }
 
+# Brave Agente: a Brave profile of its own for the brave MCP, with remote debugging on
+# $braveAgentPort. A Start menu shortcut opens it, and a Startup one keeps it running in
+# the background from logon, so the MCP finds it without a window open. Its sign-ins are
+# separate from the personal Brave: log in there once to each site the agent needs.
+# Windows only; elsewhere launch Brave with the same flags by hand.
+$braveAgentPort = 9333
+$braveAgentUrl = "http://127.0.0.1:$braveAgentPort"
+
+function Install-BraveAgent {
+    Write-Section "Brave Agente $($c.Dim)dedicated profile for the brave MCP$($c.Reset)"
+    if (-not $IsWindows) {
+        Write-Note "not Windows: run Brave with --user-data-dir=<own folder> --remote-debugging-port=$braveAgentPort"
+        return
+    }
+    $brave = Join-Path $env:ProgramFiles 'BraveSoftware' 'Brave-Browser' 'Application' 'brave.exe'
+    if (-not (Test-Path $brave)) {
+        Write-Warn "Brave not found at $brave, skipping (winget install Brave.Brave)"
+        return
+    }
+    $data = Join-Path $env:LOCALAPPDATA 'BraveSoftware' 'Brave-Agent'
+    $flags = "--user-data-dir=`"$data`" --remote-debugging-port=$braveAgentPort --no-first-run --no-default-browser-check"
+    $programs = Join-Path $env:APPDATA 'Microsoft' 'Windows' 'Start Menu' 'Programs'
+    $shortcuts = @(
+        @{ Path = (Join-Path $programs 'Brave Agente.lnk'); Args = $flags }
+        @{ Path = (Join-Path $programs 'Startup' 'Brave Agente (segundo plano).lnk'); Args = "$flags --no-startup-window" }
+    )
+    $shell = New-Object -ComObject WScript.Shell
+    foreach ($s in $shortcuts) {
+        $lnk = $shell.CreateShortcut($s.Path)
+        $lnk.TargetPath = $brave
+        $lnk.Arguments = $s.Args
+        $lnk.Save()
+        Write-Ok (Format-Path $s.Path)
+    }
+}
+
 function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
     # Executor: single MCP hub for all external integrations (Notion, Context7, Vercel, ...).
     # Connections themselves are managed at app.executor.sh; first use prompts an OAuth
@@ -269,20 +307,19 @@ function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
     }
 
     # Brave: the only browser MCP. chrome-devtools-mcp (navigate, click, screenshots,
-    # console/network, Lighthouse, performance traces) attached to the personal Brave, so it
-    # also acts with the user's real sign-ins (the UNAL library proxy, Scopus, GitHub, ...).
-    # Runs over stdio via npx (needs Node 22+). --auto-connect needs Chromium 144+ and
-    # Remote Debugging switched on at brave://inspect/#remote-debugging; Brave asks to allow
-    # the first connection.
+    # console/network, Lighthouse, performance traces) attached over --browserUrl to a
+    # dedicated Brave profile ("Brave Agente") listening on port 9333, with its own sign-ins
+    # (the UNAL library proxy, Scopus, GitHub, ...). Unlike --auto-connect on the personal
+    # Brave, it never asks to allow the connection. The profile and its shortcuts are set up
+    # by Install-BraveAgent. Runs over stdio via npx (needs Node 22+). An entry with other
+    # arguments (the old --auto-connect one) is replaced.
     # NOTE: the stdio separator must be quoted ('--'). `claude` resolves to claude.ps1, and
     # PowerShell swallows a bare -- as its end-of-parameters token, so the CLI would then
     # parse the command's own flags (-y, --from) as claude options and fail.
-    $braveData = if ($IsWindows) { Join-Path $env:LOCALAPPDATA 'BraveSoftware' 'Brave-Browser' 'User Data' }
-                 elseif ($IsMacOS) { Join-Path $HOME 'Library' 'Application Support' 'BraveSoftware' 'Brave-Browser' }
-                 else { Join-Path $HOME '.config' 'BraveSoftware' 'Brave-Browser' }
-    if ((claude mcp list 2>$null) -notmatch "brave") {
-        claude mcp add brave --scope user '--' npx -y chrome-devtools-mcp@latest --auto-connect --user-data-dir $braveData | Out-Null
-        Write-Ok "brave $($c.Dim)added, enable brave://inspect/#remote-debugging$($c.Reset)"
+    if (((claude mcp get brave 2>$null) -join "`n") -notmatch [regex]::Escape("--browserUrl $braveAgentUrl")) {
+        claude mcp remove brave --scope user 2>$null | Out-Null
+        claude mcp add brave --scope user '--' npx -y chrome-devtools-mcp@latest --browserUrl $braveAgentUrl | Out-Null
+        Write-Ok "brave $($c.Dim)added, attached to Brave Agente on $braveAgentUrl$($c.Reset)"
     } else {
         Write-Ok "brave $($c.Dim)already configured$($c.Reset)"
     }
@@ -563,7 +600,7 @@ if ('wezterm' -in $selected) {
 if ('claude' -in $selected) {
     $next += "run /mcp in Claude Code to authorize Executor"
     $next += "authenticate NotebookLM: uvx --from notebooklm-mcp-cli nlm login"
-    $next += "for the brave MCP, switch on Remote Debugging at brave://inspect/#remote-debugging"
+    $next += "for the brave MCP, open Brave Agente and sign in to the sites the agent needs"
 }
 if ('zed' -in $selected) {
     $next += "install the Zed extensions listed in zed/extensions.md"
