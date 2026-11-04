@@ -1,9 +1,7 @@
 # Zed extensions
 
-Zed has no declarative or CLI mechanism to install extensions (there's no
-`zed --install-extension` and no file the editor reads on startup), so they
-can't be symlinked. This list is manual reference only: install them from
-`Ctrl+Shift+X` (Extensions) or the command palette (`zed: extensions`).
+`settings.json` lists them under `auto_install_extensions`, and Zed installs any
+that are missing when it starts. Keep this list and that block in sync.
 
 - **Blade** — Laravel Blade support
 - **Catppuccin Icons** — icon theme

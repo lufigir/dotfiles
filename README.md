@@ -18,7 +18,7 @@ links each config where that system expects it.
   formatting, `anti-slop` vendored, a CI workflow, and `rule-tests/`, which asserts the rules still bite.
   One vendor (oxc), no ESLint, no Prettier. See `lint/README.md`; the reasoning lives
   in `project-architecture`'s `lint-guardrails.md` reference
-- `zed/extensions.md` — reference list of installed extensions (manual install, see note below)
+- `zed/extensions.md` — the extensions Zed installs on startup, mirrored in `settings.json`
 
 ### Personal skills
 
