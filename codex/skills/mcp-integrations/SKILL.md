@@ -131,7 +131,7 @@ Use it when the question is genuinely a synthesis ("compare how these four libra
 
 `interact.createBrowserSession` opens a remote browser session, and `interact.executeBrowserCode` navigates, clicks, fills, or runs code against the page. Two things to keep straight:
 
-- It is **not the user's browser**. The Brave MCP drives the user's Brave on this machine, which is what you want for debugging the local app, inspecting the console, or anything needing the user's logged-in session. Firecrawl's is a clean remote browser, which is what you want for a site that blocks scraping or needs a form filled to reveal content.
+- It is **not the user's browser**. The Brave MCP drives Brave Agente on this machine, a Brave profile kept for the agent with the user's sign-ins, which is what you want for debugging the local app, inspecting the console, or anything needing the user's logged-in session. Firecrawl's is a clean remote browser, which is what you want for a site that blocks scraping or needs a form filled to reveal content.
 - It **acts on the live site**. Submitting a form is a real, external side effect. Confirm before anything that writes.
 
 Close it with `interact.deleteBrowserSession` when done.

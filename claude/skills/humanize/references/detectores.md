@@ -44,7 +44,7 @@ texto humano en las pruebas publicadas; no sirven para decidir nada.
 
 ## Cómo correrlo en Brave
 
-El usuario tiene sesión iniciada en su Brave (`mcp__brave__*`).
+El MCP `brave` (`mcp__brave__*`) maneja Brave Agente, un perfil de Brave reservado para el agente con sus propias sesiones; si un detector pide iniciar sesión, el usuario la inicia ahí una vez.
 
 1. `list_pages`, luego `new_page` con la URL del detector; las pestañas del usuario quedan como
    están.

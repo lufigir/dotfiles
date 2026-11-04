@@ -3,7 +3,7 @@ name: research
 description: >
   Research of any kind: picks the source for the question, from the open web and library
   behaviour to scholarly literature through the UNAL library subscriptions (Scopus, Web of
-  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's own Brave. Use whenever a
+  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's Brave Agente. Use whenever a
   task needs finding something out before answering or building: comparing tools or options,
   checking a claim, a state of the art or literature review, references for a paper, thesis or
   course deliverable, recent studies, prior art and patents, technical standards, market or
@@ -105,8 +105,8 @@ search log go there, so the next session starts from them.
 
 ## The UNAL library in Brave
 
-The user is a UNAL student, and the `brave` MCP (`mcp__brave__*`) drives their real Brave, where
-they are already signed in.
+The user is a UNAL student, and the `brave` MCP (`mcp__brave__*`) drives Brave Agente, a Brave
+profile kept for the agent, where they sign in to the library once.
 
 ### Access
 

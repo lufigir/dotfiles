@@ -13,9 +13,9 @@ yet) — that's a real access grant and stays the user's action.
 
 ## Account
 
-The Brave MCP drives the user's **personal Brave**, so GitHub and Mintlify are
-usually already signed in. Work in a tab you open with `new_page` and leave the
-user's own tabs alone. Being signed in is not permission: the rules below about
+The Brave MCP drives **Brave Agente**, a Brave profile kept for the agent, where
+the user signs in to GitHub and Mintlify once. Work in a tab you open with
+`new_page` and leave the other tabs alone. Being signed in is not permission: the rules below about
 OAuth screens hold exactly as they would in a signed-out browser.
 
 The user's Mintlify notify-email is **`luisgir827@gmail.com`**. Typing this into

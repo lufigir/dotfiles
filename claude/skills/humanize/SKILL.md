@@ -87,8 +87,9 @@ The catalogue applies to every text; the genre decides what the author's voice a
 
 ## Google Docs through Brave
 
-The doc is open in the user's Brave (`mcp__brave__list_pages`, then `select_page` on the
-`docs.google.com/document` tab). Google Docs draws text on a canvas, so the DOM does not hold the
+The `brave` MCP drives Brave Agente, a Brave profile kept for the agent with its own sign-ins, so
+the doc is not open there: `new_page` with the doc's link (ask the user for it), signed in to the
+Google account that can edit it. Google Docs draws text on a canvas, so the DOM does not hold the
 body and an in-page `fetch` of `/export?format=txt` fails; work through **Find and replace**.
 
 1. Press `Control+h`, take a snapshot, note the uids of `Find`, `Replace with`, `Replace all`
