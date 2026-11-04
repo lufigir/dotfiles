@@ -11,6 +11,10 @@ if is_windows then
   -- Low enough for the acrylic blur to read, high enough to keep the background dark.
   -- Windows only: Linux has no blur behind the window, so the desktop showed through raw.
   config.window_background_opacity = 0.7
+else
+  -- The 20240203 release's native Wayland backend lags on GNOME (typing and scrolling
+  -- stutter). XWayland renders smoothly, so run under it until a newer release ships.
+  config.enable_wayland = false
 end
 
 config.font = wezterm.font("JetBrainsMono Nerd Font")
