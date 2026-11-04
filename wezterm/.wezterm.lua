@@ -3,8 +3,11 @@ local config = wezterm.config_builder()
 
 local is_windows = wezterm.target_triple:find("windows") ~= nil
 
+-- PowerShell everywhere: the profile in powershell/ is cross-platform, and its
+-- PSReadLine inline predictions are what bash lacks on Linux.
+config.default_prog = { is_windows and "pwsh.exe" or "pwsh", "-NoLogo" }
+
 if is_windows then
-  config.default_prog = { "pwsh.exe", "-NoLogo" }
   -- Windows 11 blurs whatever sits behind the window. The background colour below
   -- still tints it, so the purple survives instead of turning into plain grey glass.
   config.win32_system_backdrop = "Acrylic"
