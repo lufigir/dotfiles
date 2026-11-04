@@ -35,7 +35,7 @@ tools["notion-mcp"].notion_search({ accountId: "acc_…", input: { query: "…" 
 - An app with a single linked account uses that one, whatever its label: today PostHog is on `centrodeprototipado` and Higgsfield on `lgiraldoo`.
 - Use the account the user tells you to use: it's the source of truth.
 - If the user didn't specify and it isn't obvious, **ask before writing** (reading from the wrong account is harmless; creating/editing, migrations, deploys, or branches are not).
-- **Firecrawl is the exception**: `sekuz`, `lufigir`, `lgiraldoo` and `luisgir827` are four free plans (1,000 credits a month each, on different billing dates), not contexts. Use whichever has credits: check `tools.firecrawl.billing.getCreditUsage` for all four before a batch, or when a call fails for credits.
+- **Firecrawl is the exception**: `sekuz`, `lufigir`, `lgiraldoo` and `luisgir827` are four free plans (1,000 credits a month each, on different billing dates), not contexts. **Default to `lufigir`** (`acc_de4baa89-b5c4-413d-a3a1-50649b636cee`): it got a one-off grant of 5,000 credits on top of its plan in November 2026. Fall back to the others only when `lufigir` runs dry: check `tools.firecrawl.billing.getCreditUsage` before a large batch, or when a call fails for credits.
 
 ### Health and budgets
 
