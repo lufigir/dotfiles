@@ -151,7 +151,12 @@ function Link-Config($target, $source) {
 # everything that's extra, shows it grouped, and asks for ONE single confirmation
 # (default No) before deleting. Doesn't touch project repos, dotfiles-managed symlinks,
 # or claude.ai connectors (Canva/Drive live on the account, not in ~/.claude.json).
-function Clean-ClaudeBaseline($repo) {
+#
+# Runs once per profile, with CLAUDE_CONFIG_DIR already pointing at it. The main
+# profile keeps its .claude.json in $HOME; an extra profile keeps it inside its own
+# folder, and its skills folder is a link to the main one, so only the main one is
+# checked for loose skills.
+function Clean-ClaudeBaseline($repo, $profileDir, $isMain) {
     $plugins = @(); $mcp = @(); $skills = @(); $other = @()
     $keepMcp = @('executor', 'brave', 'notebooklm-mcp')
     $keepPlugins = @($baselinePlugins | ForEach-Object { $_.Split('@')[0] })
@@ -168,8 +173,8 @@ function Clean-ClaudeBaseline($repo) {
     }
     $plugins = @($plugins | Select-Object -Unique)
 
-    # 2. MCP servers outside the baseline (read from ~/.claude.json; -AsHashtable for empty keys).
-    $claudeJson = Join-Path $HOME '.claude.json'
+    # 2. MCP servers outside the baseline (read from .claude.json; -AsHashtable for empty keys).
+    $claudeJson = if ($isMain) { Join-Path $HOME '.claude.json' } else { Join-Path $profileDir '.claude.json' }
     if (Test-Path $claudeJson) {
         try {
             $cfg = Get-Content $claudeJson -Raw | ConvertFrom-Json -AsHashtable
@@ -180,9 +185,9 @@ function Clean-ClaudeBaseline($repo) {
     }
 
     # 3. Skills in ~/.claude/skills that are NOT symlinks to <repo>/claude/skills.
-    $skillsDir = Join-Path $HOME '.claude' 'skills'
+    $skillsDir = Join-Path $profileDir 'skills'
     $repoSkills = Join-Path $repo 'claude' 'skills'
-    if (Test-Path $skillsDir) {
+    if ($isMain -and (Test-Path $skillsDir)) {
         Get-ChildItem -Path $skillsDir -Force | ForEach-Object {
             $isRepoLink = ($_.LinkType -eq 'SymbolicLink') -and $_.Target -and `
                 $_.Target.StartsWith($repoSkills, [StringComparison]::OrdinalIgnoreCase)
@@ -191,11 +196,11 @@ function Clean-ClaudeBaseline($repo) {
     }
 
     # 4. Loose rules and global settings.local.json (not managed by the repo).
-    $rulesDir = Join-Path $HOME '.claude' 'rules'
+    $rulesDir = Join-Path $profileDir 'rules'
     if (Test-Path $rulesDir) {
         Get-ChildItem -Path $rulesDir -Force -File -Recurse | ForEach-Object { $other += $_.FullName }
     }
-    $localSettings = Join-Path $HOME '.claude' 'settings.local.json'
+    $localSettings = Join-Path $profileDir 'settings.local.json'
     if (Test-Path $localSettings) { $other += $localSettings }
 
     if (($plugins.Count + $mcp.Count + $skills.Count + $other.Count) -eq 0) {
@@ -203,7 +208,7 @@ function Clean-ClaudeBaseline($repo) {
         return
     }
 
-    Write-Section "Claude cleanup $($c.Dim)(outside the dotfiles baseline)$($c.Reset)"
+    Write-Section "Claude cleanup $($c.Dim)$(Format-Path $profileDir), outside the dotfiles baseline$($c.Reset)"
     if ($plugins) { Write-Note "plugins to uninstall";          $plugins | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $_" } }
     if ($mcp)     { Write-Note "MCP servers to remove";         $mcp     | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $_" } }
     if ($skills)  { Write-Note "loose skills to delete";        $skills  | ForEach-Object { Write-Host "      $($c.Red)-$($c.Reset) $(Format-Path $_)" } }
@@ -219,16 +224,38 @@ function Clean-ClaudeBaseline($repo) {
     foreach ($o in $other)   { Remove-Item $o -Force;                              Write-Ok "deleted $(Format-Path $o)" }
 }
 
-# Claude Code's MCP servers and plugins can't be symlinked — they live in ~/.claude.json
-# and in the plugin store — so they're registered through the CLI instead.
+# Claude Code's MCP servers and plugins can't be symlinked — they live in .claude.json
+# and in the plugin store — so they're registered through the CLI, once per profile.
 function Install-ClaudeExtras($repo) {
-    Write-Section "Claude Code $($c.Dim)MCP servers and plugin$($c.Reset)"
-
     if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-        Write-Warn "claude CLI not found, skipping the MCPs and the skill-creator plugin"
+        Write-Section "Claude Code $($c.Dim)MCP servers and plugins$($c.Reset)"
+        Write-Warn "claude CLI not found, skipping the MCPs and the plugins"
         return
     }
 
+    foreach ($profileDir in $claudeProfiles) {
+        $isMain = $profileDir -eq $claudeMain
+        Write-Section "Claude Code $($c.Dim)MCP servers and plugins · $(Format-Path $profileDir)$($c.Reset)"
+        # The CLI picks the profile from CLAUDE_CONFIG_DIR; the main one is the default.
+        if ($isMain) { Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue }
+        else { $env:CLAUDE_CONFIG_DIR = $profileDir }
+        try {
+            Install-ClaudeProfileExtras $repo $profileDir $isMain
+        } finally {
+            Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Git on Windows checks symlinks out as plain (broken) text files unless this is on,
+    # and project repos use .claude/skills -> .agents/skills symlinks. Requires Developer
+    # Mode (see the header). On macOS and Linux git handles symlinks natively.
+    if ($IsWindows) {
+        git config --global core.symlinks true
+        Write-Ok "git core.symlinks $($c.Dim)enabled$($c.Reset)"
+    }
+}
+
+function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
     # Executor: single MCP hub for all external integrations (Notion, Context7, Vercel, ...).
     # Connections themselves are managed at app.executor.sh; first use prompts an OAuth
     # authorize, where the organization is picked. An entry with another URL is replaced.
@@ -299,17 +326,9 @@ function Install-ClaudeExtras($repo) {
         }
     }
 
-    # Git on Windows checks symlinks out as plain (broken) text files unless this is on,
-    # and project repos use .claude/skills -> .agents/skills symlinks. Requires Developer
-    # Mode (see the header). On macOS and Linux git handles symlinks natively.
-    if ($IsWindows) {
-        git config --global core.symlinks true
-        Write-Ok "git core.symlinks $($c.Dim)enabled$($c.Reset)"
-    }
-
     # Cleanup: removes whatever's extra relative to the baseline (runs after
     # linking skills, so it doesn't flag as "loose" the ones this script just symlinked).
-    Clean-ClaudeBaseline $repo
+    Clean-ClaudeBaseline $repo $profileDir $isMain
 }
 
 # --- Component catalog -------------------------------------------------------
@@ -323,13 +342,24 @@ $zedSettings = if ($IsWindows) {
     Join-Path $configHome 'zed' 'settings.json'
 }
 
-$claudeLinks = @(
-    @{ Target = (Join-Path $HOME '.claude' 'settings.json'); Source = (Join-Path $repo 'claude' 'settings.json') }
-    @{ Target = (Join-Path $HOME '.claude' 'CLAUDE.md');     Source = (Join-Path $repo 'claude' 'CLAUDE.md') }
-)
+# Claude profiles: ~/.claude plus every ~/.claude-<name> (another account, run with
+# CLAUDE_CONFIG_DIR). All of them get the same settings, CLAUDE.md, skills, MCPs and plugins.
+$claudeMain = Join-Path $HOME '.claude'
+$claudeProfiles = @($claudeMain) + @(Get-ChildItem -Path $HOME -Directory -Force -Filter '.claude-*' |
+    ForEach-Object { $_.FullName })
+
+$claudeLinks = @()
+foreach ($profileDir in $claudeProfiles) {
+    $claudeLinks += @{ Target = (Join-Path $profileDir 'settings.json'); Source = (Join-Path $repo 'claude' 'settings.json') }
+    $claudeLinks += @{ Target = (Join-Path $profileDir 'CLAUDE.md');     Source = (Join-Path $repo 'claude' 'CLAUDE.md') }
+}
 # Link each skill individually so repo-managed skills coexist with local/plugin ones.
 Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory | ForEach-Object {
-    $claudeLinks += @{ Target = (Join-Path $HOME '.claude' 'skills' $_.Name); Source = $_.FullName }
+    $claudeLinks += @{ Target = (Join-Path $claudeMain 'skills' $_.Name); Source = $_.FullName }
+}
+# An extra profile shares the main skills folder whole, local skills included.
+foreach ($profileDir in ($claudeProfiles | Where-Object { $_ -ne $claudeMain })) {
+    $claudeLinks += @{ Target = (Join-Path $profileDir 'skills'); Source = (Join-Path $claudeMain 'skills') }
 }
 
 $catalog = [ordered]@{
