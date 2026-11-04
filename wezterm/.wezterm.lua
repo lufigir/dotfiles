@@ -82,10 +82,13 @@ config.colors = {
 
 -- No Windows title bar: the minimize/maximize/close buttons are drawn inside the
 -- tab bar instead, which then has to stay visible even with a single tab.
-config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"
-config.integrated_title_button_style = "Windows"
-config.integrated_title_button_alignment = "Right"
-config.integrated_title_button_color = "Auto"
+-- Windows only: GNOME keeps its own title bar under XWayland, so the buttons showed twice.
+if is_windows then
+  config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"
+  config.integrated_title_button_style = "Windows"
+  config.integrated_title_button_alignment = "Right"
+  config.integrated_title_button_color = "Auto"
+end
 config.hide_tab_bar_if_only_one_tab = false
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = false
