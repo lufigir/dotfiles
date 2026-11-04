@@ -124,8 +124,9 @@ they are already signed in.
   has had since 2026-10-06; it mails a one-time code). Ask the user to sign in in Brave, and
   meanwhile keep going on the open indexes (OpenAlex for discovery), saying which base is pending.
   Credentials stay with the user.
-- No `mcp__brave__*` tools means Remote Debugging is off: tell the user to switch it on at
-  `brave://inspect/#remote-debugging` and restart Claude Code. Until then, research with
+- The `brave` MCP drives a dedicated Brave profile on port 9333, with its own sign-ins. A connection
+  error means that profile is closed: tell the user to open "Brave Agente" from the Start menu. No
+  `mcp__brave__*` tools also needs a Claude Code restart. Until then, research with
   Firecrawl and the open libraries (ACM DL, SciELO, OpenAlex), and say which indexes that leaves
   out.
 
