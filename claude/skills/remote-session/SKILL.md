@@ -3,7 +3,7 @@ name: remote-session
 description: Open a new Remote Control session in a repo on this machine, with either Claude account, to use it from the phone. Spanish triggers: "ábreme una sesión en", "abre otra sesión en", "inicia una sesión en <repo>", "sesión con la otra cuenta".
 ---
 
-1. Take the repo (a folder name under `D:\Code`) and the account from the request. With no account named, use the default.
+1. Take the repo (a folder name under `D:\Code`) and the account from the request. With no account named, leave `-Account` out and the script stays on this session's account.
 2. Run the script:
 
    ```

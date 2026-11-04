@@ -5,9 +5,12 @@
 
 param(
     [Parameter(Mandatory)][string]$Repo,
-    [ValidateSet('lgiraldoo', 'lufigir', 'luisgir827')][string]$Account = 'lgiraldoo',
+    [ValidateSet('lgiraldoo', 'lufigir', 'luisgir827')][string]$Account,
     [string]$Name
 )
+
+# With no account named, stay on the caller's: the other one may be out of usage.
+if (-not $Account) { $Account = if ($env:CLAUDE_CONFIG_DIR -match 'lufigir') { 'lufigir' } else { 'lgiraldoo' } }
 
 $dir = Join-Path 'D:\Code' $Repo
 if (-not (Test-Path $dir -PathType Container)) {
