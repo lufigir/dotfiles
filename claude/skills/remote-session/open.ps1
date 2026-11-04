@@ -1,16 +1,16 @@
 # Opens a Remote Control session in a repo, detached from the session that runs this,
 # with permissions bypassed. Prints the session URL, or the error and exit code 1.
 #
-#   pwsh -File open.ps1 -Repo vida [-Account lgiraldoo|lufigir|luisgir827] [-Name title]
+#   pwsh -File open.ps1 -Repo vida [-Account lgiraldoo|luisgir827] [-Name title]
 
 param(
     [Parameter(Mandatory)][string]$Repo,
-    [ValidateSet('lgiraldoo', 'lufigir', 'luisgir827')][string]$Account,
+    [ValidateSet('lgiraldoo', 'luisgir827')][string]$Account,
     [string]$Name
 )
 
 # With no account named, stay on the caller's: the other one may be out of usage.
-if (-not $Account) { $Account = if ($env:CLAUDE_CONFIG_DIR -match 'lufigir') { 'lufigir' } else { 'lgiraldoo' } }
+if (-not $Account) { $Account = if ($env:CLAUDE_CONFIG_DIR -match 'luisgir827') { 'luisgir827' } else { 'lgiraldoo' } }
 
 $dir = Join-Path 'D:\Code' $Repo
 if (-not (Test-Path $dir -PathType Container)) {
@@ -19,11 +19,10 @@ if (-not (Test-Path $dir -PathType Container)) {
 }
 if (-not $Name) { $Name = Split-Path $dir -Leaf }
 
-# lufigir and luisgir827 are the same profile: the folder has one name, the login another.
 $configFile = Join-Path $HOME '.claude.json'
 $setProfile = ''
 if ($Account -ne 'lgiraldoo') {
-    $profileDir = Join-Path $HOME '.claude-lufigir'
+    $profileDir = Join-Path $HOME '.claude-luisgir827'
     $configFile = Join-Path $profileDir '.claude.json'
     $setProfile = "set CLAUDE_CONFIG_DIR=$profileDir&& "
 }

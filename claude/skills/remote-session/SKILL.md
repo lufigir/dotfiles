@@ -7,7 +7,7 @@ description: Open a new Remote Control session in a repo on this machine, with e
 2. Run the script:
 
    ```
-   pwsh -File "<skill dir>/open.ps1" -Repo <repo> [-Account lgiraldoo|lufigir|luisgir827] [-Name <title>]
+   pwsh -File "<skill dir>/open.ps1" -Repo <repo> [-Account lgiraldoo|luisgir827] [-Name <title>]
    ```
 
    It marks the repo as trusted for that account and starts the session detached with permissions bypassed. The session survives the one that opened it, and its process exits when the user archives it.
