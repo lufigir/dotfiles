@@ -4,12 +4,14 @@
     "pr": ""
   },
   "permissions": {
+    "allow": [
+      "PowerShell(pwsh -File \"C:\\Users\\luisg\\.claude-luisgir827\\skills\\remote-session\\open.ps1\" *)"
+    ],
     "deny": [
       "mcp__claude-in-chrome"
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
   "skillOverrides": {
     "felipego-projects": "off",
     "claude-in-chrome": "off"
@@ -93,9 +95,10 @@
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
   "preferredNotifChannel": "terminal_bell",
+  "switchModelsOnFlag": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "theme": "dark"
+  "voiceEnabled": true
 }
