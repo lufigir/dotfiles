@@ -1,6 +1,6 @@
 ---
 name: mcp-integrations
-description: Use whenever the task involves an external integration connected through Executor (Notion, Context7, Firecrawl, Supabase, Neon, Vercel, PostHog, Cloudinary, Higgsfield, or any other app surfaced by the mcp__executor__* tools), and before doing by hand something a connected service already does (testing a migration on a branch, tuning a slow query, reading production logs, checking RLS). Ensures these are always accessed through Executor instead of a direct MCP server, the public API, or the CLI, and says which direct MCPs are the exception.
+description: Use whenever the task involves an external integration connected through Executor (Notion, Context7, Firecrawl, Gmail, Google Calendar, Google Docs, Supabase, Neon, Vercel, PostHog, Cloudinary, Higgsfield, or any other app surfaced by the mcp__executor__* tools), and before doing by hand something a connected service already does (testing a migration on a branch, tuning a slow query, reading production logs, checking RLS). Ensures these are always accessed through Executor instead of a direct MCP server, the public API, or the CLI, and says which direct MCPs are the exception.
 ---
 
 All external integrations go **through Executor**, never a direct MCP server, the public API, or a CLI shortcut. Executor exposes five tools:
@@ -31,11 +31,11 @@ tools["notion-mcp"].notion_search({ accountId: "acc_…", input: { query: "…" 
 
 `search` lists each app's linked accounts once in `namespaces`, with an ID and a label (`acc_0baa… (lufigir) | acc_4527… (centrodeprototipado)`). Pick the account by its label and pass its `accountId`; never reuse an ID from memory, since relinking an account changes it. Which integrations have several accounts changes over time, so read the list rather than assuming.
 
-- `lufigir` is the default, the personal account (Cloudinary still labels it `felipegiraldo`); `centrodeprototipado` (Vercel: `centroDePrototipadoFullAccount`) is only for that project.
-- An app with a single linked account uses that one, whatever its label: today PostHog is on `centrodeprototipado` and Higgsfield on `lgiraldoo`.
+- `lufigir` is the default, the personal account; `centrodeprototipado` is only for that project.
+- An app with a single linked account uses that one, whatever its label.
 - Use the account the user tells you to use: it's the source of truth.
 - If the user didn't specify and it isn't obvious, **ask before writing** (reading from the wrong account is harmless; creating/editing, migrations, deploys, or branches are not).
-- **Firecrawl is the exception**: `sekuz`, `lufigir`, `lgiraldoo` and `luisgir827` are four free plans (1,000 credits a month each, on different billing dates), not contexts. Use whichever has credits: check `tools.firecrawl.billing.getCreditUsage` for all four before a batch, or when a call fails for credits.
+- **Firecrawl is the exception**: `sekuz`, `lufigir`, `lgiraldoo` and `luisgir827` are four free plans (1,000 credits a month each, on different billing dates), not contexts. **Default to `lufigir`** (`acc_de4baa89-b5c4-413d-a3a1-50649b636cee`): it got a one-off grant of 5,000 credits on top of its plan in November 2026. Fall back to the others only when `lufigir` runs dry: check `tools.firecrawl.billing.getCreditUsage` before a large batch, or when a call fails for credits.
 
 ### Health and budgets
 
@@ -61,6 +61,9 @@ The integrations hold more than the obvious half of their tools. Before doing by
 | Store, transform or find images and video | Cloudinary, including visual similarity search and generation |
 | Generated video, audio, 3D or a quick website | Higgsfield |
 | Pages, databases, meeting notes, custom agents in Notion | Notion |
+| Find, read, draft or send mail; labels and filters | Gmail |
+| What's on the schedule, free slots, create or move an event | Google Calendar |
+| Read or edit a Google Doc by its ID or link | Google Docs. Its scope covers documents only, so finding a doc by name goes through the Google Drive connector |
 | Structured records across many entities: companies, packages, repos, filings | Firecrawl's Alexandria providers (below) |
 
 ## Outside Executor
