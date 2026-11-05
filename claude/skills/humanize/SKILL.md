@@ -35,8 +35,8 @@ in them, and put the author's own stance back.
    *Done:* you can name the language, the genre, the reader, and the voice (person, register,
    punctuation habits, how they cite).
 2. **Mark the tells.** Walk the catalogue for the language top to bottom against the text:
-   [`references/patrones.md`](references/patrones.md) for Spanish,
-   [`references/patterns.md`](references/patterns.md) for English. Mark each sighting with its
+   [`references/patterns-es.md`](references/patterns-es.md) for Spanish,
+   [`references/patterns-en.md`](references/patterns-en.md) for English. Mark each sighting with its
    section and a one-line reason. A pattern marked *weak alone* / *débil sola* needs company in
    the same paragraph; every other pattern justifies an edit on a single sighting. Then measure
    the rhythm: sentence lengths per paragraph, and how many paragraphs open the same way.
@@ -68,7 +68,7 @@ in them, and put the author's own stance back.
    - *Google Doc:* follow [Google Docs through Brave](#google-docs-through-brave).
 6. **Check against detectors** when the user asks whether it will pass, or when the text goes
    somewhere that runs one (a course with Turnitin, a platform that screens posts). Follow
-   [`references/detectores.md`](references/detectores.md).
+   [`references/detectors.md`](references/detectors.md).
    *Done:* the score of every detector run is reported, and every flagged passage was rewritten
    once more or explained.
 7. **Report.** One entry per change: where, before, after, the pattern. Then what you left on
@@ -118,5 +118,5 @@ of the first matched character, so leave italics, links and citations outside th
 Several tells together are the signal; one tell is usually a person.
 
 The edits stay in the writing: inserted typos, swapped or invisible characters and paraphrasing
-tools degrade the text for its reader, and [`references/detectores.md`](references/detectores.md)
+tools degrade the text for its reader, and [`references/detectors.md`](references/detectors.md)
 says why they don't buy what they promise.

@@ -3,7 +3,7 @@
 Catalogue of AI writing tells in English, for any text: technical docs, PRs, commits, messages,
 reviews and posts. A pattern justifies an edit on a single sighting, except those marked *weak
 alone*, which need other tells in the same paragraph. Sources for each block are in
-[`evidencia.md`](evidencia.md).
+[`evidence.md`](evidence.md).
 
 Every fix keeps the claim. If removing the tell leaves nothing to say, cut the sentence.
 
