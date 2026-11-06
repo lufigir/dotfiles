@@ -197,6 +197,8 @@ There is a second thing it cannot do, and it is the one this reference used to b
 
 Both modes: the rules are only real if CI runs them. Lint failures block the merge, at the same status as a failed build. The preset's `ci.yml` runs a secret scan over the push history (gitleaks), then format, lint, the rule tests, a dead-code check (knip), types, tests and build, in that order, cheapest first. The dead-code step matters more in this stack than elsewhere: a server action nothing imports is still a public POST endpoint.
 
+CI is the gate, but on a free private organization repo it is not a wall: branch protection and rulesets need a paid plan, and every collaborator can push to `main`. So the cheap check also runs before the commit exists: the preset's README installs a pre-commit hook that formats staged files. Without it, one unformatted push turns `main` red, and every dependency PR rebased onto it inherits the failure.
+
 ## Common mistakes
 
 | Mistake | Consequence |
@@ -209,6 +211,7 @@ Both modes: the rules are only real if CI runs them. Lint failures block the mer
 | `"type": "module"` missing, `oxlint-tsgolint` missing | The config does not load and the error does not say why |
 | `ignores` copied from an ESLint override | The whole config fails to parse; the key is `excludeFiles` |
 | Adapting the boundary table without adapting the fixtures | The rule tests pass while testing nothing |
+| Relying on CI alone where `main` cannot be protected | A direct push lands unformatted and every PR after it is red |
 | A pinned lockfile in the preset | The rule tests can never catch a toolchain change, which is their only job |
 | `anti-slop` installed as a pinned dependency | Coupled to a young package instead of owning the rules |
 | A design system outside `components/ui` with no `settings.shadcn` | Discovery finds nothing and `no-restyle` checks no component |

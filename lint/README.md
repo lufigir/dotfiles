@@ -81,6 +81,30 @@ what is missing.
 "lint:rules": "node tools/oxlint/rule-tests/check.mjs"
 ```
 
+And a pre-commit hook that formats what is staged, so a push straight to `main` does
+not turn CI red over formatting:
+
+```bash
+npm i -D simple-git-hooks lint-staged
+```
+
+```json
+"simple-git-hooks": { "pre-commit": "npx lint-staged" },
+"lint-staged": { "*": "oxfmt --no-error-on-unmatched-pattern" }
+```
+
+`simple-git-hooks` installs the hook from its own postinstall, so every clone gets it
+with `npm install`. Under pnpm, allow that script in `pnpm-workspace.yaml`
+(`allowBuilds: { simple-git-hooks: true }`) and use `pnpm exec lint-staged`. The
+`--no-error-on-unmatched-pattern` flag is what lets a commit that only touches files
+`.oxfmtrc.json` ignores go through: without it oxfmt exits 2 on an empty target list.
+Ignore third-party agent skills (`.claude/**`, `.agents/**`) in `.oxfmtrc.json` too.
+Otherwise every oxfmt bump that changes its Markdown output reformats them, and the
+dependency PR fails CI.
+
+lefthook would do this with one dependency, but 2.2.x ships without provenance, and a
+project with `trustPolicy: no-downgrade` refuses to install it.
+
 **5. Adapt the boundaries, the only step that thinks.** The `overrides` block ships the
 single-app profile from `architecture.md` (`app/` → `data/` → `lib/`). Rename the layers
 to the repo's, and **adapt the fixtures at the same time**: if the data layer is not

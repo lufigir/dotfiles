@@ -14,10 +14,12 @@ on:
     branches: [main]
   pull_request:
 
-# Un segundo push a la misma rama vuelve irrelevante al primero.
+# Un segundo push a un PR vuelve irrelevante al primero. En `main` no se cancela:
+# si el deploy vive en este workflow (debe, ver abajo), la ejecución anterior puede
+# estar a mitad de él.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -95,3 +97,37 @@ jobs:
           # fallar contra estos valores, que es el momento correcto para decidir si CI
           # debería sostener credenciales.
           NEXT_PUBLIC_APP_URL: https://placeholder.invalid
+
+  # El deploy, si lo hace Actions y no la integración Git del hosting, va como job
+  # de este workflow con `needs: verify`, nunca en un workflow aparte: uno aparte
+  # despliega aunque el CI esté en rojo. Ver `operations.md`.
+
+  # Dependabot se mergea solo, y solo después de `verify`. Un workflow de auto-merge
+  # separado no espera al CI y mergea en rojo. Los major ni se proponen si
+  # `dependabot.yml` los ignora; esta condición es la segunda red.
+  #
+  # Dos casos que se quedan esperando a una persona, y está bien que así sea:
+  # - `fetch-metadata` rechaza un commit de Dependabot sin firma («commit signature
+  #   is not verified»). A veces GitHub no lo firma; `@dependabot recreate` lo
+  #   rehace. No apagues la verificación: es lo que impide que un commit que se
+  #   hace pasar por Dependabot se mergee solo.
+  # - Un bump de oxfmt que cambia su salida tumba «Formato». Hay que correr el
+  #   formateo sobre la rama del PR y mergearlo a mano: el push ya no es de
+  #   Dependabot y este job se salta.
+  dependabot-merge:
+    needs: verify
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v3
+      # Un merge hecho con GITHUB_TOKEN no dispara workflows: el bump llega a
+      # producción con el siguiente push a main, no con este merge.
+      - if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --squash --delete-branch "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

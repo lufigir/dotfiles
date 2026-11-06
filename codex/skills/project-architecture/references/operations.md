@@ -93,6 +93,13 @@ Then **restore on a schedule**, into a separate environment, and time it. The fi
 
 A deploy is also something you recover from. Keep the previous release one action away, and remember that a rollback of code is not a rollback of a migration; `database.md` covers why schema changes roll forward.
 
+A deploy runs only on a commit that passed CI. When CI deploys rather than the host's Git integration, the deploy is a job in the CI workflow with `needs:` on the verify job. A separate deploy workflow fires on the same push in parallel and ships red commits; that is exactly what happened on a repo where the format step had been failing for days. The same applies to dependency auto-merge: the merge job lives in CI behind the checks. A separate workflow does not wait for them and merges red PRs. A merge made with `GITHUB_TOKEN` triggers no workflow, so a dependency bump ships with the next push, not on its own.
+
+**Vercel Hobby with a private repo owned by a GitHub organization** cannot deploy through the Git integration: it rejects the push. Turn it off (`"git": { "deploymentEnabled": false }` in `vercel.json`) and deploy from CI with `vercel deploy --prod` and a `VERCEL_TOKEN` secret. Two traps:
+
+- Delete `.git` before calling the CLI. Otherwise it sends the commit author, and Hobby blocks the deploy (`TEAM_ACCESS_REQUIRED`) whenever that author is not the account owner, which on a team is most commits.
+- Pin the CLI version instead of `vercel@latest`. Since 58.5.1 Vercel publishes without provenance, and pnpm's `trustPolicy: no-downgrade` rejects it (`ERR_PNPM_TRUST_DOWNGRADE`). Pin the last signed release, and raise it by hand once Vercel signs again.
+
 ## After an incident
 
 Write the review only when the stakes in the project's scope call for one: a product people pay for or depend on, or an incident that lost data or broke the error budget. For a prototype, the fix and its commit message are enough.
