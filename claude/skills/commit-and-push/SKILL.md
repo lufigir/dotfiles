@@ -53,7 +53,7 @@ Format: `type(scope): description`, then an optional body after a blank line.
 - **type** (required, lowercase): `feat` (new capability), `fix` (bug fix),
   `docs` (docs/comments/skill prose), `refactor` (no behavior change),
   `chore` (tooling/config/deps), `style` (formatting only), `test`,
-  `perf` (performance).
+  `perf` (performance), `ci` (workflows), `build` (Docker, packaging).
 - **scope** (preferred) — the area touched, in parentheses: package, module,
   skill, or file (e.g. `feat(project-hub)`, `chore(zed)`).
 - **description** (required) — imperative mood ("add", not "added"/"adds"),
