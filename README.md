@@ -28,6 +28,11 @@ links each config where that system expects it.
 - `research` — the entry point for research of any kind: a table that sends each kind of question to its source (Context7, Firecrawl's tools, NotebookLM, or the UNAL library) and says how the three research surfaces chain: the library finds and vouches, Firecrawl reads, NotebookLM holds a chosen corpus to query, and the route to scholarly literature through the UNAL subscriptions (Scopus, Web of Science and ~170 more) in Brave Agente via the `brave` MCP. `references/bases-unal.md` maps questions to bases (full text by field, Latin America, theses, patents, standards, Colombian data); `references/literature-review.md` carries the review method (search equations, recency window, review matrix, gap wording, citation checks). Always on, and routed from `CLAUDE.md`
 - `felipego-projects` — publish/update felipego.com portfolio projects in Notion; off by default
 - `remote-session` — opens a detached Remote Control session in a `D:\Code` repo with either Claude account, permissions bypassed, so one session on the phone can start the others
+- `latex-report` — writes a document as a LaTeX PDF in the house grayscale style (the
+  Auditorita guide): `template.tex` carries the preamble, header block, summary box, tables and
+  TikZ styles; `build.py` compiles with Tectonic (installing it if missing), reports errors and
+  overfull lines, and renders preview sheets to inspect. A reader who decides gets a two-page
+  brief, with the detail in a separate `-completo` document
 - `coursework` — works on one university course from its repo with only that course in context: README and rubric, that course's open tasks from Notion Pendientes, the plan, and the progress written back
 - `humanize` — edits any prose a person will read, in Spanish or English (university
   deliverables, docs, PRs, messages, reviews), so it reads as its author wrote it. Two pattern
