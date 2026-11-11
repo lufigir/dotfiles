@@ -38,6 +38,11 @@ renders previews.
 - **Order.** Header block, «En resumen» (three or four labeled bullets, the last one says what is
   asked of the reader), the sections, and for a non-technical reader an `\appendix` with the
   technical detail, then a `Referencias` list with full `\url{}`s.
+- **Voice.** Impersonal narrative with the Spanish *se* (pasiva refleja): «se construyó», «se
+  midió», «se propone», «se eligió». The document tells where the work stands to a reader who saw
+  none of the steps: each result appears once, as it stands, with the date it was measured, and
+  each heading names what its section holds («Revisión sin autodiagnóstico», «Elección del
+  modelo»). Run-to-run comparisons, «Lo nuevo» and question headings belong to a log, not here.
 - **Tables** go in a `center` block without a caption, with booktabs rules, bold headers and
   `@{}` at both ends; the first column bold when it names the row. `tabularx` with `Y` columns
   for text that wraps.
