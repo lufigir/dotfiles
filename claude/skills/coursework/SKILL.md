@@ -5,7 +5,7 @@ description: Work on one university course's assignments from that course's repo
 
 # Coursework
 
-One course, one sitting. The session stays on this course: no mail, no calendar, no other courses, nothing from the `vida` repo beyond the priority rule cited below.
+One course, one sitting. The session stays on this course: no mail, no calendar, no other courses, nothing from the `life-os` repo beyond the priority rule cited below.
 
 ## 1. The course
 
@@ -17,7 +17,7 @@ Through Executor (skill `mcp-integrations`, Notion account `lufigir`):
 
 1. Read the Universidad view of Pendientes in `view` mode: `https://app.notion.com/p/ce04a18452914a52a311e35741ddc404?v=40f23bce2002813783c7000c970075ef` (open university tasks). Use `view` mode only: `rows` and `sql` share a workspace quota that runs out within a session.
 2. `notion_fetch` each distinct `Materia` URL in those rows to get its title, and keep the rows of the course whose title matches.
-3. Order them by priority with the rule in `D:\Code\vida\.claude\skills\life-review\SKILL.md` (section Pendientes): the MCP does not return the `Prioridad` formula, so compute it from `Gravedad` and the days left.
+3. Order them by priority with the rule in `D:\Code\life-os\.claude\skills\life-review\SKILL.md` (section Pendientes): the MCP does not return the `Prioridad` formula, so compute it from `Gravedad` and the days left.
 
 Show the list: name, when it is due, priority, state. If the user already named a task, confirm it is on the list; if it is not there, offer to create it (step 5).
 

@@ -1,7 +1,7 @@
 # Opens a Remote Control session in a repo, detached from the session that runs this,
 # with permissions bypassed. Prints the session URL, or the error and exit code 1.
 #
-#   pwsh -File open.ps1 -Repo vida [-Account lgiraldoo|luisgir827] [-Name title]
+#   pwsh -File open.ps1 -Repo life-os [-Account lgiraldoo|luisgir827] [-Name title]
 
 param(
     [Parameter(Mandatory)][string]$Repo,
