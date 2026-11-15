@@ -46,6 +46,9 @@ git push origin --delete <branch> # only if the branch was pushed
 Never leave the user on a stray branch — the final state is `main`, pushed,
 branch gone locally and on the remote.
 
+After a branch merges, suggest running `pruning-agent-memory`: the branch's
+session notes in memory and `AGENTS.md` go stale at that moment.
+
 ## Commit message convention
 
 Format: `type(scope): description`, then an optional body after a blank line.
