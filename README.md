@@ -44,6 +44,14 @@ links each config where that system expects it.
   Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, Siqi Chen) and
   [unslop](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) (MIT, Lauren Tan, at
   `e43c7ee`); both licenses are in the skill's `LICENSE`
+- `security-audit` — vendored unchanged from
+  [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill) (MIT) at
+  `c1c8a8c`, license in the skill's `LICENSE`. A defensive, source-first audit run by isolated
+  agents: reconnaissance, coverage-led hunting, adversarial validation, and reports derived from a
+  `findings.json` checked against `report-schema.json`. Its two validators (`validate-findings.cjs`,
+  `validate-coverage-ledger.cjs`) refuse to run on Windows, which lacks `O_NOFOLLOW` and
+  `O_NONBLOCK`; run full audits from WSL. To update, re-copy `skills/security-audit/` from upstream
+  and record the new commit here
 
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
