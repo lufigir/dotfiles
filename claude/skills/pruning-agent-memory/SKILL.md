@@ -38,7 +38,12 @@ against the code, move reasoning out to ADRs, and cover `AGENTS.md`.
    command and number that a document states, look it up (`rg`, the file, `package.json`,
    the schema). The code wins: a claim it contradicts is rewritten or deleted. A pending item
    the log shows as done is deleted.
-   *Done:* every named thing checked, with the contradictions listed.
+   - A claim about state outside the repo (production migrations, a deploy, an account,
+     settings) is checked read-only in that service, through Executor (`mcp-integrations`).
+   - Every file in `docs/` needs a document that points to it; one with no pointer gets one
+     or goes to the delete bucket in step 3.
+   *Done:* every named thing and every `docs/` file checked, with the contradictions and
+   orphans listed.
 3. **Classify every block** into one bucket:
 
    | Bucket | Where it goes |
