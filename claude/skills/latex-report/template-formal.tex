@@ -1,0 +1,168 @@
+% Plantilla del tono institucional: portada sencilla, índices, tablas y figuras numeradas.
+% Reemplaza todo lo que está entre <...>. Compila con: python <skill>/build.py <este archivo>
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[spanish,es-noshorthands,es-tabla]{babel}
+\usepackage{fontspec}
+\setmainfont{texgyrepagella}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\usepackage[hmargin=2.4cm, top=2.6cm, bottom=2.4cm, headheight=14pt]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{needspace}
+\usepackage{float}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+% Primera columna en negrita y en bandera, sin partir palabras.
+\newcolumntype{B}[1]{>{\raggedright\arraybackslash\bfseries\hyphenpenalty=10000}p{#1}}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage{tocloft}
+
+\definecolor{tinta}{HTML}{111111}
+\definecolor{marino}{HTML}{000000}
+\definecolor{gris}{HTML}{6E6E6E}
+\definecolor{linea}{HTML}{BDBDBD}
+\definecolor{fondo}{HTML}{F2F2F2}
+\definecolor{fondo2}{HTML}{E4E4E4}
+\color{tinta}
+
+\titleformat{\section}{\Large\bfseries\color{marino}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{18pt}{6pt}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\setlist{itemsep=3pt,topsep=4pt,leftmargin=1.4em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\DeclareCaptionFont{gris}{\color{gris}}
+\captionsetup{font={small,gris}, labelfont={bf,color=tinta}, labelsep=period}
+\captionsetup[table]{position=top, skip=4pt}
+\renewcommand{\arraystretch}{1.25}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cfttoctitlefont}{\Large\bfseries}
+\renewcommand{\cftloftitlefont}{\Large\bfseries}
+\renewcommand{\cftlottitlefont}{\Large\bfseries}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gris}<Institución · dependencia>}
+\fancyhead[R]{\small\color{gris}<Título corto>}
+\fancyfoot[C]{\small\color{gris}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\color{linea}\hrule height 0.4pt\vspace{0pt}}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrule}{}}
+
+\tikzset{
+  caja/.style={draw=linea, fill=white, rounded corners=2pt, align=center,
+    execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000},
+    font=\sffamily\small, inner sep=5pt, minimum height=1.0cm, text=tinta},
+  clave/.style={caja, draw=marino, line width=0.8pt},
+  persona/.style={caja, fill=fondo2, draw=marino, rounded corners=8pt},
+  externo/.style={caja, fill=fondo, dashed},
+  datos/.style={cylinder, shape border rotate=90, aspect=0.18, draw=marino, fill=white,
+    align=center, font=\sffamily\small, minimum height=1.2cm, minimum width=2.4cm, inner sep=3pt},
+  flecha/.style={-{Stealth[length=2.4mm]}, line width=0.7pt, draw=gris},
+  flechad/.style={flecha, dashed},
+  etq/.style={font=\sffamily\scriptsize, text=gris, align=center, fill=white, inner sep=1pt},
+  limite/.style={draw=linea, dashed, rounded corners=4pt, inner sep=8pt},
+  nota/.style={font=\sffamily\footnotesize\itshape, text=gris, align=center},
+  estado/.style={draw=marino, fill=white, rounded corners=7pt, font=\sffamily\small,
+    inner sep=4pt, minimum height=0.8cm, minimum width=2.1cm, align=center},
+  entidad/.style={draw=marino, fill=white, font=\sffamily\scriptsize, align=left,
+    inner sep=3pt, text width=#1},
+  entidad/.default=3.1cm,
+}
+
+\begin{document}
+
+% Portada: escudo, sede, tipo de documento, título, subtítulo, autores, ciudad y mes.
+\begin{titlepage}
+\thispagestyle{empty}
+\includegraphics[width=6.2cm]{escudo-unal.pdf}\par
+\vspace{4pt}
+{\sffamily\small\color{gris} <Sede>\par}
+\vspace{5.2cm}
+{\sffamily\footnotesize\bfseries\color{gris} <TIPO DE DOCUMENTO>\par}
+\vspace{4pt}
+{\color{marino}\rule{2.2cm}{1.6pt}\par}
+\vspace{14pt}
+{\fontsize{30}{36}\selectfont\bfseries\raggedright\hyphenpenalty=10000 <Título,\ partido a mano si es largo>\par}
+\vspace{14pt}
+{\large\color{gris} <Subtítulo: de qué trata el documento en una o dos líneas>\par}
+\vfill
+{\color{linea}\rule{\linewidth}{0.4pt}\par}
+\vspace{8pt}
+{\sffamily\small\begin{tabular}{@{}l@{}}
+\textbf{<Autores>}\
+\color{gris} <Rol de los autores>\[6pt]
+\color{gris} <Ciudad>, <mes de año>
+\end{tabular}\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+\listoffigures
+\vspace{1.2cm}
+\listoftables
+\clearpage
+
+\section{Introducción}
+
+\subsection{Objeto}
+<Qué describe el documento y para qué decisión o trámite sirve.>
+
+\subsection{Alcance}
+<Qué cubre y qué queda por fuera.>
+
+\subsection{Fuentes y fecha de corte}
+<De dónde salen las cifras. Todas las mediciones tienen \textbf{corte en <mes de año>}. Dónde está el
+código o la documentación técnica, si el lector la necesita.>
+
+\section{<Sección>}
+
+\begin{table}[H]
+\caption{<Qué muestra la tabla, en una oración>.}
+\small
+\begin{tabularx}{\linewidth}{@{}B{3.4cm}Y@{}}
+\toprule
+\normalfont\bfseries <Columna> & \textbf{<Columna>} \\
+\midrule
+<Fila> & <Texto> \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=8mm and 12mm]
+  \node[caja] (a) {<Componente>\\\footnotesize\color{gris} <detalle>};
+  \node[clave, right=of a] (b) {\textbf{<Componente clave>}};
+  \draw[flecha] (a) -- (b);
+\end{tikzpicture}}
+\caption{<Nombre de la vista>. <Qué debe ver el lector en el diagrama>.}
+\end{figure}
+
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
+\small
+\begin{itemize}[leftmargin=1.2em]
+  \item <Autor o entidad (año). \emph{Título}. \url{https://...}>
+\end{itemize}
+
+\end{document}
