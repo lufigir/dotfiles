@@ -33,6 +33,7 @@ links each config where that system expects it.
   TikZ styles; `build.py` compiles with Tectonic (installing it if missing), reports errors and
   overfull lines, and renders preview sheets to inspect. A reader who decides gets a two-page
   brief, with the detail in a separate `-completo` document
+- `pruning-agent-memory` — prunes what agents read about a project (`AGENTS.md`, the auto memory, design reasoning that belongs in ADRs): inventory, verify every named thing against the code, classify each block (live rule, ADR, history, pending, preference, environment, duplicate), propose with `AskUserQuestion`, apply and report. Covers what Auto Dream doesn't: checks against the code and `AGENTS.md`
 - `coursework` — works on one university course from its repo with only that course in context: README and rubric, that course's open tasks from Notion Pendientes, the plan, and the progress written back
 - `humanize` — edits any prose a person will read, in Spanish or English (university
   deliverables, docs, PRs, messages, reviews), so it reads as its author wrote it. Two pattern
