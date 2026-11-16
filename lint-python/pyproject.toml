@@ -1,0 +1,52 @@
+# Fragmento para el pyproject.toml del proyecto: copiar las secciones [tool.*].
+# ADAPTAR: `app` es el paquete raíz del perfil; renómbralo aquí, en `.ls-lint.yml` y en
+# los fixtures de `rule-tests/` a la vez, o el banco deja de probar nada.
+[project]
+name = "app"
+version = "0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+# Los fixtures del banco son código que debe fallar a propósito.
+extend-exclude = ["**/rule-tests/fixtures"]
+
+[tool.ruff.lint]
+# Las familias que cazan bugs y no solo estilo. `S` es bandit (eval, subprocess con
+# shell, secretos en el código); `N` hace cumplir snake_case en módulos y funciones.
+select = ["E", "F", "W", "I", "B", "UP", "N", "S", "SIM", "PTH", "RUF", "T20"]
+
+[tool.ruff.lint.per-file-ignores]
+# En los tests, `assert` es la herramienta, no un riesgo.
+"tests/**" = ["S101"]
+# El banco es una CLI: imprime su veredicto y lanza las herramientas que prueba.
+"**/rule-tests/*.py" = ["T201", "S603"]
+
+# Fronteras. La regla de dependencias de `architecture.md`, en contratos de
+# import-linter: cada capa importa solo las de abajo.
+#
+#   transporte    app.api           (rutas HTTP, CLI, el grafo de LangGraph)
+#   datos         app.data          (un paquete por módulo: dto, policy, dal)
+#   capacidades   app.capabilities  (base de datos, LLM, correo, storage)
+#   dominio       app.domain        (puro: sin red, sin disco, sin reloj)
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Dependency rule"
+type = "layers"
+layers = ["app.api", "app.data", "app.capabilities", "app.domain"]
+
+# `layers` deja que una capa salte a cualquiera de abajo. El transporte no salta: lee
+# por la capa de datos, que es donde vive la autorización. `allow_indirect_imports`
+# porque api -> data -> capabilities es exactamente el camino legal.
+[[tool.importlinter.contracts]]
+name = "Transport reaches data, never capabilities"
+type = "forbidden"
+source_modules = ["app.api"]
+forbidden_modules = ["app.capabilities"]
+allow_indirect_imports = true
+
+# Un módulo de datos no importa el DAL de otro sin pasar por su API pública; aquí se
+# declara cuando haya dos módulos. Ver `architecture.md`, sección del monolito modular.

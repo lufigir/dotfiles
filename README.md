@@ -19,6 +19,9 @@ links each config where that system expects it.
   vendored, a CI workflow, and `rule-tests/`, which asserts the rules still bite.
   One vendor (oxc) for the code, no ESLint, no Prettier. See `lint/README.md`; the reasoning lives
   in `project-architecture`'s `lint-guardrails.md` reference
+- `lint-python/` — the same guardrails for a Python project: import-linter contracts for the
+  layers, ls-lint for the structure, ruff and pyright, pre-commit and pre-push hooks, a CI
+  workflow, and `rule-tests/` with its own bench. See `lint-python/README.md`
 - `zed/extensions.md` — the extensions Zed installs on startup, mirrored in `settings.json`
 
 ### Personal skills

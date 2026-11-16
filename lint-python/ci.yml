@@ -1,0 +1,69 @@
+# Copiar a `.github/workflows/ci.yml` del proyecto Python.
+#
+# Mismo criterio que el CI del preset de TypeScript (`lint/ci.yml`), con la forma que
+# pide un CI rápido sin mentir: jobs en paralelo, un tope de tiempo por job (el que se
+# pasa falla, no espera) y `merge_group` para que la merge queue corra la suite
+# completa antes de `main`. Ningún paso reintenta: un check que necesita reintento
+# tiene un bug.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Todo lo que lee el código sin ejecutarlo. Barato, así que va junto.
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # VERIFY: la versión mayor vigente de setup-uv.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Formato
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Estructura
+        run: npx -y @ls-lint/ls-lint@2.3.2
+      - name: Fronteras
+        run: uv run lint-imports
+      # Que los contratos sigan mordiendo: un contrato que se cae del pyproject
+      # produce lo mismo que uno cumplido, cero errores.
+      - name: Las reglas muerden
+        run: uv run python tools/lint-python/rule-tests/check.py
+      - name: Tipos
+        run: uv run pyright
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # Los de integración necesitan una base real; ver `testing.md`.
+      - name: Tests
+        run: uv run pytest
