@@ -87,7 +87,7 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/core/architecture.md`. If there is no Scope section, run the scope study from `references/core/problem-framing.md` before recommending any concern the project may never have chosen.
 2. **Check the concern against the scope.** Work that would build a concern marked **later** or **no** is a scope change: stop, say so, and update the Scope row with the user before applying that reference.
 3. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
-4. **Open the one reference for the concern**, not all twenty-seven, plus the stack file for the project's language when the answer is a mechanism (a folder, a tool, a config). The tables below map concern to file.
+4. **Open the one reference for the concern**, not all twenty-eight, plus the stack file for the project's language when the answer is a mechanism (a folder, a tool, a config). The tables below map concern to file.
 5. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 6. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -105,13 +105,13 @@ A convention that only lives in this skill is a convention the next session lose
 
 ## Reference files
 
-Read the one the work is about. Reading all twenty-seven for a question about a foreign key wastes the context the actual task needs.
+Read the one the work is about. Reading all twenty-eight for a question about a foreign key wastes the context the actual task needs.
 
 They sit on three levels, so a project loads only the ones that apply to it:
 
 - **`core/`** holds what is true in any stack: the problem, the layers, the data, security, async work, agents, operations. Most questions end here.
 - **`surfaces/<surface>/`** holds what depends on where the product meets its user. `web/` is the only surface written so far; a mobile app or a headless service skips it.
-- **`stacks/<stack>/`** holds the mechanism: which tool enforces each rule, and the preset to copy. Read the one for the project's language.
+- **`stacks/`** holds the mechanism: which tool enforces each rule. `mechanisms.md` covers every language; a stack with a preset to copy also has its own folder. Read the one for the project's language.
 
 ### Core
 
@@ -153,4 +153,5 @@ They sit on three levels, so a project loads only the ones that apply to it:
 | File | Covers | Reach for it when |
 |---|---|---|
 | `stacks/typescript/lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, design-system rules (`@shadcn/lint`), house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
+| `stacks/mechanisms.md` | The six jobs every stack must cover (boundaries, structure, lint, types, tests, gates), the strength order from compiler to prose, the tool for each job in TypeScript, Python, Kotlin, Swift and Go, and the procedure for a stack with no row | Starting a project in a stack with no preset, or deciding how to enforce a rule in any language |
 | `stacks/python/python.md` | The layers as subpackages, DTO/policy/DAL modules, where each piece of a LangGraph app sits, import-linter contracts, ls-lint, ruff, pyright, uv, the preset's bench, snake_case | Any Python product: a service, a CLI, a pipeline or a LangGraph agent. The working preset lives in `lint-python/` in dotfiles |

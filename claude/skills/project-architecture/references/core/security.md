@@ -6,7 +6,9 @@ Every mistake here has the same shape: something the server knew ended up somewh
 
 ## Secrets never cross the boundary
 
-### The server-only marker
+The concept under this section: **a secret lives only where the user cannot reach it.** Anything shipped to a device is public, whatever obfuscation it carries: a key in a browser bundle is in the page source, and a key in a mobile binary comes out of the APK or IPA in minutes. So a mobile app holds no vendor secret at all and calls its own backend instead; a backend-only stack has no client bundle, and its boundary is the DTO it returns. The two subsections below are the web mechanism.
+
+### The server-only marker (React server stack)
 
 The problem it solves is an import, not a leak: nothing stops a developer from importing a DAL function into a file marked `"use client"`. Without a marker, that compiles, runs, and quietly ships the query logic, and whatever it closes over, to the browser. There is no error. Everything looks like it works.
 
@@ -38,7 +40,7 @@ The prefix rule was never enforced here. The value was read legitimately on the 
 
 > **VERIFY:** the current public-prefix convention and whether the framework now offers build-time detection of private values crossing into client components.
 
-### Tainting, for the ones a prefix cannot catch
+### Tainting, for the ones a prefix cannot catch (React server stack)
 
 React can mark a value so that reaching a client component throws instead of rendering. Two functions, different targets:
 
@@ -57,6 +59,8 @@ Taint is a safety net under the DTO, not a replacement for it. The DTO decides w
 > **VERIFY:** whether the taint API is still experimental, its current export names, and the config flag that enables it. It has been behind a flag for several releases and both the flag and the names move.
 
 ## User input never executes
+
+The concept: user content is data, and it reaches the screen, the shell or the model only through a path that escapes it. Every stack has one raw path that does not: raw HTML on the web, a WebView loading user content on mobile, string-built SQL or shell commands on a backend, a prompt template for a model (`llm-agents.md`). The web case, in detail:
 
 React escapes interpolated content automatically (`<` becomes `&lt;`), so a pasted `<script>` renders as text. That default covers almost everything.
 
@@ -86,7 +90,7 @@ Sanitize at the point of render, and where the content is stored, sanitize on th
 
 Client-side validation is a UX feature. It makes errors appear instantly and it stops nothing, because the client is the attacker's machine.
 
-The point that catches people: **server actions are public POST endpoints.** The framework generates a URL for each one. An attacker sends a request straight to it and never sees your form, so every constraint expressed only in JSX (`required`, `type="email"`, `maxLength`) simply does not exist for them.
+The client is any device the user holds: a browser, a mobile app, a decompiled binary replaying requests. Each one can skip every check that runs on it. On a React server stack the point that catches people is that **server actions are public POST endpoints.** The framework generates a URL for each one. An attacker sends a request straight to it and never sees your form, so every constraint expressed only in JSX (`required`, `type="email"`, `maxLength`) simply does not exist for them.
 
 So the schema is the validation, and it runs inside the action:
 
@@ -106,11 +110,13 @@ A session token in `localStorage` is a session token that JavaScript can read, w
 
 The alternative removes the class of attack rather than mitigating it. Put the session in a cookie marked `httpOnly`, so JavaScript cannot read it at all; `secure`, so it never crosses plaintext HTTP; and with a `sameSite` policy, so it is not attached to requests originating from other sites. An XSS bug on a page that stores its session this way is still a bug, but it cannot walk away with the session.
 
+On mobile the equivalent store is the platform keystore (Keychain on iOS, Keystore on Android), never plain preferences or a file, for the same reason.
+
 This is also why the framework's auth conventions read the session from cookies on the server rather than handing it to the client: the token is never in a place a script can reach.
 
 The same reasoning extends past tokens. A query string is not a secret — it is written to server logs, proxy logs and browser history, and leaks through the referrer header when the user clicks an outbound link. `list-views.md` puts view state in the URL deliberately, and the boundary of that advice is here: filters and page numbers yes, anything you would not want printed in a log, never.
 
-## Security headers
+## Security headers (web surface)
 
 A fresh app ships essentially none of the headers that matter. They cost one file in the request interceptor and they close whole attack classes:
 

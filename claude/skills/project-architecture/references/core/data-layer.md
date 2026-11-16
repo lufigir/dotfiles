@@ -2,12 +2,14 @@
 
 Most projects do not have a data access layer. They have a `data/` folder with some query functions in it, which is not the same thing and provides none of the guarantees.
 
+The concept is the same in every stack; the platform guides call it a repository (Android) or a data access layer, and the four jobs below are the same either way. The examples are TypeScript; `python.md` has the same split as Python modules, and `mechanisms.md` says how other languages enforce it.
+
 ## The four principles
 
-1. **Single source of truth.** Only the DAL talks to the database. No ORM calls in a page, a component, a route handler, or an action. One boundary, no exceptions.
+1. **Single source of truth.** Only the DAL talks to the database. No query from the UI, a request handler, a job or an agent tool. One boundary, no exceptions.
 2. **Authorization before data.** Identity and permissions are verified *before* the query runs, not after, and not somewhere upstream.
 3. **Validate in and out.** Inputs are validated because users lie. Outputs are validated because the database returns more than the client should see.
-4. **Server-only.** These files must be structurally incapable of shipping to the browser.
+4. **Never on the client.** These files must be structurally incapable of shipping to a user's device: a browser bundle, a mobile binary. On a stack with no client build (an API, a CLI, an agent) this holds by construction.
 
 ## Why authorization lives next to the data
 
@@ -140,9 +142,9 @@ The two factories draw a visible line between public read access and authenticat
 
 Order inside every mutation: validate input, authorize, mutate, validate output.
 
-## Server actions are public endpoints
+## Every entry point calls the DAL
 
-An action compiles down to a POST endpoint. Anyone can call it directly with a crafted request; arriving through your form is not a fact you get to assume. Treat every action exactly as you would a public API route. `security.md` covers what that means for validation, and `api-design.md` covers when a route handler is the better entry point.
+An entry point is anything that starts work on behalf of someone: an HTTP route, a CLI command, a queue consumer, a webhook, a tool an agent may call. Each one is reachable by a caller you did not plan for, so each one validates nothing and checks nothing itself: it calls the DAL, and the DAL checks. On a React server stack the entry point that hides this best is the server action, which compiles down to a POST endpoint. Anyone can call it directly with a crafted request; arriving through your form is not a fact you get to assume. Treat every action exactly as you would a public API route. `security.md` covers what that means for validation, and `api-design.md` covers when a route handler is the better entry point.
 
 Which means: **the action calls the DAL, and the DAL does the checking.** The action's job is orchestration only.
 
@@ -162,9 +164,9 @@ What this example leaves out is everything the user experiences: the pending sta
 
 Server components read through the DAL the same way. A page never touches the ORM.
 
-## Auth and rendering
+## Auth and rendering (web surface)
 
-Reading cookies or headers opts a route into dynamic rendering. That is correct behavior, not a bug, but it has a blast radius people miss: put a session check in an app-wide component like a header, and **every page** becomes dynamically rendered. Static output disappears from the entire site to show an avatar.
+This section applies to a server-rendered web app only. Reading cookies or headers opts a route into dynamic rendering. That is correct behavior, not a bug, but it has a blast radius people miss: put a session check in an app-wide component like a header, and **every page** becomes dynamically rendered. Static output disappears from the entire site to show an avatar.
 
 Three ways out, in order of preference:
 
@@ -179,7 +181,7 @@ For a dashboard behind a login this barely matters; everything is dynamic anyway
 | Mistake | Consequence |
 |---|---|
 | A `data/` folder of query functions called a DAL | None of the guarantees, all of the appearance |
-| An ORM call in a page, component, handler or action | The single path to the database is no longer single |
+| A query in the UI, a handler, a job or an agent tool | The single path to the database is no longer single |
 | Authorization only in the request interceptor | One forgotten matcher opens a route, and the interceptor itself has been bypassable |
 | A database call inside the interceptor | A round trip added to every matched request in the application |
 | Authorization checked after the query | The data was already read; the check only decides whether to show it |

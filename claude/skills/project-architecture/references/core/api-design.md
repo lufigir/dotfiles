@@ -4,7 +4,9 @@ This is the transport layer: the thin band between the UI and the domain whose o
 
 The failure mode is familiar because most APIs have it: no validation, a 500 for every problem, and documentation in a document nobody has updated since last year. Every part of that is fixed by the same move, which is putting the **contract** first.
 
-## Server actions or route handlers
+## Entry points inside the app or at its edges
+
+The concept in any stack: callers inside your own product get the entry point that hides the network (a typed client, an RPC, a server action), and callers outside it get a documented URL with a versioned contract (webhooks, public APIs, other services). FastAPI, a Ktor server or a Go service all draw the same line. On a React server stack the two sides are server actions and route handlers.
 
 Both run on the server. The question is who calls them.
 

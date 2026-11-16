@@ -10,7 +10,7 @@ Two steps, in order, both per `problem-framing.md`. Ask only what you cannot inf
 
 **Study the scope.** Give each concern in the reference's table a status (applies, later, no) with one line of reason tied to the framing and the stakes. Present it as one selector round, recommending the defaults the stakes imply. Only the concerns marked **applies** are built in this scaffold; **later** leaves a seam and nothing more. Two answers reshape everything after them, so settle them first: whether `multi-tenancy` applies (if it does, `multi-tenancy.md` governs the model before anything else does), and whether any access pattern outgrows a relational database (`database.md`; the default is no). The scope is what every later phase reads: phase 2 verifies only the stack those concerns use, the blueprint designs only them, and the audit skips the rest.
 
-Name the **stack** (the language and its framework) and the **surface** (web, mobile, or none for a service, a CLI or an agent). They decide which levels of `references/` this project reads: `core/` always, the surface's folder when there is one, and the stack file for the language. A stack with no file yet keeps the principles and says which mechanisms it still lacks, per `maintenance.md`.
+Name the **stack** (the language and its framework) and the **surface** (web, mobile, or none for a service, a CLI or an agent). They decide which levels of `references/` this project reads: `core/` always, the surface's folder when there is one, and the stack file for the language. A stack with no file of its own takes its mechanisms from `mechanisms.md`.
 
 Then pick the **profile**, and say which one you picked and why:
 

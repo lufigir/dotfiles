@@ -64,7 +64,7 @@ The set grows from failures: every wrong extraction or classification found in u
 
 ## Tools
 
-One runner for the whole repo, so a test is found and run the same way everywhere:
+One runner for the whole repo, so a test is found and run the same way everywhere. The list below is the TypeScript web stack; the stack file names the runner elsewhere (pytest in `python.md`, JUnit or Kotest with Konsist, XCTest or Swift Testing, `go test`, per `mechanisms.md`). The kinds of test and where they live hold in any of them.
 
 - **Vitest** for the floor, integration, evals in their deterministic mode and components. Since Vitest 4 its browser mode is stable, with the provider in its own package (`@vitest/browser-playwright`), which is where component tests that need a real DOM go.
 - **Playwright** for end to end, with `@axe-core/playwright` for the accessibility scan.
