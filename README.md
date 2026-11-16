@@ -57,6 +57,22 @@ links each config where that system expects it.
 Check each skill's `SKILL.md` for the current, authoritative on/off state and
 scope — the list above is descriptive, not the source of truth; `claude/settings.json`'s `skillOverrides` is.
 
+### Vendored skills (Lauren Tan, pstack)
+
+From [cursor/plugins](https://github.com/cursor/plugins/tree/main/pstack) (MIT, Lauren Tan) at
+`bf0c7cd`, license in each skill's `LICENSE`. Slash-only, as upstream.
+
+- `/create-verification-skill` — generates a project-local `.claude/skills/verify-<app>/`
+  that launches the real app, health-checks it, drives it the way a user does and captures
+  evidence, plus a **feature map** (one file per user-facing feature: entry points, how to
+  drive it, the observable end state, gotchas). The skill is proven end to end before
+  handover. Local changes: `.claude` paths, the `brave` MCP as the first web driver with
+  repeated journeys turned into scripts, and a pointer line in the repo's `AGENTS.md`
+- `/maintain-verification-skill` — the upkeep pass that keeps that skill and its map honest:
+  a source read and a live drive of every feature, at most one PR of proven corrections.
+  Local change: the source pass runs in the session, one feature at a time, instead of a
+  wave of parallel subagents
+
 ### Vendored skills (Matt Pocock)
 
 Vendored from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT) at commit
