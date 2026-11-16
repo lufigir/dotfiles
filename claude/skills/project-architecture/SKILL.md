@@ -1,7 +1,7 @@
 ---
 name: project-architecture
 description: >
-  Architecture for a product. **Bootstrap** starts one from zero (framing, scope, ERD, layered
+  Architecture for a product in any stack (TypeScript web, Python, LangGraph agents). **Bootstrap** starts one from zero (framing, scope, ERD, layered
   folders, lint guardrails, a vertical slice); **Convention** keeps its rules holding mid-build. Use
   when starting or scaffolding a project, and whenever work touches where a file goes or what a
   layer may import, schema and migrations, multi-tenancy, data access (Supabase and RLS included),
@@ -44,7 +44,7 @@ When the live docs contradict a reference file, **the docs win** and you say so 
 
 The compressed form of the rules, for recall. Each one expands in the reference file named; that file is the authority.
 
-Six are conditional and say so. 3, 10, 16 and 18 hold only when their concern is in the project's scope (`problem-framing.md`). 6 and 8 name the mechanism of a React framework with server components; on another stack keep the principle and find its mechanism there, or say it has none (`maintenance.md`). The rest hold in every project, because they are how the code is built rather than what it builds.
+Some are conditional and say so. 3, 10, 16 and 18 hold only when their concern is in the project's scope (`problem-framing.md`). 6 and 8 name the mechanism of a React framework with server components. 10, 12, 13 and 14 belong to the web surface: a mobile app or a service keeps the principle (state that survives, links that stay valid, native semantics, tokens) and finds its mechanism there, or says it has none (`maintenance.md`). The rest hold in every project, because they are how the code is built rather than what it builds.
 
 1. **The dependency rule.** UI → Transport → Domain → Capabilities → Vendors, each layer reaching only the one below it. Shared contracts and the database client flow upward to everyone. (`architecture.md`)
 2. **The DAL is the only path to the database.** No ORM call in a page, a component, a route handler, or an action. (`data-layer.md`)
@@ -56,11 +56,11 @@ Six are conditional and say so. 3, 10, 16 and 18 hold only when their concern is
 8. **On a server-component stack, Server Components by default.** `"use client"` lives on the leaves, only where there is interactivity. (`performance.md`)
 9. **One contract, both directions.** The schema is the single source of truth for input, output, types and docs. (`api-design.md`)
 10. **In a list view, the state lives in the URL.** Filters, sort, search and page are query params, parsed against a schema. State trapped in a component is a view nobody can share, bookmark or restore. (`list-views.md`)
-11. **A boundary that is not linted is a preference.** The dependency rule is only real once an illegal import fails the build. (`lint-guardrails.md`)
+11. **A boundary that is not linted is a preference.** The dependency rule is only real once an illegal import fails the build. Each stack file names the tool that makes it fail. (`lint-guardrails.md`, `python.md`)
 12. **A URL that has been shared is a contract.** Do not encode a movable relationship in a path, and never let a rename silently kill existing links. (`url-design.md`)
 13. **The right element before any ARIA.** Native elements carry role, focus and keyboard behavior; a div reimplementing them is a permanent debt. Focus and announcements are owned, not assumed. (`accessibility.md`)
 14. **Semantic tokens, never literal colors.** `bg-primary`, not `bg-blue-500`. (`design-system.md`)
-15. **One naming format.** kebab-case for source files, snake_case in the database. (`architecture.md`, `database.md`)
+15. **One naming format per language.** kebab-case for TypeScript source files, snake_case for Python modules and in the database. (`architecture.md`, `database.md`)
 16. **When the product measures usage, events are a contract.** Declared once in a typed catalog, never named from a variable; business events captured on the server after the write commits; the analytics vendor behind a capability like any other. (`product-analytics.md`)
 17. **Every unit of work has a known cost.** The resource budget is part of the design: each quota and each capacity the product depends on has an expected peak load, written down, under half its limit; requests per render and queries per request are recorded numbers. A limit met for the first time in a restriction notice or an outage was never planned. (`resource-budget.md`)
 18. **In a product with an LLM agent, the model's output is untrusted input.** It returns a typed schema that code validates, citations included; code owns the control flow and every write; content the agent reads is data, never instructions; and a prompt or model change ships only after the golden set says it did not regress. (`llm-agents.md`)
@@ -83,11 +83,11 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 
 ### The procedure
 
-0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-six references to find out the project never had lint boundaries.
-1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/architecture.md`. If there is no Scope section, run the scope study from `references/problem-framing.md` before recommending any concern the project may never have chosen.
+0. **Audit first when you are new to the repo.** `python <skill>/scripts/audit_project.py --path .` gives you, in one pass, which non-negotiables are in place and which are not. Cheaper than reading twenty-seven references to find out the project never had lint boundaries.
+1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/core/architecture.md`. If there is no Scope section, run the scope study from `references/core/problem-framing.md` before recommending any concern the project may never have chosen.
 2. **Check the concern against the scope.** Work that would build a concern marked **later** or **no** is a scope change: stop, say so, and update the Scope row with the user before applying that reference.
 3. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
-4. **Open the one reference for the concern**, not all twenty-six. The table below maps concern to file.
+4. **Open the one reference for the concern**, not all twenty-seven, plus the stack file for the project's language when the answer is a mechanism (a folder, a tool, a config). The tables below map concern to file.
 5. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 6. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -105,33 +105,52 @@ A convention that only lives in this skill is a convention the next session lose
 
 ## Reference files
 
-Read the one the work is about. Reading all twenty-six for a question about a foreign key wastes the context the actual task needs.
+Read the one the work is about. Reading all twenty-seven for a question about a foreign key wastes the context the actual task needs.
+
+They sit on three levels, so a project loads only the ones that apply to it:
+
+- **`core/`** holds what is true in any stack: the problem, the layers, the data, security, async work, agents, operations. Most questions end here.
+- **`surfaces/<surface>/`** holds what depends on where the product meets its user. `web/` is the only surface written so far; a mobile app or a headless service skips it.
+- **`stacks/<stack>/`** holds the mechanism: which tool enforces each rule, and the preset to copy. Read the one for the project's language.
+
+### Core
 
 | File | Covers | Reach for it when |
 |---|---|---|
-| `bootstrap.md` | The five phases of starting a project: discovery, version verification, the blueprint and its approval checkpoint, the scaffold order, verification and audit | Starting a project from zero, or from bare framework CLI output |
-| `problem-framing.md` | The problem statement, outcome, appetite, goals and non-goals, the riskiest assumption, the scope study (applies, later, no) and how scope changes | Starting a project, deciding what a project needs, or work that would add a concern the scope excluded |
-| `architecture.md` | Layers, dependency rule, the modular monolith and when to leave it, ADRs for irreversible decisions, folder trees for both profiles, route groups and colocation, naming, boundary enforcement, `AGENTS.md` | Where a file goes, whether an import is legal, how to split packages, monolith vs services |
-| `url-design.md` | Where the tenant lives in the URL, nesting vs flattening, ids and slugs, redirects and slug history, canonical forms, modals with their own URL | Designing the route space, or restructuring one that already has shared links |
-| `routing.md` | Layouts, loading/error/not-found, metadata and SEO | Building out a route's shell, states, or social preview |
-| `data-layer.md` | DAL, DTO, policy, multi-layered auth, per-render session caching | Anything that reads or writes the database |
-| `list-views.md` | URL as state, query param schemas, keyset pagination and tiebreakers, sort allowlists, search, empty vs no-results, cached filter combinations, exports | Any screen that lists records with filters, sorting, search or pages |
-| `mutations.md` | Action results, field-level errors, pending and optimistic states, cache invalidation after a write, double submission | A form, or anything the user submits |
-| `database.md` | Which kind of database, PRD to entities to ERD, keys, relationships, referential actions, production migrations | Choosing the data store, designing the schema, or changing one that already has traffic |
-| `multi-tenancy.md` | Isolation models, organizations and memberships, roles, tenant scoping, row-level security, cross-tenant leaks | The product has organizations or workspaces, in any form |
-| `direct-data-access.md` | Managed backends where the browser can reach the database, the three postures, RLS as the whole security model, realtime channels, staying portable | Using Supabase or any platform that exposes the database to the client |
-| `api-design.md` | Server actions vs route handlers, contract-first schemas, typed RPC, OpenAPI, error codes, webhooks | Exposing an endpoint or shaping a mutation |
-| `async-work.md` | What leaves the request, job tiers, retries and idempotency, cron, job context | Work that is slow, scheduled, or can fail on its own |
-| `llm-agents.md` | One call vs workflow vs agent loop, agents in the layers, prompts as code, typed and validated output, context, narrow tools, indirect prompt injection, durable and bounded runs, cost and caching by content, traces without content, unit tests with a fake model, golden-set evals, changing a prompt or model, the improvement loop | Building or changing anything that calls a model to decide, extract or act, in any language |
-| `file-uploads.md` | Presigned URLs, content validation, storage keys, metadata split, orphans | Users send you files |
-| `security.md` | server-only, taint, env vars, XSS, security headers, validation, supply chain | Handling secrets, user-supplied content, or public entry points |
-| `performance.md` | Waterfalls, streaming and Suspense, PPR, server vs client components, caching directives, images, bundle | Something is slow, or a route turned dynamic |
-| `operations.md` | Structured logs, trace ids, redaction, error tracking, SLOs and error budgets, real-user performance, backups and restores, incident reviews, environment schema and secrets | Instrumenting the app, setting reliability targets, planning recovery, reviewing an incident, or wiring up configuration |
-| `product-analytics.md` | Tracking plan, typed event catalog, server vs client capture, identity and tenant groups, route templates, feature flags and experiments | Measuring how users use the product, adding an event, a flag or an A/B test |
-| `resource-budget.md` | Cost per unit of work across quotas, capacity and rate limits: the cost model at peak, concurrency, amplifiers (N+1, unbounded reads, fan-out, realtime refresh storms, slow work in the request, retries, no caching), measuring the slice, query-count tests, load tests, utilization and saturation, spend caps | Planning any project, adding a feature that changes how much work a request does, or a quota, a bill or a host's load climbing |
-| `privacy.md` | Data inventory, purpose and minimisation, recorded consent, deletion and export, hosting regions and transfers, retention, Ley 1581 | The product stores personal data, adds a vendor that receives it, or a user asks to see or delete theirs |
-| `testing.md` | Testing by risk: the floor every project keeps and the kinds the Scope takes on, integration against a real database (Supabase local, pgTAP), the cross-tenant and DTO tests, actions as public endpoints, model evals against a golden set, tools, where test files live, where mocks belong, the slice's test set, regression tests, coverage | Deciding what to test, writing the slice's tests, adding a feature, changing a prompt or model, fixing a bug, or deciding what a test should mock |
-| `lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, design-system rules (`@shadcn/lint`), house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
-| `design-system.md` | Component ownership, semantic tokens, variants vs. wrappers, theming | Styling anything |
-| `accessibility.md` | Semantic markup, table and sort semantics, focus lifecycle, live regions, form errors, what tooling misses | Building a table, a form, a modal or any custom interactive control |
-| `maintenance.md` | How this skill is refreshed, what belongs in a `VERIFY` block, signals a reference went stale, what survives a change of stack | Updating these references after a major release, or evaluating a different framework, ORM or database |
+| `core/bootstrap.md` | The five phases of starting a project: discovery, version verification, the blueprint and its approval checkpoint, the scaffold order, verification and audit | Starting a project from zero, or from bare framework CLI output |
+| `core/problem-framing.md` | The problem statement, outcome, appetite, goals and non-goals, the riskiest assumption, the scope study (applies, later, no) and how scope changes | Starting a project, deciding what a project needs, or work that would add a concern the scope excluded |
+| `core/architecture.md` | Layers, dependency rule, the modular monolith and when to leave it, ADRs for irreversible decisions, folder trees for both profiles, route groups and colocation, naming, boundary enforcement, `AGENTS.md` | Where a file goes, whether an import is legal, how to split packages, monolith vs services |
+| `core/data-layer.md` | DAL, DTO, policy, multi-layered auth, per-render session caching | Anything that reads or writes the database |
+| `core/database.md` | Which kind of database, PRD to entities to ERD, keys, relationships, referential actions, production migrations | Choosing the data store, designing the schema, or changing one that already has traffic |
+| `core/multi-tenancy.md` | Isolation models, organizations and memberships, roles, tenant scoping, row-level security, cross-tenant leaks | The product has organizations or workspaces, in any form |
+| `core/direct-data-access.md` | Managed backends where the browser can reach the database, the three postures, RLS as the whole security model, realtime channels, staying portable | Using Supabase or any platform that exposes the database to the client |
+| `core/api-design.md` | Server actions vs route handlers, contract-first schemas, typed RPC, OpenAPI, error codes, webhooks | Exposing an endpoint or shaping a mutation |
+| `core/async-work.md` | What leaves the request, job tiers, retries and idempotency, cron, job context | Work that is slow, scheduled, or can fail on its own |
+| `core/llm-agents.md` | One call vs workflow vs agent loop, agents in the layers, prompts as code, typed and validated output, context, narrow tools, indirect prompt injection, durable and bounded runs, cost and caching by content, traces without content, unit tests with a fake model, golden-set evals, changing a prompt or model, the improvement loop | Building or changing anything that calls a model to decide, extract or act, in any language |
+| `core/file-uploads.md` | Presigned URLs, content validation, storage keys, metadata split, orphans | Users send you files |
+| `core/security.md` | server-only, taint, env vars, XSS, security headers, validation, supply chain | Handling secrets, user-supplied content, or public entry points |
+| `core/operations.md` | Structured logs, trace ids, redaction, error tracking, SLOs and error budgets, real-user performance, backups and restores, incident reviews, environment schema and secrets | Instrumenting the app, setting reliability targets, planning recovery, reviewing an incident, or wiring up configuration |
+| `core/product-analytics.md` | Tracking plan, typed event catalog, server vs client capture, identity and tenant groups, route templates, feature flags and experiments | Measuring how users use the product, adding an event, a flag or an A/B test |
+| `core/resource-budget.md` | Cost per unit of work across quotas, capacity and rate limits: the cost model at peak, concurrency, amplifiers (N+1, unbounded reads, fan-out, realtime refresh storms, slow work in the request, retries, no caching), measuring the slice, query-count tests, load tests, utilization and saturation, spend caps | Planning any project, adding a feature that changes how much work a request does, or a quota, a bill or a host's load climbing |
+| `core/privacy.md` | Data inventory, purpose and minimisation, recorded consent, deletion and export, hosting regions and transfers, retention, Ley 1581 | The product stores personal data, adds a vendor that receives it, or a user asks to see or delete theirs |
+| `core/testing.md` | Testing by risk: the floor every project keeps and the kinds the Scope takes on, integration against a real database (Supabase local, pgTAP), the cross-tenant and DTO tests, actions as public endpoints, model evals against a golden set, tools, where test files live, where mocks belong, the slice's test set, regression tests, coverage | Deciding what to test, writing the slice's tests, adding a feature, changing a prompt or model, fixing a bug, or deciding what a test should mock |
+| `core/maintenance.md` | How this skill is refreshed, what belongs in a `VERIFY` block, signals a reference went stale, what survives a change of stack | Updating these references after a major release, or evaluating a different framework, ORM or database |
+
+### Surface: web
+
+| File | Covers | Reach for it when |
+|---|---|---|
+| `surfaces/web/url-design.md` | Where the tenant lives in the URL, nesting vs flattening, ids and slugs, redirects and slug history, canonical forms, modals with their own URL | Designing the route space, or restructuring one that already has shared links |
+| `surfaces/web/routing.md` | Layouts, loading/error/not-found, metadata and SEO | Building out a route's shell, states, or social preview |
+| `surfaces/web/list-views.md` | URL as state, query param schemas, keyset pagination and tiebreakers, sort allowlists, search, empty vs no-results, cached filter combinations, exports | Any screen that lists records with filters, sorting, search or pages |
+| `surfaces/web/mutations.md` | Action results, field-level errors, pending and optimistic states, cache invalidation after a write, double submission | A form, or anything the user submits |
+| `surfaces/web/performance.md` | Waterfalls, streaming and Suspense, PPR, server vs client components, caching directives, images, bundle | Something is slow, or a route turned dynamic |
+| `surfaces/web/design-system.md` | Component ownership, semantic tokens, variants vs. wrappers, theming | Styling anything |
+| `surfaces/web/accessibility.md` | Semantic markup, table and sort semantics, focus lifecycle, live regions, form errors, what tooling misses | Building a table, a form, a modal or any custom interactive control |
+
+### Stacks
+
+| File | Covers | Reach for it when |
+|---|---|---|
+| `stacks/typescript/lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, design-system rules (`@shadcn/lint`), house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
+| `stacks/python/python.md` | The layers as subpackages, DTO/policy/DAL modules, where each piece of a LangGraph app sits, import-linter contracts, ls-lint, ruff, pyright, uv, the preset's bench, snake_case | Any Python product: a service, a CLI, a pipeline or a LangGraph agent. The working preset lives in `lint-python/` in dotfiles |

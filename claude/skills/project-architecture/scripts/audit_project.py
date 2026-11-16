@@ -18,7 +18,7 @@ Tres resultados, y la diferencia entre los dos últimos es la que importa:
     SKIPPED   el concern está fuera del alcance que el proyecto decidió
 
 El alcance sale de la sección `## Scope` de AGENTS.md (ver
-references/problem-framing.md). Sin ella, todo cuenta como dentro.
+references/core/problem-framing.md). Sin ella, todo cuenta como dentro.
 
 Un no-negociable en BY HAND no es un aprobado. Es la lista de lo que queda por
 mirar, que es justo lo que se pierde cuando el contexto rueda.

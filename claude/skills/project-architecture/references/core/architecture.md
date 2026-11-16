@@ -152,7 +152,7 @@ Lock down install scripts here too. Both profiles need it, and `security.md` cov
 
 Pick one file naming format and never deviate. Which one matters far less than the consistency.
 
-- **kebab-case** for source files: components, hooks, schemas, tests, all of it.
+- **kebab-case** for source files: components, hooks, schemas, tests, all of it. Where the language forbids it, its own convention: Python modules are snake_case because a hyphen cannot be imported (`python.md`).
 - Convention-mandated names are the exception and stay as the ecosystem defines them: `README.md`, `AGENTS.md`, `CLAUDE.md`, framework-reserved file names.
 - **snake_case** in the database, always. Never carry JavaScript camelCase into SQL.
 

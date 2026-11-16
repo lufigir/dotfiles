@@ -2,7 +2,7 @@
 """Structural checks for the project-architecture skill.
 
 Checks the things a machine can check, so the human refresh described in
-references/maintenance.md is spent on the things it cannot: whether the
+references/core/maintenance.md is spent on the things it cannot: whether the
 content is still true.
 
 Usage:
@@ -46,7 +46,8 @@ NUMBER_WORDS = {
     23: "twenty-three", 24: "twenty-four", 25: "twenty-five",
 }
 
-MD_LINK = re.compile(r"`([a-z0-9-]+\.md)`")
+# A cited reference, bare (`data-layer.md`) or with its level (`core/data-layer.md`).
+MD_LINK = re.compile(r"`((?:[a-z0-9-]+/)*[a-z0-9-]+\.md)`")
 FENCE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE = re.compile(r"`[^`\n]*`")
 
@@ -103,8 +104,14 @@ def check(skill_dir: Path) -> Report:
         return r
 
     skill_text = skill_md.read_text(encoding="utf-8")
-    refs = sorted(refs_dir.glob("*.md"))
+    # Three levels: core/, surfaces/<surface>/, stacks/<stack>/. Bare names stay the
+    # way references cite each other, so a name may exist only once across levels.
+    refs = sorted(refs_dir.rglob("*.md"))
     ref_names = {p.name for p in refs}
+    for name in sorted(ref_names):
+        places = [p.relative_to(refs_dir).as_posix() for p in refs if p.name == name]
+        if len(places) > 1:
+            r.error(f"{name} exists at more than one level: {', '.join(places)}")
     r.note(f"{len(refs)} references, {sum(1 for _ in refs)} files scanned")
 
     # --- frontmatter -----------------------------------------------------
@@ -120,20 +127,21 @@ def check(skill_dir: Path) -> Report:
     for source in [skill_md, *refs]:
         text = source.read_text(encoding="utf-8")
         for cited in set(MD_LINK.findall(text)):
-            if cited not in ref_names:
+            if cited.rsplit("/", 1)[-1] not in ref_names:
                 r.error(f"{source.name} cites `{cited}`, which does not exist")
 
     # --- no orphans ------------------------------------------------------
     all_text = skill_text + "".join(p.read_text(encoding="utf-8") for p in refs)
     for ref in refs:
         others = all_text.replace(ref.read_text(encoding="utf-8"), "")
-        if f"`{ref.name}`" not in others:
+        if f"`{ref.name}`" not in others and f"/{ref.name}`" not in others:
             r.warn(f"{ref.name} is never cited by any other file")
 
     # --- listed in the routing table ------------------------------------
     for ref in refs:
-        if f"| `{ref.name}` |" not in skill_text:
-            r.error(f"{ref.name} is missing from the reference table in SKILL.md")
+        rel = ref.relative_to(refs_dir).as_posix()
+        if f"| `{rel}` |" not in skill_text:
+            r.error(f"{rel} is missing from the reference table in SKILL.md")
 
     # --- per-reference conventions ---------------------------------------
     for ref in refs:
