@@ -23,10 +23,11 @@
  * está en la raíz con `tools/` al lado. Probarlo en su sitio probaría otra cosa.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -146,6 +147,90 @@ const EXPECTED = [
   ["order-card.fixture.tsx", "no-server-code-in-client", 1],
 ];
 
+/**
+ * La estructura, con la misma inversión: `.ls-lint.yml` contra un árbol que DEBE
+ * fallar, más carpetas que NO deben reportar nada. ls-lint no lee el contenido, así
+ * que el árbol se arma aquí con archivos vacíos en lugar de vivir en `fixtures/`:
+ * esta tabla es la especificación. Las rutas son las del perfil de una app; en un
+ * proyecto que las adaptó (`src/lib`), se adaptan aquí también.
+ */
+const STRUCTURE = [
+  // [carpeta, archivos, regla que debe caer, o null si la carpeta debe quedar limpia]
+  ["lib", [...names("shared", 5, ".ts"), ...names("view", 4, ".tsx")], "exists"],
+  ["lib/orders", names("order", 16, ".ts"), "exists"],
+  ["data", ["loose.ts"], "exists"],
+  ["app/(app)/orders/_components", names("row", 16, ".tsx"), "exists"],
+  ["lib/billing", ["BadName.ts"], "kebabcase"],
+  // CLEAN: los tests no gastan cupo, porque `.test.ts` es extensión compuesta.
+  ["lib/__tests__", names("case", 30, ".test.ts"), null],
+  // CLEAN: la terna DTO/policy/DAL tampoco, y cinco helpers caben en un módulo.
+  [
+    "data/orders",
+    [...names("helper", 5, ".ts"), "orders.dto.ts", "orders.policy.ts", "orders.dal.ts"],
+    null,
+  ],
+  // CLEAN: las primitivas que escribe el CLI de shadcn no tienen tope.
+  ["components/ui", names("primitive", 30, ".tsx"), null],
+];
+
+function names(stem, count, extension) {
+  return Array.from({ length: count }, (_, index) => `${stem}-${index}${extension}`);
+}
+
+function structureFailures() {
+  const bin = join(modules, "node_modules", "@ls-lint", "ls-lint", "bin", "cli.js");
+  if (!existsSync(bin)) {
+    return ["`@ls-lint/ls-lint` is not installed, so the structure rules were never checked."];
+  }
+
+  const tree = mkdtempSync(join(tmpdir(), "lint-structure-"));
+
+  try {
+    cpSync(join(root, ".ls-lint.yml"), join(tree, ".ls-lint.yml"));
+    for (const [directory, files] of STRUCTURE) {
+      mkdirSync(join(tree, directory), { recursive: true });
+      for (const name of files) writeFileSync(join(tree, directory, name), "");
+    }
+
+    // Sale con 1 por diseño. Reporta una línea por carpeta o archivo que falla:
+    // `lib failed for \`.*\` rules: exists:0-8 (found 9)`.
+    const run = spawnSync(process.execPath, [bin], { cwd: tree, encoding: "utf8" });
+    const reports = `${run.stdout}\n${run.stderr}`
+      .split(/\r?\n/)
+      .filter((line) => line.includes(" failed for "))
+      .map((line) => ({
+        path: line.slice(0, line.indexOf(" failed for ")).replaceAll("\\", "/"),
+        line,
+      }));
+
+    // `exists` se reporta con la ruta de la carpeta; una regla de nombre, con la del
+    // archivo. Una subcarpeta (`lib/orders`) tiene la misma forma que un archivo de
+    // `lib`, así que la carpeta se identifica por la regla y no por la ruta.
+    const about = (directory) =>
+      reports.filter(({ path, line }) =>
+        line.includes("exists:")
+          ? path === directory
+          : path.startsWith(`${directory}/`) && !path.slice(directory.length + 1).includes("/"),
+      );
+
+    const failures = [];
+    for (const [directory, , rule] of STRUCTURE) {
+      const hits = about(directory);
+      if (rule !== null && !hits.some(({ line }) => line.includes(rule))) {
+        failures.push(
+          `${directory}: expected \`${rule}\` from .ls-lint.yml, got nothing. The rule vanished or its glob no longer matches.`,
+        );
+      }
+      if (rule === null && hits.length > 0) {
+        failures.push(`${directory}: reported on a folder that must stay clean. ${hits[0].line}`);
+      }
+    }
+    return failures;
+  } finally {
+    rmSync(tree, { recursive: true, force: true });
+  }
+}
+
 // Fuera del repo, en el temporal del sistema. Dentro no sirve: oxlint respeta
 // `.gitignore` y `--no-ignore` no lo anula, así que un stage ignorado por git no
 // tendría un solo archivo que lintear, y uno no ignorado acabaría en un commit el día
@@ -188,7 +273,11 @@ try {
 
   const raw = runOxlint(stage);
   const diagnostics = parse(raw);
-  const failures = [...missingRules(diagnostics), ...noisyOnCleanLines(diagnostics)];
+  const failures = [
+    ...missingRules(diagnostics),
+    ...noisyOnCleanLines(diagnostics),
+    ...structureFailures(),
+  ];
 
   if (failures.length > 0) {
     console.error(`\nRules stopped biting (${failures.length}):\n`);
@@ -200,7 +289,9 @@ try {
     process.exit(1);
   }
 
-  console.log(`${EXPECTED.length} rules bite, and the lines marked CLEAN are still clean.`);
+  console.log(
+    `${EXPECTED.length} rules and ${STRUCTURE.length} structure cases bite, and what is marked CLEAN is still clean.`,
+  );
 } finally {
   rmSync(stage, { recursive: true, force: true });
 }

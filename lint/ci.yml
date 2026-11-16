@@ -55,6 +55,12 @@ jobs:
       - name: Formato
         run: npx oxfmt --check .
 
+      # Estructura antes que lint: lee nombres, no código, y tarda milisegundos. Una
+      # capa con treinta archivos sueltos no se arregla con un autofix, se arregla
+      # moviéndolos a sus módulos.
+      - name: Estructura
+        run: npx ls-lint
+
       # `--type-aware` necesita `oxlint-tsgolint` en las devDependencies.
       - name: Lint
         run: npx oxlint --type-aware

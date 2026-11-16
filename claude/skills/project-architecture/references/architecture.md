@@ -95,11 +95,14 @@ Layers are folders, and the boundary is enforced by lint rules rather than packa
 │       ├── <module>.policy.ts
 │       ├── <module>.dal.ts
 │       └── <module>.actions.ts
-├── lib/                      # genuinely shared utilities
+├── lib/                      # shared code, and one folder per module
+│   └── <module>/
 ├── hooks/
 ├── AGENTS.md
 └── CLAUDE.md                 # points at AGENTS.md
 ```
+
+**Modules exist in every layer, not only in `data/`.** A module is one area of the product (orders, billing, the mailbox), and it gets the same folder name in each layer that holds code for it: `data/orders/`, `lib/orders/`, `components/orders/`. A layer's root keeps only what several modules share. Three files with the same prefix (`gmail-thread.ts`, `gmail-reply.ts`, `gmail-labels.ts`) are a folder that does not exist yet; create it when the third one appears. The preset's `.ls-lint.yml` enforces this with a cap on loose files per folder (`lint-guardrails.md`), because agents add the next file beside the last one and never stop to make the folder.
 
 `data/` is the compressed version of Transport + Domain + Foundations. That compression is the point of the single-app profile: same principles, less ceremony. Split it into packages when the project actually earns it.
 
@@ -153,7 +156,7 @@ Pick one file naming format and never deviate. Which one matters far less than t
 - Convention-mandated names are the exception and stay as the ecosystem defines them: `README.md`, `AGENTS.md`, `CLAUDE.md`, framework-reserved file names.
 - **snake_case** in the database, always. Never carry JavaScript camelCase into SQL.
 
-Mixing formats is the single most common junior tell, and it is also what language models do by default when a codebase gives them no signal. Consistency means neither a new engineer nor an agent ever has to guess what a file is called.
+Mixing formats is the single most common junior tell, and it is also what language models do by default when a codebase gives them no signal. Consistency means neither a new engineer nor an agent ever has to guess what a file is called. The preset's `.ls-lint.yml` checks kebab-case in the layers, so it does not depend on anyone remembering.
 
 ## Enforcing the boundaries
 

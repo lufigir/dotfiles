@@ -30,6 +30,7 @@ linter that formats and nothing that defends the architecture.
 lint/
 ├── oxlint.config.ts            the config; the boundaries block is adapted per project
 ├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
+├── .ls-lint.yml                structure: file names, and how many loose files a folder holds
 ├── ci.yml                      the workflow that makes the rules bite
 ├── knip.json                   dead code: unused files, exports and dependencies
 ├── package.json                tool versions, and the test script
@@ -58,6 +59,7 @@ cp -r <dotfiles>/lint/rule-tests      <project>/tools/oxlint/rule-tests
 cp    <dotfiles>/lint/oxlint.config.ts <project>/
 cp    <dotfiles>/lint/.oxfmtrc.json    <project>/
 cp    <dotfiles>/lint/knip.json        <project>/
+cp    <dotfiles>/lint/.ls-lint.yml     <project>/
 cp    <dotfiles>/lint/ci.yml           <project>/.github/workflows/ci.yml
 ```
 
@@ -65,7 +67,7 @@ cp    <dotfiles>/lint/ci.yml           <project>/.github/workflows/ci.yml
 `npm view oxlint version`. `oxlint` and `@oxlint/plugins` must be **the same version**.
 
 ```bash
-npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt @shadcn/lint knip
+npm i -D oxlint @oxlint/plugins oxlint-tsgolint oxfmt @shadcn/lint knip @ls-lint/ls-lint
 ```
 
 **3. Two environment requirements that do not announce themselves.** The `.ts` config
@@ -78,7 +80,8 @@ what is missing.
 ```json
 "lint": "oxlint --type-aware",
 "format": "oxfmt .",
-"lint:rules": "node tools/oxlint/rule-tests/check.mjs"
+"lint:rules": "node tools/oxlint/rule-tests/check.mjs",
+"lint:structure": "ls-lint"
 ```
 
 And a pre-commit hook that formats what is staged, so a push straight to `main` does
@@ -89,7 +92,7 @@ npm i -D simple-git-hooks lint-staged
 ```
 
 ```json
-"simple-git-hooks": { "pre-commit": "npx lint-staged" },
+"simple-git-hooks": { "pre-commit": "npx lint-staged && npx ls-lint" },
 "lint-staged": { "*": "oxfmt --no-error-on-unmatched-pattern" }
 ```
 
@@ -109,7 +112,8 @@ project with `trustPolicy: no-downgrade` refuses to install it.
 single-app profile from `architecture.md` (`app/` → `data/` → `lib/`). Rename the layers
 to the repo's, and **adapt the fixtures at the same time**: if the data layer is not
 called `data/`, then `fixtures/data/orders.policy.ts` is testing nothing, and
-`check.mjs` will say so.
+`check.mjs` will say so. The same layer names go in `.ls-lint.yml` and in the
+`STRUCTURE` table of `check.mjs`; with a `src/` folder, every path there gains the prefix.
 
 ## Verifying that the rules bite
 
@@ -155,6 +159,15 @@ to 320 errors on an existing app. Turn them on at bootstrap, where they cost not
 **Ten of anti-slop's fifteen rules.** The other five sit in the config, commented, with
 the reasoning attached. They are strong design positions (banning `object` in inputs,
 banning module mocking) worth arguing in real code before inheriting, not oversights.
+
+**Structure is the one job outside oxc.** A lint rule sees one file at a time, so it
+cannot see that a folder holds thirty-seven of them. That is how a layer goes flat: each
+new `gmail-*.ts` helper is fine on its own, and nothing asks for the `gmail/` folder
+the eighth one needed. `ls-lint` walks the tree instead of the code. `.ls-lint.yml` caps
+the loose files at a layer's root at eight and in a module at fifteen, and enforces
+kebab-case. It runs in CI and in the pre-commit hook, because a line in `AGENTS.md`
+asking for folders is a line the agent skips. It ships as one Go binary with no install
+script, and behaves the same on Windows.
 
 **anti-slop vendored, not depended on.** The author's instruction and the right call
 independently: no releases, outside semver. See `tools/oxlint/anti-slop/VENDORED.md`.

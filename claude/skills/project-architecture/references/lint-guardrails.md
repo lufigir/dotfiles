@@ -14,6 +14,7 @@ This file explains the *why*. The working configuration lives in the dotfiles re
 lint/
 ├── oxlint.config.ts            the config; the boundaries block is adapted per project
 ├── .oxfmtrc.json               formatting, with import and Tailwind class sorting
+├── .ls-lint.yml                structure: file names, loose files per folder
 ├── ci.yml                      the workflow that makes the rules bite
 ├── knip.json                   dead-code check: unused files, exports, dependencies
 ├── tools/oxlint/anti-slop/     vendored evidence rules
@@ -35,6 +36,12 @@ Keep them separate in your head, because they fail differently and they are conf
 | **Framework correctness** | Am I using the framework as it works? | The rules the framework's own plugin already ships, left at "warn" and ignored |
 
 A project with only the last family — which is what the framework CLI leaves you — has a linter that formats and nothing that defends the architecture.
+
+### Structure, the job a linter cannot see
+
+Every family above reads one file at a time, so none of them notices a folder that holds thirty-seven. That is how a layer goes flat: each new `gmail-*.ts` helper is reasonable on its own, the eighth one should have been a `gmail/` folder, and nothing asked for it. `ls-lint` checks the tree instead of the code. The preset's `.ls-lint.yml` caps the loose files at a layer's root at 8 and inside a module at 15, keeps `data/` to module folders only, and enforces kebab-case. Tests (`.test.ts`) and the DTO/policy/DAL files do not count against the cap, and `components/ui` has none, because the design system CLI writes one file per primitive.
+
+When the cap fails, the fix is never to raise it: it is the module the files were already naming with their prefix. `architecture.md` has the rule this enforces.
 
 ## One vendor: oxc
 

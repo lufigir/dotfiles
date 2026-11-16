@@ -1,0 +1,46 @@
+# Estructura: dónde puede vivir un archivo. Copiar a la raíz del proyecto.
+#
+# oxlint revisa lo que dice cada archivo; esto revisa dónde está. Sin esta regla, un
+# agente que agrega el octavo helper con prefijo `gmail-` lo deja junto a los otros
+# siete en la raíz de la capa, porque nada lo obliga a crear la carpeta.
+#
+# `.*` cuenta juntos los archivos de una sola extensión (`.ts`, `.tsx`) y deja fuera
+# los de extensión compuesta (`.test.ts`, `.dal.ts`, `.fixture.ts`): los tests y la
+# terna DTO/policy/DAL no gastan cupo. Una regla propia para `.ts` lo saca de `.*` y
+# del conteo, así que el kebab-case va en la misma línea que el tope. `exists` solo mira la carpeta
+# misma, no sus subcarpetas: `<capa>/**` es el tope de cada módulo.
+#
+# ADAPTAR: los nombres de las capas, igual que en el bloque de boundaries de
+# `oxlint.config.ts`. Con `src/`, cada ruta lleva el prefijo (`src/lib`).
+# Las llaves no sirven en extensiones: `.{ts,tsx}` no falla, simplemente no aplica.
+ls:
+  # Raíz de una capa: solo lo que comparten varios módulos. Ocho es el tope; el
+  # noveno archivo pide la carpeta que todavía no existe.
+  lib:
+    .*: kebab-case | exists:0-8
+  lib/**:
+    .*: kebab-case | exists:0-15
+
+  # `data/` es una carpeta por módulo y nada más.
+  data:
+    .*: exists:0
+  data/**:
+    .*: kebab-case | exists:0-15
+
+  components:
+    .*: kebab-case | exists:0-8
+  components/**:
+    .*: kebab-case | exists:0-15
+  # Primitivas del design system: las escribe el CLI de shadcn, una por componente.
+  # Sin tope, porque partirlas en carpetas pelearía con el CLI que las regenera.
+  components/ui:
+    .*: kebab-case
+
+  # Lo colocado en una ruta también crece: pasado el tope, es una carpeta de feature.
+  app/**/_components:
+    .*: kebab-case | exists:0-15
+
+ignore:
+  - .git
+  - node_modules
+  - .next
