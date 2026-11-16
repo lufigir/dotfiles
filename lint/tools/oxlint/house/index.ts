@@ -226,12 +226,116 @@ const actionAssertsIdentityRule = defineRule({
 	},
 });
 
+const ALLOWED_COMMENT_DEFAULTS = [
+	"^\\s*(oxlint|eslint)-(disable|enable)",
+	"^\\s*@ts-(expect-error|ignore|nocheck)",
+	"^\\s*SAFETY:",
+	"^/\\s*<reference ",
+];
+
+/**
+ * Sin comentarios en el código de producto. Un comentario es la prosa que el agente
+ * escribe para justificar lo que hizo, y la que lee para justificar lo siguiente: el
+ * nombre, el tipo y el test dicen lo mismo y sí se verifican. Pasan las directivas
+ * (desactivar una regla, `@ts-expect-error`), los `SAFETY:` que exige anti-slop y las
+ * referencias de triple barra. `--fix` los borra.
+ */
+const noCommentsRule = defineRule({
+	meta: {
+		type: "suggestion",
+		fixable: "code",
+		docs: { description: "Disallow comments in product code, except tool directives and SAFETY justifications." },
+		messages: {
+			comment:
+				"Product code carries no comments: say it with a name, a type or a test, which are checked. Directives, `SAFETY:` justifications and triple-slash references are allowed. `oxlint --fix` removes this one.",
+		},
+		schema: [
+			{
+				type: "object",
+				properties: { allow: { type: "array", items: { type: "string" } } },
+				additionalProperties: false,
+			},
+		],
+	},
+	create(context) {
+		const allow = (stringOptions(context.options, "allow") ?? ALLOWED_COMMENT_DEFAULTS).map(
+			(source) => new RegExp(source, "u"),
+		);
+		return {
+			Program() {
+				for (const comment of context.sourceCode.getAllComments()) {
+					if (allow.some((pattern) => pattern.test(comment.value))) continue;
+					context.report({
+						loc: context.sourceCode.getLoc(comment),
+						messageId: "comment",
+						fix: (fixer) => fixer.removeRange([comment.start, comment.end]),
+					});
+				}
+			},
+		};
+	},
+});
+
+const HOOK_FILE_DEFAULTS = ["(^|/)_?hooks/", "(^|/)use-[^/]+\\.tsx?$"];
+const EFFECTS = new Set(["useEffect", "useLayoutEffect"]);
+
+/**
+ * Un efecto vive en un hook con nombre, no suelto en un componente. Es la mitad que un
+ * agente escribe por reflejo para sincronizar estado que debió derivarse; dentro de
+ * `hooks/`, `_hooks/` o un `use-*.ts`, el efecto tiene un nombre y un test.
+ */
+const noEffectOutsideHooksRule = defineRule({
+	meta: {
+		type: "problem",
+		docs: { description: "Allow useEffect and useLayoutEffect only inside hook files." },
+		messages: {
+			effect:
+				"`{{name}}` outside a hook file. Most effects in a component sync state that should be derived during render, or handle an event in an effect instead of the handler. When an effect is genuinely needed, move it into a named hook under `hooks/`, `_hooks/` or a `use-*.ts` file, where it has a name and a test.",
+		},
+		schema: [
+			{
+				type: "object",
+				properties: { hookFiles: { type: "array", items: { type: "string" } } },
+				additionalProperties: false,
+			},
+		],
+	},
+	create(context) {
+		const hookFiles = (stringOptions(context.options, "hookFiles") ?? HOOK_FILE_DEFAULTS).map(
+			(source) => new RegExp(source, "u"),
+		);
+		const file = context.filename.replaceAll("\\", "/");
+		if (hookFiles.some((pattern) => pattern.test(file))) return {};
+
+		return {
+			ImportDeclaration(node) {
+				if (node.source.value !== "react") return;
+				for (const specifier of node.specifiers) {
+					if (specifier.type !== "ImportSpecifier") continue;
+					const imported = specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value;
+					if (EFFECTS.has(imported)) {
+						context.report({ node: specifier, messageId: "effect", data: { name: imported } });
+					}
+				}
+			},
+			MemberExpression(node) {
+				if (node.object.type !== "Identifier" || node.object.name !== "React") return;
+				if (node.property.type === "Identifier" && EFFECTS.has(node.property.name)) {
+					context.report({ node, messageId: "effect", data: { name: node.property.name } });
+				}
+			},
+		};
+	},
+});
+
 const housePlugin = eslintCompatPlugin({
 	meta: { name: "house" },
 	rules: {
 		"no-server-code-in-client": noServerCodeInClientRule,
 		"dal-imports-server-only": dalImportsServerOnlyRule,
 		"action-asserts-identity": actionAssertsIdentityRule,
+		"no-comments": noCommentsRule,
+		"no-effect-outside-hooks": noEffectOutsideHooksRule,
 	},
 });
 

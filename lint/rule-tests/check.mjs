@@ -145,6 +145,12 @@ const EXPECTED = [
   ["billing.dal.ts", "dal-imports-server-only", 1],
   ["billing.actions.ts", "action-asserts-identity", 1],
   ["order-card.fixture.tsx", "no-server-code-in-client", 1],
+
+  // Casa: un efecto vive en un hook con nombre, y el código de producto no lleva
+  // comentarios. `use-clock.ts` tiene cero: está ahí por su línea CLEAN.
+  ["effects.fixture.tsx", "no-effect-outside-hooks", 2],
+  ["use-clock.ts", "no-effect-outside-hooks", 0],
+  ["comments.fixture.ts", "no-comments", 2],
 ];
 
 /**
@@ -368,7 +374,14 @@ function* noisyOnCleanLines(diagnostics) {
       if (!text.includes("CLEAN:")) continue;
 
       const line = index + 1;
-      const hit = diagnostics.find((d) => fileOf(d).endsWith(file) && lineOf(d) === line);
+      // El marcador CLEAN es un comentario, así que `no-comments` lo reporta en todo
+      // fixture de una capa de producto. Solo cuenta en el fixture que prueba esa regla.
+      const hit = diagnostics.find(
+        (d) =>
+          fileOf(d).endsWith(file) &&
+          lineOf(d) === line &&
+          !(ruleOf(d) === "no-comments" && file !== "comments.fixture.ts"),
+      );
 
       if (hit !== undefined) {
         const why = text.slice(text.indexOf("CLEAN:") + "CLEAN:".length).trim();

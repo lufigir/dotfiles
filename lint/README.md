@@ -36,7 +36,8 @@ lint/
 ├── package.json                tool versions, and the test script
 ├── tools/oxlint/
 │   ├── anti-slop/              vendored from dmmulroy. See its VENDORED.md
-│   └── house/                  the server/client boundary rules no plugin ships
+│   └── house/                  rules no plugin ships: the server/client boundary,
+│                               effects only in hooks, no comments in product code
 └── rule-tests/
     ├── check.mjs               do the rules still bite?
     └── fixtures/               code that MUST fail. The fixture is the specification

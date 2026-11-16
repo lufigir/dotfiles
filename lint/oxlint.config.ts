@@ -236,6 +236,9 @@ export default defineConfig({
     // en el override de `*.dal.ts`.
     "house/no-server-code-in-client": "error",
     "house/action-asserts-identity": "error",
+    // `no-effect-outside-hooks`: `useEffect` solo dentro de `hooks/`, `_hooks/` o un
+    // `use-*.ts`. `no-comments` va en el override del código de producto, abajo.
+    "house/no-effect-outside-hooks": "error",
 
     // --- Evidencia: anti-slop -------------------------------------------------
     //
@@ -509,6 +512,14 @@ export default defineConfig({
         "max-params": "off",
         "max-depth": "off",
       },
+    },
+
+    {
+      // Código de producto sin comentarios: lo que explicaría un comentario lo dicen
+      // un nombre, un tipo o un test. Config, scripts y tools sí los llevan.
+      // ADAPTAR: los globs a las capas del proyecto.
+      files: ["app/**", "components/**", "data/**", "lib/**", "hooks/**"],
+      rules: { "house/no-comments": "error" },
     },
 
     {
