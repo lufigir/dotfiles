@@ -1,18 +1,15 @@
 ---
 name: project-architecture
 description: >
-  Architecture for a product in any stack. **Bootstrap** starts one from zero (framing, scope, ERD, layered
-  folders, lint guardrails, a vertical slice); **Convention** keeps its rules holding mid-build. Use
-  when starting or scaffolding a project, and whenever work touches where a file goes or what a
-  layer may import, schema and migrations, multi-tenancy, data access (Supabase and RLS included),
-  APIs, background jobs, uploads, security, performance, observability, URLs, list screens, forms,
-  lint boundaries, accessibility, analytics and feature flags, personal data, resource budgets
-  (quotas, capacity, N+1 and other amplifiers, measured load), or choosing the architecture style or
-  the database. Spanish triggers: "proyecto nuevo", "alcance", "dónde va este
-  archivo", "en qué capa", "cómo modelo esta tabla", "migración", "tabla con filtros",
-  "formulario", "reglas de lint", "estructura de urls", "accesibilidad", "supabase", "rls",
-  "analítica", "feature flag", "datos personales", "microservicios", "qué base de datos", "límite de uso", "cuota", "plan
-  gratuito", "costos", "optimización", "capacidad", "consumo".
+  Architecture for a product in any stack. **Bootstrap** starts one from zero (framing, scope,
+  ERD, layers, guardrails researched for the stack, a vertical slice); **Convention** keeps its
+  rules holding mid-build. Use when starting a project, and when work decides where code goes
+  or what a layer may import, the schema or a migration, tenancy, data access and
+  authorization (Supabase and RLS included), an API or a background job, security, a list
+  screen or a form, lint guardrails, personal data, or a resource budget. Spanish triggers:
+  "proyecto nuevo", "dónde va este archivo", "en qué capa", "cómo modelo esta tabla",
+  "migración", "supabase", "rls", "reglas de lint", "datos personales", "qué base de datos",
+  "límite de uso".
 ---
 
 # Project architecture
