@@ -13,6 +13,8 @@
 # ADAPTAR: los nombres de las capas, igual que en el bloque de boundaries de
 # `oxlint.config.ts`. Con `src/`, cada ruta lleva el prefijo (`src/lib`).
 # Las llaves no sirven en extensiones: `.{ts,tsx}` no falla, simplemente no aplica.
+# La raíz de cada capa va con su ruta literal (`lib`, no `*`): entre dos comodines que
+# tocan la misma carpeta, ls-lint elige uno al azar en cada corrida.
 ls:
   # Raíz de una capa: solo lo que comparten varios módulos. Ocho es el tope; el
   # noveno archivo pide la carpeta que todavía no existe.

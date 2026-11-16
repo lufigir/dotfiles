@@ -84,7 +84,8 @@ what is missing.
 "lint:structure": "ls-lint"
 ```
 
-And a pre-commit hook that formats what is staged, so a push straight to `main` does
+And two hooks: pre-commit formats what is staged, pre-push runs lint and structure in
+seconds (a hook, not a line in `AGENTS.md`, because agents skip steps), so a push straight to `main` does
 not turn CI red over formatting:
 
 ```bash
@@ -92,7 +93,10 @@ npm i -D simple-git-hooks lint-staged
 ```
 
 ```json
-"simple-git-hooks": { "pre-commit": "npx lint-staged && npx ls-lint" },
+"simple-git-hooks": {
+  "pre-commit": "npx lint-staged && npx ls-lint",
+  "pre-push": "npx oxlint --type-aware && npx ls-lint"
+},
 "lint-staged": { "*": "oxfmt --no-error-on-unmatched-pattern" }
 ```
 

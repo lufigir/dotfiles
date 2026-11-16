@@ -13,7 +13,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # La merge queue corre la suite completa contra lo que va a quedar en main. Sin este
+  # evento los checks requeridos nunca se reportan y la cola no mergea nada.
+  merge_group:
 
+# Jobs en paralelo, cada uno con su tope de tiempo: el que se pasa falla en vez de
+# esperar, y ningún paso reintenta (un check que necesita reintento tiene un bug).
+#
 # Un segundo push a un PR vuelve irrelevante al primero. En `main` no se cancela:
 # si el deploy vive en este workflow (debe, ver abajo), la ejecución anterior puede
 # estar a mitad de él.
@@ -22,8 +28,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
+  secrets:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +47,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Todo lo que lee el código sin ejecutarlo, en un job: cada etapa tarda segundos y
+  # repartirlas pagaría el setup cinco veces.
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -79,15 +93,35 @@ jobs:
       - name: Tipos
         run: npx tsc --noEmit
 
-      # Después de los tipos: un test que no compila no merece un runner. Los de
-      # integración necesitan una base de datos real (un service container de
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Los de integración necesitan una base de datos real (un service container de
       # Postgres o una rama desechable); ver `testing.md`. `--if-present` deja pasar
       # el scaffold antes de que exista el primer test, no después.
       - name: Tests
         run: npm run test --if-present
 
-      # Al final, porque es lo más lento y las cuatro etapas de arriba cazan casi todo
-      # lo que lo rompería.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # En su propio job, en paralelo con los demás: es lo más lento y no espera a nadie.
       - name: Build
         run: npm run build
         env:
@@ -105,10 +139,10 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://placeholder.invalid
 
   # El deploy, si lo hace Actions y no la integración Git del hosting, va como job
-  # de este workflow con `needs: verify`, nunca en un workflow aparte: uno aparte
+  # de este workflow con `needs: [secrets, static, test, build]`, nunca en un workflow aparte: uno aparte
   # despliega aunque el CI esté en rojo. Ver `operations.md`.
 
-  # Dependabot se mergea solo, y solo después de `verify`. Un workflow de auto-merge
+  # Dependabot se mergea solo, y solo después de los cuatro jobs. Un workflow de auto-merge
   # separado no espera al CI y mergea en rojo. Los major ni se proponen si
   # `dependabot.yml` los ignora; esta condición es la segunda red.
   #
@@ -121,7 +155,7 @@ jobs:
   #   formateo sobre la rama del PR y mergearlo a mano: el push ya no es de
   #   Dependabot y este job se salta.
   dependabot-merge:
-    needs: verify
+    needs: [secrets, static, test, build]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
