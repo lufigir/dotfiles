@@ -87,12 +87,12 @@ The catalogue applies to every text; the genre decides what the author's voice a
 
 ## Google Docs through Brave
 
-The `brave` MCP drives Brave Agente, a Brave profile kept for the agent with its own sign-ins, so
-the doc is not open there: `new_page` with the doc's link (ask the user for it), signed in to the
+The `browse` MCP drives the user's Brave, with their sign-ins, in tabs of its own, so open the doc
+there: `page.goto` the doc's link in `execute` (ask the user for it), signed in to the
 Google account that can edit it. Google Docs draws text on a canvas, so the DOM does not hold the
 body and an in-page `fetch` of `/export?format=txt` fails; work through **Find and replace**.
 
-1. Press `Control+h`, take a snapshot, note the uids of `Find`, `Replace with`, `Replace all`
+1. Press `Control+h`, take a `snapshot()`, note the refs of `Find`, `Replace with`, `Replace all`
    and `Close`.
 2. Per change: `fill` Find with the exact old sentence, read the match counter in the dialog
    (`[role=dialog]` text, "1 of 1"), `fill` Replace with, click Replace all. A counter of "0 of 0"

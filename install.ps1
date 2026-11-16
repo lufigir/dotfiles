@@ -147,7 +147,7 @@ function Link-Config($target, $source) {
 
 # Leaves Claude Code on the dotfiles baseline: only the skill-creator
 # plugin, only the
-# executor + brave + notebooklm-mcp MCPs, and only the skills symlinked from this repo. Computes
+# executor + browse + notebooklm-mcp MCPs, and only the skills symlinked from this repo. Computes
 # everything that's extra, shows it grouped, and asks for ONE single confirmation
 # (default No) before deleting. Doesn't touch project repos, dotfiles-managed symlinks,
 # or claude.ai connectors (Canva/Drive live on the account, not in ~/.claude.json).
@@ -158,7 +158,7 @@ function Link-Config($target, $source) {
 # checked for loose skills.
 function Clean-ClaudeBaseline($repo, $profileDir, $isMain) {
     $plugins = @(); $mcp = @(); $skills = @(); $other = @()
-    $keepMcp = @('executor', 'brave', 'notebooklm-mcp')
+    $keepMcp = @('executor', 'browse', 'notebooklm-mcp')
     $keepPlugins = @($baselinePlugins | ForEach-Object { $_.Split('@')[0] })
 
     # 1. Plugins outside the baseline (ignores inline/harness ones, which aren't
@@ -233,7 +233,7 @@ function Install-ClaudeExtras($repo) {
         return
     }
 
-    Install-BraveAgent
+    Install-Browse
 
     foreach ($profileDir in $claudeProfiles) {
         $isMain = $profileDir -eq $claudeMain
@@ -257,40 +257,55 @@ function Install-ClaudeExtras($repo) {
     }
 }
 
-# Brave Agente: a Brave profile of its own for the brave MCP, with remote debugging on
-# $braveAgentPort. A Start menu shortcut opens it, and a Startup one keeps it running in
-# the background from logon, so the MCP finds it without a window open. Its sign-ins are
-# separate from the personal Brave: log in there once to each site the agent needs.
-# Windows only; elsewhere launch Brave with the same flags by hand.
-$braveAgentPort = 9333
-$braveAgentUrl = "http://127.0.0.1:$braveAgentPort"
+# browse (https://opencode.ai/browse) drives the user's own Brave through its extension, so
+# the agent has the user's sign-ins. The binary lands in ~/.local/bin and updates itself;
+# adding the extension and pairing it (browse pair) is a one-time step by hand. Windows only.
+$browseExe = Join-Path $HOME '.local' 'bin' 'browse.exe'
 
-function Install-BraveAgent {
-    Write-Section "Brave Agente $($c.Dim)dedicated profile for the brave MCP$($c.Reset)"
+function Install-Browse {
+    Write-Section "browse $($c.Dim)the browser MCP, in the user's Brave$($c.Reset)"
     if (-not $IsWindows) {
-        Write-Note "not Windows: run Brave with --user-data-dir=<own folder> --remote-debugging-port=$braveAgentPort"
+        Write-Note "not Windows: install browse from https://opencode.ai/browse"
         return
     }
+    if (Test-Path $browseExe) {
+        Write-Ok "browse $($c.Dim)already installed, it updates itself$($c.Reset)"
+    } else {
+        & ([scriptblock]::Create((Invoke-RestMethod https://opencode.ai/browse/install.ps1))) --no-setup | Out-Null
+        Write-Ok "browse $($c.Dim)installed in $(Format-Path $browseExe)$($c.Reset)"
+    }
+
+    # browse drives tabs through the extension debugger API, and Brave shows a "started
+    # debugging this browser" bar meanwhile; dismissing it detaches browse mid-task. The flag
+    # hides it, and only takes effect when Brave starts, so it goes on every launcher: the
+    # shortcuts (the taskbar pin is the Start menu one) and the handler for links opened from
+    # other apps. A Brave update can rewrite the Start menu shortcut; rerunning restores it.
+    $silent = '--silent-debugger-extension-api'
     $brave = Join-Path $env:ProgramFiles 'BraveSoftware' 'Brave-Browser' 'Application' 'brave.exe'
     if (-not (Test-Path $brave)) {
-        Write-Warn "Brave not found at $brave, skipping (winget install Brave.Brave)"
+        Write-Warn "Brave not found at $brave, skipping its launchers (winget install Brave.Brave)"
         return
     }
-    $data = Join-Path $env:LOCALAPPDATA 'BraveSoftware' 'Brave-Agent'
-    $flags = "--user-data-dir=`"$data`" --remote-debugging-port=$braveAgentPort --no-first-run --no-default-browser-check"
-    $programs = Join-Path $env:APPDATA 'Microsoft' 'Windows' 'Start Menu' 'Programs'
-    $shortcuts = @(
-        @{ Path = (Join-Path $programs 'Brave Agente.lnk'); Args = $flags }
-        @{ Path = (Join-Path $programs 'Startup' 'Brave Agente (segundo plano).lnk'); Args = "$flags --no-startup-window" }
-    )
     $shell = New-Object -ComObject WScript.Shell
-    foreach ($s in $shortcuts) {
-        $lnk = $shell.CreateShortcut($s.Path)
-        $lnk.TargetPath = $brave
-        $lnk.Arguments = $s.Args
-        $lnk.Save()
-        Write-Ok (Format-Path $s.Path)
+    $launchers = @(
+        (Join-Path $env:ProgramData 'Microsoft' 'Windows' 'Start Menu' 'Programs' 'Brave.lnk')
+        (Join-Path $env:APPDATA 'Microsoft' 'Internet Explorer' 'Quick Launch' 'Brave.lnk')
+    )
+    foreach ($path in $launchers | Where-Object { Test-Path $_ }) {
+        $lnk = $shell.CreateShortcut($path)
+        if ($lnk.Arguments -like "*$silent*") { Write-Ok "$(Format-Path $path) $($c.Dim)already silent$($c.Reset)"; continue }
+        $lnk.Arguments = "$($lnk.Arguments) $silent".Trim()
+        try {
+            $lnk.Save()
+            Write-Ok "$(Format-Path $path) $($c.Dim)$silent$($c.Reset)"
+        } catch {
+            Write-Warn "$(Format-Path $path) needs admin: add $silent to its arguments from an elevated shell"
+        }
     }
+    $handler = 'HKCU:\Software\Classes\BraveHTML\shell\open\command'
+    New-Item -Path $handler -Force | Out-Null
+    Set-Item -Path $handler -Value "`"$brave`" $silent --single-argument %1"
+    Write-Ok "Brave link handler $($c.Dim)$silent$($c.Reset)"
 }
 
 function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
@@ -306,22 +321,19 @@ function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
         Write-Ok "executor $($c.Dim)already configured$($c.Reset)"
     }
 
-    # Brave: the only browser MCP. chrome-devtools-mcp (navigate, click, screenshots,
-    # console/network, Lighthouse, performance traces) attached over --browserUrl to a
-    # dedicated Brave profile ("Brave Agente") listening on port 9333, with its own sign-ins
-    # (the UNAL library proxy, Scopus, GitHub, ...). Unlike --auto-connect on the personal
-    # Brave, it never asks to allow the connection. The profile and its shortcuts are set up
-    # by Install-BraveAgent. Runs over stdio via npx (needs Node 22+). An entry with other
-    # arguments (the old --auto-connect one) is replaced.
+    # browse: the only browser MCP. Playwright-style execute scripts, snapshots, screenshots,
+    # console/network and handoff to the user, in the user's Brave through the browse
+    # extension (binary installed by Install-Browse). An entry with another command is
+    # replaced.
     # NOTE: the stdio separator must be quoted ('--'). `claude` resolves to claude.ps1, and
     # PowerShell swallows a bare -- as its end-of-parameters token, so the CLI would then
     # parse the command's own flags (-y, --from) as claude options and fail.
-    if (((claude mcp get brave 2>$null) -join "`n") -notmatch [regex]::Escape("--browserUrl $braveAgentUrl")) {
-        claude mcp remove brave --scope user 2>$null | Out-Null
-        claude mcp add brave --scope user '--' npx -y chrome-devtools-mcp@latest --browserUrl $braveAgentUrl | Out-Null
-        Write-Ok "brave $($c.Dim)added, attached to Brave Agente on $braveAgentUrl$($c.Reset)"
+    if (((claude mcp get browse 2>$null) -join "`n") -notmatch [regex]::Escape($browseExe)) {
+        claude mcp remove browse --scope user 2>$null | Out-Null
+        claude mcp add browse --scope user '--' $browseExe mcp | Out-Null
+        Write-Ok "browse $($c.Dim)added, drives Brave through its extension$($c.Reset)"
     } else {
-        Write-Ok "brave $($c.Dim)already configured$($c.Reset)"
+        Write-Ok "browse $($c.Dim)already configured$($c.Reset)"
     }
 
     # NotebookLM: notebooks as a long-context knowledge system (notebook_query, source_add,
@@ -600,7 +612,7 @@ if ('wezterm' -in $selected) {
 if ('claude' -in $selected) {
     $next += "run /mcp in Claude Code to authorize Executor"
     $next += "authenticate NotebookLM: uvx --from notebooklm-mcp-cli nlm login"
-    $next += "for the brave MCP, open Brave Agente and sign in to the sites the agent needs"
+    $next += "for the browse MCP, add the browse extension in Brave and pair it with ~\.local\bin\browse.exe pair"
 }
 if ('zed' -in $selected) {
     $next += "install the Zed extensions listed in zed/extensions.md"

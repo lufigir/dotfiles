@@ -3,7 +3,7 @@ name: research
 description: >
   Research of any kind: picks the source for the question, from the open web and library
   behaviour to scholarly literature through the UNAL library subscriptions (Scopus, Web of
-  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's Brave Agente. Use whenever a
+  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's Brave. Use whenever a
   task needs finding something out before answering or building: comparing tools or options,
   checking a claim, a state of the art or literature review, references for a paper, thesis or
   course deliverable, recent studies, prior art and patents, technical standards, market or
@@ -105,13 +105,13 @@ search log go there, so the next session starts from them.
 
 ## The UNAL library in Brave
 
-The user is a UNAL student, and the `brave` MCP (`mcp__brave__*`) drives Brave Agente, a Brave
-profile kept for the agent, where they sign in to the library once.
+The user is a UNAL student, and the `browse` MCP (`mcp__browse__*`) drives their own Brave, where
+they are signed in to the library.
 
 ### Access
 
-- Start with `list_pages`, then work in a tab you open with `new_page`; the user's tabs stay as
-  they are.
+- Work in `execute`: `page.goto` opens a tab of your own, and passing its `tab` id keeps the next
+  call there; the user's tabs stay as they are.
 - Subscribed bases live behind the proxy: the original host plus `.unalproxy.elogim.com`, dots
   kept (`scopus.unalproxy.elogim.com`, `ieeexplore.unalproxy.elogim.com`,
   `webofscience.unalproxy.elogim.com`), and any path on the original site works on the proxied
@@ -121,12 +121,12 @@ profile kept for the agent, where they sign in to the library once.
   [`references/bases-unal.md`](references/bases-unal.md#driving-the-bases).
 - A login page means the session expired: the proxy's own (`unalproxy.elogim.com/auth-meta/login.php`)
   or a publisher's, as Scopus sending to Elsevier's sign-in (a personal Elsevier ID, which the user
-  has had since 2026-10-06; it mails a one-time code). Ask the user to sign in in Brave, and
-  meanwhile keep going on the open indexes (OpenAlex for discovery), saying which base is pending.
+  has had since 2026-10-06; it mails a one-time code). Call `handoff()` so the user signs in
+  in Brave, and if they are away keep going on the open indexes (OpenAlex for discovery), saying which base is pending.
   Credentials stay with the user.
-- The `brave` MCP drives a dedicated Brave profile on port 9333, with its own sign-ins. A connection
-  error means that profile is closed: tell the user to open "Brave Agente" from the Start menu. No
-  `mcp__brave__*` tools also needs a Claude Code restart. Until then, research with
+- An error saying no browser is connected means Brave is closed or unpaired: pass the user
+  the `nextStep` that the `status` tool returns (usually: open Brave).
+  No `mcp__browse__*` tools also needs a Claude Code restart. Until then, research with
   Firecrawl and the open libraries (ACM DL, SciELO, OpenAlex), and say which indexes that leaves
   out.
 

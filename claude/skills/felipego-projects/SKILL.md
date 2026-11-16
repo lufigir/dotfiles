@@ -13,7 +13,7 @@ description: >
   publishing, or updating a felipego.com project, a portfolio project item, the
   Notion Projects/Proyectos databases, generating project documentation, or
   making a Mintlify wiki for a repo — even if they don't spell out every step.
-  Uses Notion (via the Executor MCP hub) and the Brave MCP.
+  Uses Notion (via the Executor MCP hub) and the browse MCP.
 ---
 
 # felipego.com project publisher
@@ -61,8 +61,7 @@ decorative filler.
   to `tools["notion-mcp"].<name_with_underscores>` with the `lufigir`
   account: `{ accountId, input }`, taking the `accountId` from `search` —
   e.g. `notion-search` → `tools["notion-mcp"].notion_search`.
-  Also load the Brave MCP (`mcp__brave__new_page`,
-  `navigate_page`, `take_snapshot`, `take_screenshot`, `click`, `fill`) and
+  Also load the browse MCP (`mcp__browse__execute`, `mcp__browse__tabs`) and
   `WebFetch`. In Claude Code these may be deferred — load them with one
   `ToolSearch` call.
 - **Phase 5 needs a working directory.** `scripts/notion-html.mjs` requires
@@ -113,8 +112,8 @@ Notion content reflects the current code.
 
 Read the generated wiki as the source of truth for the write-up. Prefer
 `WebFetch` on the wiki URL(s); if pages are gated or JS-rendered, read them in
-Brave (`take_snapshot`, or `evaluate_script` returning `document.body.innerText`)
-on the open page. Capture: what the project is, architecture,
+Brave (`snapshot()`, or `page.evaluate` returning `document.body.innerText`)
+on the open tab. Capture: what the project is, architecture,
 tech stack, key features, notable technical decisions, and project structure —
 the raw material for the Notion body.
 
@@ -181,7 +180,7 @@ short:
    in Phase 3 — don't decorate or invent structure.
 2. **Wrap** it with the shared CSS kit: `node scripts/wrap-diagram.mjs
    body.html --out diagram.html` (inlines `assets/diagram-style.css`).
-3. **Preview it in both light and dark** with the Brave MCP before
+3. **Preview it in both light and dark** with the browse MCP before
    publishing — this is live, public content.
 4. **Ship it** with `scripts/notion-html.mjs add/replace`, run from the
    felipego.com site repo checkout (needs `@notionhq/client` +

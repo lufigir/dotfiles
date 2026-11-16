@@ -44,13 +44,14 @@ text in published tests; they're no use for deciding anything.
 
 ## How to run it in Brave
 
-The `brave` MCP (`mcp__brave__*`) drives Brave Agente, a Brave profile kept for the agent with its
-own sessions; if a detector asks to sign in, the user signs in there once.
+The `browse` MCP (`mcp__browse__*`) drives the user's Brave, with their
+sessions; if a detector asks to sign in, `handoff()` to the user.
 
-1. `list_pages`, then `new_page` with the detector's URL; the user's tabs stay as they are.
-2. `take_snapshot`; locate the text area and the analyze button by their accessible names.
+1. In `execute`, `page.goto` the detector's URL; it opens a tab of your own and the user's tabs
+   stay as they are.
+2. `snapshot()`; locate the text area and the analyze button by their accessible names.
 3. `fill` with the complete final text (without titles or references if the detector counts words
-   against the quota), click analyze, wait for the result and take another snapshot.
+   against the quota), click analyze, wait for the result and take another `snapshot()`.
 4. Note the verdict, the percentage and the flagged passages. If it asks to sign in or the day's
    quota ran out, tell the user and move on to the other detector.
 

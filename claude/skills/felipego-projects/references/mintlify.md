@@ -1,4 +1,4 @@
-# Mintlify reference — generate the wiki (Brave MCP)
+# Mintlify reference — generate the wiki (browse MCP)
 
 Goal: produce (or refresh) `https://mintlify.wiki/<owner>/<repo>` for the
 project's GitHub repo, so Phase 3 can read it as the source of truth.
@@ -13,9 +13,9 @@ yet) — that's a real access grant and stays the user's action.
 
 ## Account
 
-The Brave MCP drives **Brave Agente**, a Brave profile kept for the agent, where
-the user signs in to GitHub and Mintlify once. Work in a tab you open with
-`new_page` and leave the other tabs alone. Being signed in is not permission: the rules below about
+The browse MCP drives the user's own Brave, where
+the user signs in to GitHub and Mintlify once. Work in a tab of your own (`page.goto` in
+`execute` opens one) and leave the other tabs alone. Being signed in is not permission: the rules below about
 OAuth screens hold exactly as they would in a signed-out browser.
 
 The user's Mintlify notify-email is **`luisgir827@gmail.com`**. Typing this into
@@ -29,15 +29,13 @@ button on a GitHub OAuth screen — if one of those appears, stop and hand off:
 
 ## Steps
 
-1. **Open a fresh page** with `new_page` (`list_pages` first if you want to see
-   what's already open — don't reuse an unrelated one). Use one page per repo if
-   you're generating several — they run independently, so you can kick off
-   multiple generations in parallel and come back to poll each one with
-   `select_page`.
-2. **Navigate directly** to `https://mintlify.wiki/<owner>/<repo>` with
-   `navigate_page` (skip the `/explore` search step — it's slower and
+1. **Open a fresh tab** per repo: `page.goto("https://mintlify.wiki/<owner>/<repo>")`
+   in `execute` opens one and returns its `tab` id. Generations run
+   independently, so kick off several in parallel and come back to poll each
+   one by passing its `tab`.
+2. **Go straight to the repo URL** (skip the `/explore` search step — it's slower and
    unnecessary once you have the repo).
-3. **Read the page** with `take_snapshot` (`take_screenshot` when you need to
+3. **Read the page** with `snapshot()` (`page.screenshot()` when you need to
    see it). Three outcomes:
    - **Already generated** — content renders immediately. Skip to Phase 3.
    - **"Create a new site" / "Content is being generated"** — a plain email
@@ -61,8 +59,8 @@ current code — a stale wiki produces a stale portfolio page.
 
 ## Rabbit-hole guard
 
-If the browser flow stalls — repeated failed clicks, a `uid` that no longer
-resolves even after a fresh `take_snapshot`, an unexpected paywall or gate, or
+If the browser flow stalls — repeated failed clicks, a ref that no longer
+resolves even after a fresh `snapshot()`, an unexpected paywall or gate, or
 generation that never finishes —
 stop after a couple of attempts, tell the user exactly what you saw, and ask how
 to proceed. Don't loop on the same failing action. As a fallback, the repo itself
