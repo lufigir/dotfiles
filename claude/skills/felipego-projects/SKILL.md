@@ -31,7 +31,7 @@ only ask when something genuinely can't be inferred (see Phase 1).
 The pipeline has five phases. Do them in order; each feeds the next.
 
 ```
-1. Gather inputs  →  2. Generate Mintlify wiki (Chrome)  →  3. Read the wiki  →  4. Write to Notion (EN + ES)  →  5. Diagrams & interactive HTML blocks
+1. Gather inputs  →  2. Generate Mintlify wiki (Brave)  →  3. Read the wiki  →  4. Write to Notion (EN + ES)  →  5. Diagrams & interactive HTML blocks
 ```
 
 The guiding idea: the Mintlify wiki, auto-generated from the repo, is a rich and
@@ -101,7 +101,7 @@ or live URL up front, use what they said instead of deriving it.
 ## Phase 2 — Generate the Mintlify wiki
 
 Follow `references/mintlify.md`. In short: open `https://mintlify.wiki/explore`
-in Chrome, have the user sign in and authorize the GitHub repo, trigger
+in Brave, have the user sign in and authorize the GitHub repo, trigger
 generation, and wait for it to finish. The result lives at
 `https://mintlify.wiki/<owner>/<repo>`.
 
@@ -113,7 +113,7 @@ Notion content reflects the current code.
 
 Read the generated wiki as the source of truth for the write-up. Prefer
 `WebFetch` on the wiki URL(s); if pages are gated or JS-rendered, read them in
-Chrome (`take_snapshot`, or `evaluate_script` returning `document.body.innerText`)
+Brave (`take_snapshot`, or `evaluate_script` returning `document.body.innerText`)
 on the open page. Capture: what the project is, architecture,
 tech stack, key features, notable technical decisions, and project structure —
 the raw material for the Notion body.
@@ -167,8 +167,8 @@ Illustrate the Architecture and Request Flow sections (and optionally a
 "Tools/Features at a Glance" grid) with the shared **HTML-block diagram kit** —
 interactive, sandboxed, and styled purely with felipego.com's own design-system
 CSS variables, so it matches the portfolio and follows the light/dark theme
-automatically. This is the default now, replacing static diagram images; native
-Mermaid remains an acceptable lighter-weight fallback (see
+automatically. This is the default; native Mermaid is the lighter-weight
+fallback (see
 `references/html-diagrams.md` for when).
 
 Full workflow, the icon sprite, the standard diagram shapes (grouped-tier
@@ -198,7 +198,7 @@ automated benchmark:
 
 - Re-fetch both Notion pages and confirm the body rendered (headings, code
   blocks, links, and either Mermaid diagrams or HTML blocks all present).
-- If HTML-block diagrams were added, confirm in Chrome (locally or
+- If HTML-block diagrams were added, confirm in Brave (locally or
   on the live site) that they render, size themselves, and match the current
   theme — in both light and dark.
 - Grep the body for the placeholder marker and read the list back to the user so
