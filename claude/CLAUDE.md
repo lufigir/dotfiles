@@ -18,6 +18,7 @@
   - `multiSelect: true` only when the choices genuinely combine, and there **never** tag options `(Recomendado)`: state the recommendation in the question instead.
   - A call caps at **4 tabs** and a tab at **4 options**. More decisions means chaining back-to-back calls; more candidates means the decision is badly grouped, so split or merge it.
 - **Prose a person will read** (docs, READMEs, skills, reports, PR and commit bodies, messages, university deliverables), in Spanish or English, goes through the `humanize` skill before it ships.
+- **When the user asks to clear the session** (or for a prompt to continue in a new one), first decide whether anything must survive. A next task unrelated to this one: tell them to run `/clear` with no prompt, since the repo, `AGENTS.md`, commits and memory already carry what matters. The same task continuing, or work moving to another repo, account or harness: give a continuation prompt of at most 15 lines that points at files, commits, branches and docs by path instead of copying their content, and names the next step and how to verify it. Write it right away: after the prompt cache expires, the turn rereads the whole conversation at full price. A path to abandon is `Esc Esc` (rewind), cheaper than `/compact`.
 - Surgical changes: only touch what the task asks for; don't "improve" adjacent code or delete unrelated dead code (mention it instead).
 
 ## Engineering principles
