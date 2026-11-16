@@ -25,6 +25,18 @@ The dependency rule of `architecture.md` holds unchanged:
 - **Capabilities** wrap each vendor: the model provider, the fetcher, storage, email. A tool is a thin adapter from the agent to a capability; it never holds the SDK client itself.
 - **Evaluation** is its own module beside the tests: datasets, evaluators, the report.
 
+Agent frameworks that build a graph (LangGraph and its peers) keep the same rule, piece by piece:
+
+| Piece | Layer | Why |
+|---|---|---|
+| The graph, and the entry its deployment config points at | Entry | It receives a request and decides the order of the work |
+| Node functions | Entry, calling domain and data | A node is a step of the control flow; code owns it, the model fills in values |
+| The state schema | Domain | The contract between nodes, typed and validated like any DTO |
+| A tool the model may call | Entry point into data or a capability | The model reaches it, so a tool that writes goes through the DAL and its policy, like a route |
+| The model client, the checkpointer, the vector store | Capabilities | Vendors behind a seam |
+
+Framework starter layouts often put tools, nodes and state side by side in one `utils/` folder. That is the flat layer `architecture.md` warns about: a tool there imports the database client and the boundary is gone.
+
 The model is a capability like any other. The provider, the model id and its settings come from the environment schema (`operations.md`), so switching providers is a configuration change plus an eval run, not a refactor. Dependencies are injected into the run, never imported by the tools, which is what lets a test swap them.
 
 **Prompts are code.** They live in the repo, next to the agent, reviewed in the same pull request as the code that depends on them. A prompt kept in a dashboard is a production change with no diff, no review and no eval run.

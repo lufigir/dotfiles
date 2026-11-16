@@ -8,7 +8,7 @@ So the linter is not a style tool here. It is the only part of the architecture 
 
 ## The preset already exists
 
-This file explains the *why*. The working configuration lives in the dotfiles repo at `lint/`, and it is not an example — it is the artifact you copy.
+This file explains the *why*. The configuration lives in the dotfiles repo at `lint/`, as the worked example of what `mechanisms.md` builds for a project: read it for the shape and the house rules, and verify each tool and version against today's docs before using any of it.
 
 ```
 lint/

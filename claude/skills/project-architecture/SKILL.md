@@ -1,7 +1,7 @@
 ---
 name: project-architecture
 description: >
-  Architecture for a product in any stack (TypeScript web, Python, LangGraph agents). **Bootstrap** starts one from zero (framing, scope, ERD, layered
+  Architecture for a product in any stack. **Bootstrap** starts one from zero (framing, scope, ERD, layered
   folders, lint guardrails, a vertical slice); **Convention** keeps its rules holding mid-build. Use
   when starting or scaffolding a project, and whenever work touches where a file goes or what a
   layer may import, schema and migrations, multi-tenancy, data access (Supabase and RLS included),
@@ -56,7 +56,7 @@ Some are conditional and say so. 3, 10, 16 and 18 hold only when their concern i
 8. **On a server-component stack, Server Components by default.** `"use client"` lives on the leaves, only where there is interactivity. (`performance.md`)
 9. **One contract, both directions.** The schema is the single source of truth for input, output, types and docs. (`api-design.md`)
 10. **In a list view, the state lives in the URL.** Filters, sort, search and page are query params, parsed against a schema. State trapped in a component is a view nobody can share, bookmark or restore. (`list-views.md`)
-11. **A boundary that is not linted is a preference.** The dependency rule is only real once an illegal import fails the build. Each stack file names the tool that makes it fail. (`lint-guardrails.md`, `python.md`)
+11. **A boundary that is not linted is a preference.** The dependency rule is only real once an illegal import fails the build. The tool that makes it fail is researched per stack at bootstrap. (`mechanisms.md`)
 12. **A URL that has been shared is a contract.** Do not encode a movable relationship in a path, and never let a rename silently kill existing links. (`url-design.md`)
 13. **The right element before any ARIA.** Native elements carry role, focus and keyboard behavior; a div reimplementing them is a permanent debt. Focus and announcements are owned, not assumed. (`accessibility.md`)
 14. **Semantic tokens, never literal colors.** `bg-primary`, not `bg-blue-500`. (`design-system.md`)
@@ -87,7 +87,7 @@ When the repo contradicts a reference file, **the repo wins** and you say so. A 
 1. **Read `AGENTS.md`, the Scope first.** If there is none, say so: the project has no written conventions, and writing one is usually the highest-value next move. Per `references/core/architecture.md`. If there is no Scope section, run the scope study from `references/core/problem-framing.md` before recommending any concern the project may never have chosen.
 2. **Check the concern against the scope.** Work that would build a concern marked **later** or **no** is a scope change: stop, say so, and update the Scope row with the user before applying that reference.
 3. **Name the layer.** Answer "who should be allowed to know about this?" before "where does this file go?". The layer decides the folder, not the other way around.
-4. **Open the one reference for the concern**, not all twenty-eight, plus the stack file for the project's language when the answer is a mechanism (a folder, a tool, a config). The tables below map concern to file.
+4. **Open the one reference for the concern**, not all twenty-seven, plus the stack file for the project's language when the answer is a mechanism (a folder, a tool, a config). The tables below map concern to file.
 5. **Resolve the `VERIFY:` blocks that apply** against the live docs before writing any code. A principle that is right and an API that is stale still produces a broken file.
 6. **Point at the closest existing example** in the repo and match it: naming, file split, order of operations inside the function.
 
@@ -105,13 +105,13 @@ A convention that only lives in this skill is a convention the next session lose
 
 ## Reference files
 
-Read the one the work is about. Reading all twenty-eight for a question about a foreign key wastes the context the actual task needs.
+Read the one the work is about. Reading all twenty-seven for a question about a foreign key wastes the context the actual task needs.
 
 They sit on three levels, so a project loads only the ones that apply to it:
 
 - **`core/`** holds what is true in any stack: the problem, the layers, the data, security, async work, agents, operations. Most questions end here.
 - **`surfaces/<surface>/`** holds what depends on where the product meets its user. `web/` is the only surface written so far; a mobile app or a headless service skips it.
-- **`stacks/`** holds the mechanism: which tool enforces each rule. `mechanisms.md` covers every language; a stack with a preset to copy also has its own folder. Read the one for the project's language.
+- **`stacks/`** holds the mechanism: `mechanisms.md` says which job each rule needs, how to research the current tool for it in any language, and the traps found by running configs. `typescript/lint-guardrails.md` explains the one worked example kept in dotfiles (`lint/`).
 
 ### Core
 
@@ -154,4 +154,3 @@ They sit on three levels, so a project loads only the ones that apply to it:
 |---|---|---|
 | `stacks/typescript/lint-guardrails.md` | Layer boundary rules, type-evidence rules, anti-slop, design-system rules (`@shadcn/lint`), house rules, verifying the rules still bite, what lint cannot catch | Setting up lint, or turning a repeated convention into an enforced one. The working preset lives in `lint/` in dotfiles |
 | `stacks/mechanisms.md` | The six jobs every stack must cover (boundaries, structure, lint, types, tests, gates), the strength order from compiler to prose, the tool for each job in TypeScript, Python, Kotlin, Swift and Go, and the procedure for a stack with no row | Starting a project in a stack with no preset, or deciding how to enforce a rule in any language |
-| `stacks/python/python.md` | The layers as subpackages, DTO/policy/DAL modules, where each piece of a LangGraph app sits, import-linter contracts, ls-lint, ruff, pyright, uv, the preset's bench, snake_case | Any Python product: a service, a CLI, a pipeline or a LangGraph agent. The working preset lives in `lint-python/` in dotfiles |

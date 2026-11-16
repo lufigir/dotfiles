@@ -48,7 +48,8 @@ exactly the one a consuming project ends up with.
 
 ## Installing into a project
 
-The `project-architecture` skill does this in its guardrails phase and adapts the
+This is the worked example the `project-architecture` skill reads in its guardrails
+phase: it researches current versions instead of copying blindly, and adapts the
 boundary table to the repo's real layers. By hand it is five steps.
 
 **1. Copy.**

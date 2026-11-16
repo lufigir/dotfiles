@@ -2,7 +2,7 @@
 
 Most projects do not have a data access layer. They have a `data/` folder with some query functions in it, which is not the same thing and provides none of the guarantees.
 
-The concept is the same in every stack; the platform guides call it a repository (Android) or a data access layer, and the four jobs below are the same either way. The examples are TypeScript; `python.md` has the same split as Python modules, and `mechanisms.md` says how other languages enforce it.
+The concept is the same in every stack; the platform guides call it a repository (Android) or a data access layer, and the four jobs below are the same either way. The examples are TypeScript; in Python the same split is `dto.py`, `policy.py` and `dal.py` per module, and `mechanisms.md` says how each language enforces it.
 
 ## The four principles
 

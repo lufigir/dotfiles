@@ -104,7 +104,7 @@ Layers are folders, and the boundary is enforced by lint rules rather than packa
 
 **Modules exist in every layer, not only in `data/`.** A module is one area of the product (orders, billing, the mailbox), and it gets the same folder name in each layer that holds code for it: `data/orders/`, `lib/orders/`, `components/orders/`. A layer's root keeps only what several modules share. Three files with the same prefix (`gmail-thread.ts`, `gmail-reply.ts`, `gmail-labels.ts`) are a folder that does not exist yet; create it when the third one appears. The preset's `.ls-lint.yml` enforces this with a cap on loose files per folder (`lint-guardrails.md`), because agents add the next file beside the last one and never stop to make the folder.
 
-The tree is the TypeScript web profile. `python.md` has the Python one, and in other languages the module system often holds the layers by itself: a Gradle module or a Swift package target per layer, a Go package with `internal/` (`mechanisms.md`).
+The tree is the TypeScript web profile. In other languages the same layers are packages or modules with the language's own names, and the module system often holds the layers by itself: a Gradle module or a Swift package target per layer, a Go package with `internal/` (`mechanisms.md`).
 
 `data/` is the compressed version of Transport + Domain + Foundations. That compression is the point of the single-app profile: same principles, less ceremony. Split it into packages when the project actually earns it.
 
@@ -154,7 +154,7 @@ Lock down install scripts here too. Both profiles need it, and `security.md` cov
 
 Pick one file naming format and never deviate. Which one matters far less than the consistency.
 
-- **kebab-case** for source files: components, hooks, schemas, tests, all of it. Where the language forbids it, its own convention: Python modules are snake_case because a hyphen cannot be imported (`python.md`).
+- **kebab-case** for source files: components, hooks, schemas, tests, all of it. Where the language forbids it, its own convention: Python modules are snake_case because a hyphen cannot be imported.
 - Convention-mandated names are the exception and stay as the ecosystem defines them: `README.md`, `AGENTS.md`, `CLAUDE.md`, framework-reserved file names.
 - **snake_case** in the database, always. Never carry JavaScript camelCase into SQL.
 
