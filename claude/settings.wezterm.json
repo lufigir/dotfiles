@@ -1,0 +1,10 @@
+{
+  "enabledPlugins": {
+    "after@better-claude": true,
+    "think-hard@better-claude": true,
+    "token-meter@better-claude": true,
+    "sub-meter@better-claude": true,
+    "image-preview@better-claude": true,
+    "quick-peek@better-claude": true
+  }
+}

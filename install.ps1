@@ -27,17 +27,21 @@ $backupDir = Join-Path $HOME '.dotfiles-backup'
 
 # Claude Code plugins the baseline installs and the cleanup keeps.
 $baselinePlugins = @(
-    'skill-creator@claude-plugins-official'
     'insecure-defaults@trailofbits'
     'static-analysis@trailofbits'
     'supply-chain-risk-auditor@trailofbits'
+    'context-meter@better-claude'
+)
+# Terminal mods that only WezTerm turns on: installed here, off in settings.json, and
+# enabled by settings.wezterm.json, which the PowerShell profile passes to `claude`
+# with --settings inside WezTerm. Orca copies settings.json into its own profiles and
+# draws its chat outside the terminal, so there they stay off.
+$weztermPlugins = @(
     'after@better-claude'
-    'use-haiku@better-claude'
     'think-hard@better-claude'
     'token-meter@better-claude'
     'sub-meter@better-claude'
     'image-preview@better-claude'
-    'context-meter@better-claude'
     'quick-peek@better-claude'
 )
 
@@ -145,8 +149,8 @@ function Link-Config($target, $source) {
     Write-Ok $shown
 }
 
-# Leaves Claude Code on the dotfiles baseline: only the skill-creator
-# plugin, only the
+# Leaves Claude Code on the dotfiles baseline: only the baseline and WezTerm
+# plugins, only the
 # executor + browse + notebooklm-mcp MCPs, and only the skills symlinked from this repo. Computes
 # everything that's extra, shows it grouped, and asks for ONE single confirmation
 # (default No) before deleting. Doesn't touch project repos, dotfiles-managed symlinks,
@@ -159,7 +163,7 @@ function Link-Config($target, $source) {
 function Clean-ClaudeBaseline($repo, $profileDir, $isMain) {
     $plugins = @(); $mcp = @(); $skills = @(); $other = @()
     $keepMcp = @('executor', 'browse', 'notebooklm-mcp')
-    $keepPlugins = @($baselinePlugins | ForEach-Object { $_.Split('@')[0] })
+    $keepPlugins = @($baselinePlugins + $weztermPlugins | ForEach-Object { $_.Split('@')[0] })
 
     # 1. Plugins outside the baseline (ignores inline/harness ones, which aren't
     # uninstallable). A plugin installed in more than one scope is listed once per
@@ -353,10 +357,10 @@ function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
         nlm config set auth.browser brave | Out-Null
     }
 
-    # Plugins of the baseline: skill-creator, three Trail of Bits audit skills
-    # (fail-open defaults, Semgrep/CodeQL, dependency risk) and midudev's better-claude
-    # mods (all but its commit, which the commit-and-push skill covers). settings.json
-    # declares both marketplaces; each clone is added here when it is missing.
+    # Plugins of the baseline: three Trail of Bits audit skills (fail-open defaults,
+    # Semgrep/CodeQL, dependency risk) and midudev's context-meter, plus the WezTerm-only
+    # better-claude mods. settings.json declares both marketplaces; each clone is added
+    # here when it is missing.
     $marketplaces = claude plugin marketplace list 2>$null
     if ($marketplaces -notmatch "trailofbits") {
         claude plugin marketplace add trailofbits/skills | Out-Null
@@ -365,10 +369,12 @@ function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
         claude plugin marketplace add midudev/better-claude | Out-Null
     }
     $installed = claude plugin list 2>$null
-    foreach ($plugin in $baselinePlugins) {
+    foreach ($plugin in $baselinePlugins + $weztermPlugins) {
         $name = $plugin.Split('@')[0]
         if ($installed -notmatch [regex]::Escape($plugin)) {
             claude plugin install $plugin --scope user | Out-Null
+            # install turns the plugin on in settings.json; a WezTerm one goes back off.
+            if ($plugin -in $weztermPlugins) { claude plugin disable $plugin --scope user | Out-Null }
             Write-Ok "$name $($c.Dim)installed$($c.Reset)"
         } else {
             Write-Ok "$name $($c.Dim)already installed$($c.Reset)"
@@ -400,6 +406,7 @@ $claudeProfiles = @($claudeMain) + @(Get-ChildItem -Path $HOME -Directory -Force
 $claudeLinks = @()
 foreach ($profileDir in $claudeProfiles) {
     $claudeLinks += @{ Target = (Join-Path $profileDir 'settings.json'); Source = (Join-Path $repo 'claude' 'settings.json') }
+    $claudeLinks += @{ Target = (Join-Path $profileDir 'settings.wezterm.json'); Source = (Join-Path $repo 'claude' 'settings.wezterm.json') }
     $claudeLinks += @{ Target = (Join-Path $profileDir 'CLAUDE.md');     Source = (Join-Path $repo 'claude' 'CLAUDE.md') }
 }
 # Link each skill individually so repo-managed skills coexist with local/plugin ones.

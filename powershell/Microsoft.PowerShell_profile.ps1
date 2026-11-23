@@ -131,3 +131,14 @@ if (Get-Module -ListAvailable PSReadLine) {
 }
 
 Remove-Variable palette, fg, sgr, extensionColors, name, ext -ErrorAction SilentlyContinue
+
+# --- Claude Code in WezTerm -------------------------------------------------------
+# Inside WezTerm, `claude` adds the profile's settings.wezterm.json, which turns on the
+# terminal mods that settings.json leaves off for Orca (see install.ps1).
+if ($env:TERM_PROGRAM -eq 'WezTerm') {
+    function claude {
+        $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
+        $exe = (Get-Command claude -CommandType Application | Select-Object -First 1).Source
+        & $exe --settings (Join-Path $claudeDir 'settings.wezterm.json') @args
+    }
+}
