@@ -266,6 +266,26 @@ function Install-ClaudeExtras($repo) {
 # adding the extension and pairing it (browse pair) is a one-time step by hand. Windows only.
 $browseExe = Join-Path $HOME '.local' 'bin' 'browse.exe'
 
+# Orca plugins kept here, one folder each under orca/ (today the Astro theme: Astro's app and
+# terminal colors with Tokyo Night's code colors). Orca copies a folder in on install, so after
+# editing one, rerun this to update the installed copy. A changed folder gets a new fingerprint
+# that Orca wants approved; these folders are this repo's own, so the script approves it.
+function Install-OrcaPlugins($repo) {
+    Write-Section "Orca $($c.Dim)plugins$($c.Reset)"
+    if (-not (Get-Command orca -ErrorAction SilentlyContinue)) {
+        Write-Warn "orca CLI not found, skipping the plugins (open Orca once so it adds the CLI)"
+        return
+    }
+    foreach ($dir in Get-ChildItem -Path (Join-Path $repo 'orca') -Directory) {
+        $out = orca plugin install $dir.FullName 2>&1 | Out-String
+        if ($out -match '(ap1-[0-9a-f]+)') {
+            $out = orca plugin install $dir.FullName --approve $Matches[1] 2>&1 | Out-String
+        }
+        if ($LASTEXITCODE -eq 0) { Write-Ok "$($dir.Name) $($c.Dim)installed$($c.Reset)" }
+        else { Write-Fail "$($dir.Name) $($c.Dim)$($out.Trim())$($c.Reset)" }
+    }
+}
+
 function Install-Browse {
     Write-Section "browse $($c.Dim)the browser MCP, in the user's Brave$($c.Reset)"
     if (-not $IsWindows) {
@@ -447,6 +467,12 @@ $catalog = [ordered]@{
             @{ Target = $zedSettings; Source = (Join-Path $repo 'zed' 'settings.json') }
         )
     }
+    'orca' = @{
+        Summary = 'Orca plugins: the Astro theme'
+        Deps    = @('orca')
+        Links   = @()
+        Post    = { param($repo) Install-OrcaPlugins $repo }
+    }
     'claude' = @{
         Summary = 'settings, CLAUDE.md, skills, MCPs, plugin'
         Deps    = @('claude', 'node', 'uv')
@@ -463,6 +489,7 @@ $depHints = @{
     'claude'     = @{ Windows = 'npm install -g @anthropic-ai/claude-code';  macOS = 'npm install -g @anthropic-ai/claude-code';           Linux = 'npm install -g @anthropic-ai/claude-code' }
     'node'       = @{ Windows = 'winget install OpenJS.NodeJS';              macOS = 'brew install node';                                  Linux = 'https://nodejs.org/en/download' }
     'uv'         = @{ Windows = 'winget install astral-sh.uv';               macOS = 'brew install uv';                                    Linux = 'curl -LsSf https://astral.sh/uv/install.sh | sh' }
+    'orca'       = @{ Windows = 'https://orca.dev';                          macOS = 'https://orca.dev';                                   Linux = 'https://orca.dev' }
     'eza'        = @{ Windows = 'winget install eza-community.eza';          macOS = 'brew install eza';                                   Linux = 'https://github.com/eza-community/eza/blob/main/INSTALL.md' }
 }
 
