@@ -46,30 +46,30 @@ config.default_cursor_style = "BlinkingBar"
 config.scrollback_lines = 50000
 config.enable_scroll_bar = true
 
--- Custom purple color scheme (matches the oh-my-posh prompt palette)
+-- Astro: near-black with a soft lilac accent (same palette as the Astro theme in Orca)
 config.colors = {
-  foreground = "#E0D6F5",
+  foreground = "#E4E4E7",
   background = "#05030A",
-  cursor_bg = "#C792EA",
-  cursor_border = "#C792EA",
-  cursor_fg = "#1A1025",
-  selection_bg = "#4B2E83",
-  selection_fg = "#E0D6F5",
-  scrollbar_thumb = "#5C3D7A",
-  split = "#4B2E83",
+  cursor_bg = "#B9A3E3",
+  cursor_border = "#B9A3E3",
+  cursor_fg = "#05030A",
+  selection_bg = "#3A3A40",
+  selection_fg = "#FAFAFA",
+  scrollbar_thumb = "#2A2A2E",
+  split = "#1E1D24",
 
   ansi = {
-    "#241733", -- black
+    "#1C1B22", -- black
     "#E0A6E8", -- red
     "#7FDBAA", -- green
     "#F5D76E", -- yellow
     "#7C7CE0", -- blue
     "#C792EA", -- magenta
     "#63D9E0", -- cyan
-    "#E0D6F5", -- white
+    "#E4E4E7", -- white
   },
   brights = {
-    "#4B3B5C", -- bright black
+    "#52525B", -- bright black
     "#F5B8E8", -- bright red
     "#9CFFC7", -- bright green
     "#FFEB99", -- bright yellow
@@ -95,30 +95,30 @@ config.tab_bar_at_bottom = false
 config.tab_max_width = 40
 config.show_new_tab_button_in_tab_bar = true
 
--- Tab bar colors (matches the purple color scheme above)
+-- Tab bar colors (Astro)
 config.colors.tab_bar = {
   background = "#05030A",
   active_tab = {
-    bg_color = "#4B2E83",
-    fg_color = "#F5EBFF",
+    bg_color = "#17161D",
+    fg_color = "#FAFAFA",
     intensity = "Bold",
   },
   inactive_tab = {
     bg_color = "#05030A",
-    fg_color = "#8A6FA8",
+    fg_color = "#8B8B93",
   },
   inactive_tab_hover = {
-    bg_color = "#2E1D47",
-    fg_color = "#C792EA",
+    bg_color = "#1C1B22",
+    fg_color = "#B9A3E3",
     italic = true,
   },
   new_tab = {
     bg_color = "#05030A",
-    fg_color = "#8A6FA8",
+    fg_color = "#8B8B93",
   },
   new_tab_hover = {
-    bg_color = "#2E1D47",
-    fg_color = "#C792EA",
+    bg_color = "#1C1B22",
+    fg_color = "#B9A3E3",
   },
 }
 
@@ -178,14 +178,14 @@ config.mouse_bindings = {
 
 -- Tab bar palette (shared by format-tab-title and update-right-status)
 local BAR_BG      = "#05030A"
-local ACTIVE_BG   = "#4B2E83"
-local ACTIVE_FG   = "#F5EBFF"
-local INACTIVE_BG = "#1A1025"
-local INACTIVE_FG = "#8A6FA8"
-local HOVER_BG    = "#2E1D47"
-local HOVER_FG    = "#C792EA"
-local ACCENT      = "#C792EA"
-local DIM         = "#7A5C9E"
+local ACTIVE_BG   = "#17161D"
+local ACTIVE_FG   = "#FAFAFA"
+local INACTIVE_BG = "#0B0A10"
+local INACTIVE_FG = "#8B8B93"
+local HOVER_BG    = "#1C1B22"
+local HOVER_FG    = "#B9A3E3"
+local ACCENT      = "#B9A3E3"
+local DIM         = "#6B6B73"
 
 -- Flat rectangular blocks: one cell of bar background before every block, one cell
 -- of padding inside each edge. No powerline caps, everything squared off.
