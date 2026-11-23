@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "astro",
   "name": "Astro",
-  "version": "1.1.0",
-  "description": "Casi negro con acento lila suave para la app y el terminal de Orca; el código usa los colores de Tokyo Night, como en Zed.",
+  "version": "1.2.0",
+  "description": "Casi negro con acento lila suave para la app y el terminal de Orca.",
   "engines": {
     "orca": ">=1.4.246"
   },

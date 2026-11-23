@@ -13,6 +13,6 @@ Orca names the publisher after where the plugin is installed from: the GitHub or
 its repository, or `local` for a folder. See
 https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md.
 
-The code colors (`tokenColors` in `themes/dark.json`) are Tokyo Night's, taken from Orca's
-official `stablyai.orca-tokyo-night-theme`, so code reads as it does in Zed. After editing, run
-`orca plugin install <this folder>` to update the installed copy.
+Astro colors the app and the terminal only. The editor uses Orca's official OLED theme
+(`stablyai.orca-oled-theme`), picked as the editor theme in Settings → Appearance. After
+editing, run `orca plugin install <this folder>` to update the installed copy.

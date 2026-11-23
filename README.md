@@ -14,7 +14,7 @@ links each config where that system expects it.
 - `claude/CLAUDE.md` — global Claude Code instructions (commit rules, pointer to personal skills)
 - `claude/skills/` — personal Claude Code skills (see the opt-in model below)
 - `zed/settings.json` — Zed editor settings (theme, fonts, LSP, agent)
-- `orca/astro/` — Orca theme plugin: Astro's near-black app and terminal colors with Tokyo Night's code colors (the theme Zed uses). `install.ps1 -Components orca` installs it
+- `orca/astro/` — Orca theme plugin: Astro's near-black app and terminal colors. `install.ps1 -Components orca` installs it, along with Orca's official OLED theme for the editor
 - `lint/` — the lint preset that every project copies: oxlint with the boundary,
   evidence, design-system (`@shadcn/lint`) and framework families, oxfmt for
   formatting, `ls-lint` for the structure (loose files per folder, kebab-case), `anti-slop`

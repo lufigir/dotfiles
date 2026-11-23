@@ -44,6 +44,11 @@ $weztermPlugins = @(
     'image-preview@better-claude'
     'quick-peek@better-claude'
 )
+# Orca plugins installed from Orca's official catalog, next to the folders in orca/. OLED
+# is the editor theme (picked in Settings → Appearance); Astro colors the app and the terminal.
+$orcaCatalogPlugins = @(
+    'stablyai.orca-oled-theme'
+)
 
 # --- Presentation ------------------------------------------------------------
 # Colors collapse to empty strings when output is redirected, NO_COLOR is set, or
@@ -266,8 +271,8 @@ function Install-ClaudeExtras($repo) {
 # adding the extension and pairing it (browse pair) is a one-time step by hand. Windows only.
 $browseExe = Join-Path $HOME '.local' 'bin' 'browse.exe'
 
-# Orca plugins kept here, one folder each under orca/ (today the Astro theme: Astro's app and
-# terminal colors with Tokyo Night's code colors). Orca copies a folder in on install, so after
+# Orca plugins kept here, one folder each under orca/ (today the Astro theme for the app and the
+# terminal), then the ones in $orcaCatalogPlugins from the official catalog. Orca copies a folder in on install, so after
 # editing one, rerun this to update the installed copy. A changed folder gets a new fingerprint
 # that Orca wants approved; these folders are this repo's own, so the script approves it.
 function Install-OrcaPlugins($repo) {
@@ -283,6 +288,11 @@ function Install-OrcaPlugins($repo) {
         }
         if ($LASTEXITCODE -eq 0) { Write-Ok "$($dir.Name) $($c.Dim)installed$($c.Reset)" }
         else { Write-Fail "$($dir.Name) $($c.Dim)$($out.Trim())$($c.Reset)" }
+    }
+    foreach ($id in $orcaCatalogPlugins) {
+        $out = orca plugin install $id --catalog official 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 0) { Write-Ok "$id $($c.Dim)installed from the official catalog$($c.Reset)" }
+        else { Write-Fail "$id $($c.Dim)$($out.Trim())$($c.Reset)" }
     }
 }
 
@@ -468,7 +478,7 @@ $catalog = [ordered]@{
         )
     }
     'orca' = @{
-        Summary = 'Orca plugins: the Astro theme'
+        Summary = 'Orca plugins: the Astro theme and OLED for the editor'
         Deps    = @('orca')
         Links   = @()
         Post    = { param($repo) Install-OrcaPlugins $repo }
