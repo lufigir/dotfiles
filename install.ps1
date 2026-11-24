@@ -49,6 +49,15 @@ $weztermPlugins = @(
 $orcaCatalogPlugins = @(
     'stablyai.orca-oled-theme'
 )
+# Skills from claude/skills/ that stay out of ~/.gemini/config/skills/:
+# - felipego-projects: opt-in per project (agy has no skillOverrides to keep a global skill off)
+# - grill-me: collides with agy's built-in /grill-me slash command (grilling stays linked)
+$agyExcludedSkills = @(
+    'felipego-projects'
+    'grill-me'
+)
+$script:browseInstalled = $false
+$script:gitSymlinksEnabled = $false
 
 # --- Presentation ------------------------------------------------------------
 # Colors collapse to empty strings when output is redirected, NO_COLOR is set, or
@@ -257,11 +266,16 @@ function Install-ClaudeExtras($repo) {
         }
     }
 
+    Enable-GitSymlinks
+}
+
+function Enable-GitSymlinks {
     # Git on Windows checks symlinks out as plain (broken) text files unless this is on,
     # and project repos use .claude/skills -> .agents/skills symlinks. Requires Developer
     # Mode (see the header). On macOS and Linux git handles symlinks natively.
-    if ($IsWindows) {
+    if ($IsWindows -and -not $script:gitSymlinksEnabled) {
         git config --global core.symlinks true
+        $script:gitSymlinksEnabled = $true
         Write-Ok "git core.symlinks $($c.Dim)enabled$($c.Reset)"
     }
 }
@@ -297,6 +311,8 @@ function Install-OrcaPlugins($repo) {
 }
 
 function Install-Browse {
+    if ($script:browseInstalled) { return }
+    $script:browseInstalled = $true
     Write-Section "browse $($c.Dim)the browser MCP, in the user's Brave$($c.Reset)"
     if (-not $IsWindows) {
         Write-Note "not Windows: install browse from https://opencode.ai/browse"
@@ -416,6 +432,126 @@ function Install-ClaudeProfileExtras($repo, $profileDir, $isMain) {
     Clean-ClaudeBaseline $repo $profileDir $isMain
 }
 
+# Antigravity CLI rewrites ~/.gemini/antigravity-cli/settings.json atomically on startup
+# and stores machine-local state (trustedWorkspaces, model, gcp) inside it, so symlinking
+# it would either break on rewrite or dirty the repo with machine paths. Merge the repo's
+# managed base keys into the real file instead, leaving existing machine state intact.
+function Merge-AgySettings($repo, $target) {
+    $shown = Format-Path $target
+    $dir = Split-Path $target
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+
+    $source = Join-Path $repo 'agy' 'settings.json'
+    $base = Get-Content $source -Raw | ConvertFrom-Json -AsHashtable
+    $merged = [ordered]@{}
+    $hadFile = $false
+    $wasLink = $false
+
+    $existingItem = Get-Item -Path $target -Force -ErrorAction SilentlyContinue
+    if ($existingItem) {
+        $hadFile = $true
+        $wasLink = $existingItem.LinkType -eq 'SymbolicLink'
+        $raw = Get-Content $target -Raw -ErrorAction SilentlyContinue
+        if ($raw -and $raw.Trim()) {
+            try {
+                $parsed = $raw | ConvertFrom-Json -AsHashtable
+                foreach ($k in $parsed.Keys) { $merged[$k] = $parsed[$k] }
+            } catch {
+                if (-not (Test-Path $backupDir)) {
+                    New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+                }
+                $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+                $dest = Join-Path $backupDir ("agy-settings.json.$stamp")
+                Copy-Item -Path $target -Destination $dest -Force
+                Write-Warn "$shown $($c.Dim)was not valid JSON, backed up to $(Format-Path $dest)$($c.Reset)"
+            }
+        }
+        if ($wasLink) {
+            [System.IO.File]::Delete($existingItem.FullName)
+        }
+    }
+
+    $changed = (-not $hadFile) -or $wasLink
+    foreach ($k in $base.Keys) {
+        if (-not $merged.Contains($k) -or (($merged[$k] | ConvertTo-Json -Compress -Depth 10) -ne ($base[$k] | ConvertTo-Json -Compress -Depth 10))) {
+            $merged[$k] = $base[$k]
+            $changed = $true
+        }
+    }
+
+    if ($changed) {
+        $json = ($merged | ConvertTo-Json -Depth 10) + "`n"
+        [System.IO.File]::WriteAllText($target, $json, [System.Text.UTF8Encoding]::new($false))
+        Write-Ok "$shown $($c.Dim)merged base settings (preserved local state)$($c.Reset)"
+    } else {
+        Write-Ok "$shown $($c.Dim)already up to date$($c.Reset)"
+    }
+}
+
+# Antigravity CLI keeps settings.json as a merged real file (above) and registers MCPs in
+# ~/.gemini/config/mcp_config.json via `agy mcp add` so toggling servers with /mcp never
+# dirties the repo or breaks a symlink.
+function Install-AgyExtras($repo) {
+    $agySettings = Join-Path $HOME '.gemini' 'antigravity-cli' 'settings.json'
+    Write-Section "Antigravity CLI $($c.Dim)base settings and MCP servers$($c.Reset)"
+    Merge-AgySettings $repo $agySettings
+
+    if (-not (Get-Command agy -ErrorAction SilentlyContinue)) {
+        Write-Warn "agy CLI not found, skipping the MCPs"
+        return
+    }
+
+    Install-Browse
+
+    $mcpPath = Join-Path $HOME '.gemini' 'config' 'mcp_config.json'
+    $servers = @{}
+    if (Test-Path $mcpPath) {
+        $raw = Get-Content $mcpPath -Raw -ErrorAction SilentlyContinue
+        if ($raw -and $raw.Trim()) {
+            try {
+                $parsed = $raw | ConvertFrom-Json -AsHashtable
+                if ($parsed.mcpServers) { $servers = $parsed.mcpServers }
+            } catch {}
+        }
+    }
+
+    $executorUrl = 'https://mcp.executor.sh/mcp'
+    $curExecutor = $servers['executor']
+    $curExecutorUrl = if ($curExecutor) { if ($curExecutor['serverUrl']) { $curExecutor['serverUrl'] } else { $curExecutor['url'] } } else { $null }
+    if ($curExecutorUrl -ne $executorUrl) {
+        agy mcp remove executor 2>$null | Out-Null
+        agy mcp add executor $executorUrl | Out-Null
+        Write-Ok "executor $($c.Dim)added, run /mcp in agy to authorize$($c.Reset)"
+    } else {
+        Write-Ok "executor $($c.Dim)already configured$($c.Reset)"
+    }
+
+    $browseCmd = if ($IsWindows) { $browseExe } else { 'browse' }
+    $curBrowse = $servers['browse']
+    if (-not $curBrowse -or $curBrowse['command'] -ne $browseCmd) {
+        agy mcp remove browse 2>$null | Out-Null
+        agy mcp add browse $browseCmd mcp | Out-Null
+        Write-Ok "browse $($c.Dim)added, drives Brave through its extension$($c.Reset)"
+    } else {
+        Write-Ok "browse $($c.Dim)already configured$($c.Reset)"
+    }
+
+    if (-not $servers.ContainsKey('notebooklm-mcp')) {
+        agy mcp add notebooklm-mcp '--' uvx --from notebooklm-mcp-cli notebooklm-mcp | Out-Null
+        agy mcp disable notebooklm-mcp | Out-Null
+        Write-Ok "notebooklm-mcp $($c.Dim)added (disabled by default; enable with /mcp)$($c.Reset)"
+    } else {
+        Write-Ok "notebooklm-mcp $($c.Dim)already configured$($c.Reset)"
+    }
+    if (Get-Command nlm -ErrorAction SilentlyContinue) {
+        nlm config set auth.browser brave | Out-Null
+    }
+
+    Enable-GitSymlinks
+}
+
 # --- Component catalog -------------------------------------------------------
 # Each component owns its target paths per OS and the tools it expects to find.
 # $PROFILE resolves the PowerShell profile directory on every OS (Documents\PowerShell
@@ -447,6 +583,22 @@ Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory | ForEach-Obj
 foreach ($profileDir in ($claudeProfiles | Where-Object { $_ -ne $claudeMain })) {
     $claudeLinks += @{ Target = (Join-Path $profileDir 'skills'); Source = (Join-Path $claudeMain 'skills') }
 }
+
+# Antigravity CLI (agy): global rules and skills live in ~/.gemini/config/ (shared with
+# Antigravity App and kept separate from Orca's junctions in ~/.gemini/skills/). Base
+# settings.json is merged in Install-AgyExtras rather than symlinked; only the WezTerm
+# layer is symlinked because --settings is read-only.
+$agyConfig = Join-Path $HOME '.gemini' 'config'
+$agyCliDir = Join-Path $HOME '.gemini' 'antigravity-cli'
+$agyLinks = @(
+    @{ Target = (Join-Path $agyConfig 'AGENTS.md');              Source = (Join-Path $repo 'agy' 'AGENTS.md') }
+    @{ Target = (Join-Path $agyCliDir 'settings.wezterm.json');  Source = (Join-Path $repo 'agy' 'settings.wezterm.json') }
+)
+Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory |
+    Where-Object { $_.Name -notin $agyExcludedSkills } |
+    ForEach-Object {
+        $agyLinks += @{ Target = (Join-Path $agyConfig 'skills' $_.Name); Source = $_.FullName }
+    }
 
 $catalog = [ordered]@{
     'wezterm' = @{
@@ -489,6 +641,12 @@ $catalog = [ordered]@{
         Links   = $claudeLinks
         Post    = { param($repo) Install-ClaudeExtras $repo }
     }
+    'agy' = @{
+        Summary = 'Antigravity CLI: settings, AGENTS.md, skills, MCPs'
+        Deps    = @('agy', 'uv')
+        Links   = $agyLinks
+        Post    = { param($repo) Install-AgyExtras $repo }
+    }
 }
 
 # Install hints per OS, shown only for tools that are actually missing.
@@ -497,6 +655,7 @@ $depHints = @{
     'oh-my-posh' = @{ Windows = 'winget install JanDeDobbeleer.OhMyPosh';    macOS = 'brew install jandedobbeleer/oh-my-posh/oh-my-posh';  Linux = 'curl -s https://ohmyposh.dev/install.sh | bash -s' }
     'zed'        = @{ Windows = 'winget install ZedIndustries.Zed';          macOS = 'brew install --cask zed';                            Linux = 'curl -f https://zed.dev/install.sh | sh' }
     'claude'     = @{ Windows = 'npm install -g @anthropic-ai/claude-code';  macOS = 'npm install -g @anthropic-ai/claude-code';           Linux = 'npm install -g @anthropic-ai/claude-code' }
+    'agy'        = @{ Windows = 'irm https://antigravity.google/cli/install.ps1 | iex'; macOS = 'curl -fsSL https://antigravity.google/cli/install.sh | bash'; Linux = 'curl -fsSL https://antigravity.google/cli/install.sh | bash' }
     'node'       = @{ Windows = 'winget install OpenJS.NodeJS';              macOS = 'brew install node';                                  Linux = 'https://nodejs.org/en/download' }
     'uv'         = @{ Windows = 'winget install astral-sh.uv';               macOS = 'brew install uv';                                    Linux = 'curl -LsSf https://astral.sh/uv/install.sh | sh' }
     'orca'       = @{ Windows = 'https://orca.dev';                          macOS = 'https://orca.dev';                                   Linux = 'https://orca.dev' }
@@ -655,6 +814,11 @@ if ('wezterm' -in $selected) {
 }
 if ('claude' -in $selected) {
     $next += "run /mcp in Claude Code to authorize Executor"
+}
+if ('agy' -in $selected) {
+    $next += "run /mcp in agy to authorize Executor"
+}
+if (('claude' -in $selected) -or ('agy' -in $selected)) {
     $next += "authenticate NotebookLM: uvx --from notebooklm-mcp-cli nlm login"
     $next += "for the browse MCP, add the browse extension in Brave and pair it with ~\.local\bin\browse.exe pair"
 }

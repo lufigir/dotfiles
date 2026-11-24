@@ -12,7 +12,10 @@ links each config where that system expects it.
 - `claude/settings.json` — global Claude Code settings (model, hooks, plugins, skillOverrides), shared with Orca, which copies it into its own profiles
 - `claude/settings.wezterm.json` — the layer only WezTerm loads: the PowerShell profile runs `claude --settings` with it there, turning on the terminal mods that `settings.json` leaves off
 - `claude/CLAUDE.md` — global Claude Code instructions (commit rules, pointer to personal skills)
-- `claude/skills/` — personal Claude Code skills (see the opt-in model below)
+- `claude/skills/` — personal and vendored skills, shared with `agy` (see the opt-in model below)
+- `agy/settings.json` — base Antigravity CLI (`agy`) settings, merged into `~/.gemini/antigravity-cli/settings.json` instead of symlinked so machine state (`trustedWorkspaces`, `model`, `gcp`) stays intact and Orca sessions stay clean
+- `agy/settings.wezterm.json` — the `agy` layer only WezTerm loads via `--settings` (full-screen alt-screen, terminal bell notifications, terminal cursor)
+- `agy/AGENTS.md` — global Antigravity instructions (`~/.gemini/config/AGENTS.md`), mirroring `claude/CLAUDE.md` with `agy`'s tool names and Spanish/concise defaults. Skills from `claude/skills/` are linked individually into `~/.gemini/config/skills/` (leaving out opt-in `felipego-projects` and `grill-me`, which collides with `agy`'s built-in `/grill-me`), keeping Orca's junctions in `~/.gemini/skills/` untouched
 - `zed/settings.json` — Zed editor settings (theme, fonts, LSP, agent)
 - `orca/astro/` — Orca theme plugin: Astro's near-black app and terminal colors. `install.ps1 -Components orca` installs it, along with Orca's official OLED theme for the editor
 - `lint/` — the lint preset that every project copies: oxlint with the boundary,
@@ -219,7 +222,7 @@ Four MCP servers are part of the baseline. None of them lives in the repo (they'
 
 ### Components
 
-The installer opens a picker over these five: `↑↓` (or `j`/`k`) to move, space to toggle,
+The installer opens a picker over these components: `↑↓` (or `j`/`k`) to move, space to toggle,
 `a` for all/none, Enter to confirm, Esc to bail out. Everything starts checked. Without an
 interactive console — piped input, CI — it falls back to a numbered list you answer
 comma-separated. `-All` takes everything and `-Components wezterm,zed` skips the prompt
@@ -231,10 +234,15 @@ altogether, which is what you want when re-running it.
 | `oh-my-posh` | `~/.config/oh-my-posh/material.omp.json` | same (`$XDG_CONFIG_HOME` if set) |
 | `powershell` | `~/Documents/PowerShell/…` | `~/.config/powershell/…` |
 | `zed` | `%APPDATA%\Zed\settings.json` | `~/.config/zed/settings.json` |
+| `orca` | Orca plugins (`orca plugin install`) | same |
 | `claude` | `~/.claude/…` | same |
+| `agy` | `~/.gemini/config/…`, `~/.gemini/antigravity-cli/…` | same |
 
 The `powershell` target is resolved from `$PROFILE`, so it follows a Documents folder
 redirected to OneDrive instead of guessing `~/Documents`.
 
-Picking `claude` is what registers the three MCP servers, installs the `skill-creator`
-plugin and runs the baseline cleanup; the other components only create symlinks.
+Picking `claude` registers the three MCP servers, installs the plugins and runs the baseline
+cleanup; picking `agy` merges `agy/settings.json` into `~/.gemini/antigravity-cli/settings.json`,
+links `AGENTS.md`, `settings.wezterm.json` and the shared skills into `~/.gemini/config/`, and
+registers the same three MCP servers (`notebooklm-mcp` disabled by default) via `agy mcp add`.
+The other components only create symlinks (or install Orca plugins).

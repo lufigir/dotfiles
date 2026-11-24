@@ -132,13 +132,24 @@ if (Get-Module -ListAvailable PSReadLine) {
 
 Remove-Variable palette, fg, sgr, extensionColors, name, ext -ErrorAction SilentlyContinue
 
-# --- Claude Code in WezTerm -------------------------------------------------------
-# Inside WezTerm, `claude` adds the profile's settings.wezterm.json, which turns on the
-# terminal mods that settings.json leaves off for Orca (see install.ps1).
+# --- Agent CLIs in WezTerm ---------------------------------------------------
+# Inside WezTerm, `claude` and `agy` add their settings.wezterm.json layers, which turn on
+# terminal-only tweaks that the base settings.json files leave off for Orca (see install.ps1).
 if ($env:TERM_PROGRAM -eq 'WezTerm') {
     function claude {
         $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
         $exe = (Get-Command claude -CommandType Application | Select-Object -First 1).Source
         & $exe --settings (Join-Path $claudeDir 'settings.wezterm.json') @args
+    }
+
+    function agy {
+        $exe = (Get-Command agy -CommandType Application | Select-Object -First 1).Source
+        $weztermSettings = Join-Path $HOME '.gemini' 'antigravity-cli' 'settings.wezterm.json'
+        $hasCustomSettings = @($args | Where-Object { $_ -eq '--settings' -or $_ -like '--settings=*' }).Count -gt 0
+        if ((Test-Path $weztermSettings) -and -not $hasCustomSettings) {
+            & $exe --settings $weztermSettings @args
+        } else {
+            & $exe @args
+        }
     }
 }

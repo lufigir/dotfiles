@@ -1,0 +1,6 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/settings.json",
+  "agentMode": "auto",
+  "showTips": false,
+  "showFeedbackSurvey": false
+}
