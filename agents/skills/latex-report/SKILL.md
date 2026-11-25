@@ -11,7 +11,7 @@ compiles and renders previews.
 
 1. **Frame.** Settle who reads it, what they must take away and what they are asked to decide or
    answer, and the sources the content comes from (repo docs, data, a conversation). Then ask the
-   **tone** with `AskUserQuestion`, every time, offering the three from [`tonos.md`](tonos.md)
+   **tone** with the question selector, every time, offering the three from [`tonos.md`](tonos.md)
    (institucional, ejecutivo, académico) with your pick first, and read that tone's section.
    *Done:* you can name the reader, the ask, every source and the tone the user chose.
 2. **Copy the tone's template.** Put it where the document belongs: `docs/<slug>/<slug>.tex` in a

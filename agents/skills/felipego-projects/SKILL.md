@@ -1,19 +1,10 @@
 ---
 name: felipego-projects
 description: >
-  Use when creating or updating a project entry for felipego.com — the bilingual
-  Notion "Projects" (English) / "Proyectos" (Español) portfolio databases that
-  power the site as a headless CMS. Driven by a single input: a GitHub repo URL.
-  The workflow: generate a Mintlify wiki from the repo, read that wiki as the
-  source of truth, write rich English + Spanish project pages in Notion via
-  Executor, and illustrate them with interactive HTML-block diagrams styled
-  with felipego.com's own design system (falling back to native Mermaid when
-  that's not warranted), plus explicit, easy-to-find image placeholders left
-  for the user to fill in later. Trigger whenever the user mentions adding,
-  publishing, or updating a felipego.com project, a portfolio project item, the
-  Notion Projects/Proyectos databases, generating project documentation, or
-  making a Mintlify wiki for a repo — even if they don't spell out every step.
-  Uses Notion (via the Executor MCP hub) and the browse MCP.
+  Create or update a felipego.com project entry from a GitHub repo URL: Mintlify wiki, bilingual
+  EN/ES pages in the Notion Projects/Proyectos databases via Executor, HTML diagrams, image
+  placeholders. Use when asked to add, publish or update a felipego.com project, a portfolio item,
+  or a Mintlify wiki for a repo.
 ---
 
 # felipego.com project publisher
@@ -54,16 +45,15 @@ decorative filler.
   outward-facing. Show the user the content you're about to write and get a clear
   yes before calling the Notion write tools.
 - **Load the tools you need up front.** Notion runs through **Executor**
-  (`mcp__executor__call`, or `execute` to chain calls), not a direct MCP server.
+  (the Executor MCP's `call` tool, or `execute` to chain calls), not a direct MCP server.
   This skill's databases live in the personal workspace (account **`lufigir`**), so every
   Notion tool named below in short form (`notion-fetch`, `notion-search`,
   `notion-query-data-sources`, `notion-create-pages`, `notion-update-page`) maps
   to `tools["notion-mcp"].<name_with_underscores>` with the `lufigir`
   account: `{ accountId, input }`, taking the `accountId` from `search` —
   e.g. `notion-search` → `tools["notion-mcp"].notion_search`.
-  Also load the browse MCP (`mcp__browse__execute`, `mcp__browse__tabs`) and
-  `WebFetch`. In Claude Code these may be deferred — load them with one
-  `ToolSearch` call.
+  Also load the `browse` MCP (its `execute` and `tabs` tools) and the web-fetch
+  tool. If your harness defers tools, load them with one tool-search call.
 - **Phase 5 needs a working directory.** `scripts/notion-html.mjs` requires
   `@notionhq/client` + `NOTION_API_KEY`, which only exist in the felipego.com
   site repo checkout — run that script (and any local preview server) with the
@@ -111,7 +101,7 @@ Notion content reflects the current code.
 ## Phase 3 — Read the wiki
 
 Read the generated wiki as the source of truth for the write-up. Prefer
-`WebFetch` on the wiki URL(s); if pages are gated or JS-rendered, read them in
+The web-fetch tool on the wiki URL(s); if pages are gated or JS-rendered, read them in
 Brave (`snapshot()`, or `page.evaluate` returning `document.body.innerText`)
 on the open tab. Capture: what the project is, architecture,
 tech stack, key features, notable technical decisions, and project structure —

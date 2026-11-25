@@ -1,13 +1,10 @@
 ---
 name: humanize
 description: >
-  Humanize any text a person will read, in Spanish or English, so it reads as its author wrote it:
-  university deliverables, docs, READMEs, skills, reports, PR and commit bodies, messages, emails,
-  reviews and posts. Cuts AI tells while every claim, figure and citation survives, in a pasted
-  text, a local file or a Google Doc through Brave, and checks the result against AI detectors
-  when asked. Use when writing or editing any of them, and for a pass over a draft. Spanish
-  triggers: "humaniza", "suena a IA", "quítale lo de IA", "pule la redacción", "revisa la
-  redacción", "que no lo detecten".
+  Make any text a person will read sound like its author wrote it, in Spanish or English:
+  deliverables, docs, READMEs, reports, PR and commit bodies, messages, emails. Cuts AI tells,
+  keeps every claim and citation, can check AI detectors. Spanish: "humaniza", "suena a IA",
+  "quítale lo de IA", "pule la redacción", "revisa la redacción", "que no lo detecten".
 ---
 
 # Humanize

@@ -1,14 +1,8 @@
 ---
 name: research
 description: >
-  Research of any kind: picks the source for the question, from the open web and library
-  behaviour to scholarly literature through the UNAL library subscriptions (Scopus, Web of
-  Science, IEEE Xplore, ScienceDirect and ~170 more) in the user's Brave. Use whenever a
-  task needs finding something out before answering or building: comparing tools or options,
-  checking a claim, a state of the art or literature review, references for a paper, thesis or
-  course deliverable, recent studies, prior art and patents, technical standards, market or
-  industry evidence, Colombian data or regulation, or what a notebook of sources says (Firecrawl,
-  NotebookLM and the library, and when each fits). Spanish triggers: "investiga", "investigar",
+  Research via web, docs, NotebookLM, or UNAL (Scopus, WoS) in Brave: compare, check claims,
+  thesis, state of the art, references, patents, standards. Spanish: "investiga", "investigar",
   "averigua", "busca información", "compara", "estado del arte", "revisión de literatura",
   "antecedentes", "busca artículos", "busca papers", "referencias", "Scopus", "biblioteca",
   "patentes", "normas técnicas".
@@ -52,10 +46,10 @@ what it leaves out.
 | What a known set of sources says | NotebookLM `notebook_query` on the notebook that holds them |
 | A quick first map of a topic, to import as sources | NotebookLM `research_start` (`fast` ~10 sources, `deep` ~40), then `research_import` |
 
-Firecrawl and Context7 run through Executor (`mcp__executor__*`); load the `mcp-integrations`
+Firecrawl and Context7 run through Executor (the Executor MCP); load the `mcp-integrations`
 skill before the first call, because it says which account to use. Firecrawl has four free plans:
 the account with credits is the one to use, and a single account at zero says nothing about the
-other three. NotebookLM is its own MCP (`mcp__notebooklm-mcp__*`); when its
+other three. NotebookLM is its own MCP (`notebooklm-mcp`); when its
 tools are missing, ask the user to enable it with `/mcp`.
 
 **Follow the venues.** An index answers "what exists"; the venues answer "where this field
@@ -105,7 +99,7 @@ search log go there, so the next session starts from them.
 
 ## The UNAL library in Brave
 
-The user is a UNAL student, and the `browse` MCP (`mcp__browse__*`) drives their own Brave, where
+The user is a UNAL student, and the `browse` MCP drives their own Brave, where
 they are signed in to the library.
 
 ### Access
@@ -126,7 +120,7 @@ they are signed in to the library.
   Credentials stay with the user.
 - An error saying no browser is connected means Brave is closed or unpaired: pass the user
   the `nextStep` that the `status` tool returns (usually: open Brave).
-  No `mcp__browse__*` tools also needs a Claude Code restart. Until then, research with
+  No `browse` tools also needs a restart of the harness. Until then, research with
   Firecrawl and the open libraries (ACM DL, SciELO, OpenAlex), and say which indexes that leaves
   out.
 

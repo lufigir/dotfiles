@@ -4,7 +4,7 @@ Five phases, in order: discovery, version verification, blueprint, scaffold, ver
 
 ## 1. Discovery
 
-Two steps, in order, both per `problem-framing.md`. Ask only what you cannot infer, and ask it through the `AskUserQuestion` selector per the global `CLAUDE.md` rules: stakes, appetite, tenancy and every scope status are enumerable, so they are tabs. Only the problem statement is genuinely open, so that one goes in prose.
+Two steps, in order, both per `problem-framing.md`. Ask only what you cannot infer, and ask it through the question selector per the global instructions: stakes, appetite, tenancy and every scope status are enumerable, so they are tabs. Only the problem statement is genuinely open, so that one goes in prose.
 
 **Frame the problem.** Before any feature list: who the user is and in what circumstance, where their current way breaks, the outcome that would mean it worked, the appetite, goals and non-goals, and the riskiest assumption. Also what is already decided (deployment target, database, auth provider, anything the user already pays for). The feature list is derived from the framing, and every noun in it is a candidate entity.
 

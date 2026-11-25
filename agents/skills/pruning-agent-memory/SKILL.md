@@ -18,20 +18,20 @@ as a live rule in one place, a design reason in an ADR, a real pending item, or 
 Read [`writing-for-agents`](../writing-for-agents/SKILL.md) first; its pruning rules
 (single source of truth, cache, relevance, no-ops) are the criteria used here.
 
-Auto Dream (the `/memory` toggle) already merges duplicates and prunes `MEMORY.md` in the
+In Claude Code, Auto Dream (the `/memory` toggle) already merges duplicates and prunes `MEMORY.md` in the
 background, but only by structure. This skill adds what it can't do: check each claim
 against the code, move reasoning out to ADRs, and cover `AGENTS.md`.
 
 ## Steps
 
 1. **Inventory.** Read in full, and note each file's line count:
-   - the global `~/.claude/CLAUDE.md`;
+   - the global instructions (`~/.claude/CLAUDE.md` for Claude, `~/.gemini/config/AGENTS.md` for agy; both generated from the dotfiles' `agents/AGENTS.md`, so prune that source);
    - the repo's `AGENTS.md`, `CLAUDE.md` and `.claude/rules/`, whichever exist;
-   - the project memory: `~/.claude/projects/<slug>/memory/MEMORY.md` and every file in that
+   - the project memory (Claude Code: `~/.claude/projects/<slug>/memory/MEMORY.md`; skip it if your harness keeps none) and every file in that
      folder, linked or not;
    - `docs/adr/` and the rest of `docs/`;
    - `git log --oneline main..HEAD` and the last ~30 commits of `main`.
-   If the user ran `/doctor prompt-audit`, take its findings as input; it checks paths and
+   If the user ran Claude Code's `/doctor prompt-audit`, take its findings as input; it checks paths and
    commands but not code names, and skips the auto memory.
    *Done:* every file listed with its line count, none skimmed.
 2. **Verify against the code.** For each path, function, constant, column, env var, script,
@@ -52,15 +52,15 @@ against the code, move reasoning out to ADRs, and cover `AGENTS.md`.
    | Design reason for a decision already taken (why, measurements, rejected options) | An ADR in `docs/adr/`, with a pointer from `AGENTS.md` |
    | History: dates of redesigns, deploys, session logs, "HECHO", retired features, model or prompt comparisons | Deleted; git holds it |
    | Real pending work on the product | `AGENTS.md` "Pendiente" |
-   | The user's own side of the job, or what blocks a branch | A `project` memory (or life-os, per the boundary in the global `CLAUDE.md`) |
+   | The user's own side of the job, or what blocks a branch | A `project` memory (or life-os, per the boundary in the global instructions) |
    | The user's preference or a rejected proposal | A `feedback` memory |
    | Local environment, accounts, data outside the repo | A `reference` memory |
-   | Duplicate of a source already loaded (global `CLAUDE.md`, `AGENTS.md`, config) or a one-command lookup | Deleted |
+   | Duplicate of a source already loaded (global instructions, `AGENTS.md`, config) or a one-command lookup | Deleted |
 
    A number stays only if an agent needs it to work, and then it names its constant in the
    code. A fact that can go stale is written with its source and the date it was verified.
    *Done:* no block left unclassified.
-4. **Propose.** Before writing anything, ask with `AskUserQuestion`: which memories are
+4. **Propose.** Before writing anything, ask with the question selector: which memories are
    deleted, condensed or rewritten (name each file), and which ADRs to create. Recommend; the
    user decides.
    *Done:* every deletion and every new ADR approved.

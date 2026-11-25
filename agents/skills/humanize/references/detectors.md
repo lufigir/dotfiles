@@ -44,7 +44,7 @@ text in published tests; they're no use for deciding anything.
 
 ## How to run it in Brave
 
-The `browse` MCP (`mcp__browse__*`) drives the user's Brave, with their
+The `browse` MCP drives the user's Brave, with their
 sessions; if a detector asks to sign in, `handoff()` to the user.
 
 1. In `execute`, `page.goto` the detector's URL; it opens a tab of your own and the user's tabs

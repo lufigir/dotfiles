@@ -1,25 +1,29 @@
 ---
 name: mcp-integrations
-description: Use whenever the task involves an external integration connected through Executor (Notion, Context7, Firecrawl, Gmail, Google Calendar, Google Docs, Supabase, Neon, Vercel, PostHog, Cloudinary, Higgsfield, or any other app surfaced by the mcp__executor__* tools), and before doing by hand something a connected service already does (testing a migration on a branch, tuning a slow query, reading production logs, checking RLS). Ensures these are always accessed through Executor instead of a direct MCP server, the public API, or the CLI, and says which direct MCPs are the exception.
+description: >
+  Use for any external integration reached through Executor (Notion, Context7, Firecrawl, Gmail,
+  Calendar, Docs, Supabase, Neon, Vercel, PostHog, Cloudinary), and before doing by hand what a
+  connected service already does (migration on a branch, slow query, production logs, RLS). Always
+  go through Executor, never a direct MCP, the public API or the CLI.
 ---
 
 All external integrations go **through Executor**, never a direct MCP server, the public API, or a CLI shortcut. Executor exposes five tools:
 
 | Tool | For |
 |---|---|
-| `mcp__executor__search` | Find tools: exact `path`, one-line description, input type, and each app's linked accounts |
-| `mcp__executor__describe` | Full description and TypeScript signature (input and output) for up to 20 paths |
-| `mcp__executor__call` | One call, or an array of independent calls run concurrently |
-| `mcp__executor__execute` | A JavaScript program, when one result feeds the next call or a large result must be filtered before it reaches you |
-| `mcp__executor__resume` | Continue a call paused for approval or input, with the user's answer. Never rerun the call instead |
+| `search` | Find tools: exact `path`, one-line description, input type, and each app's linked accounts |
+| `describe` | Full description and TypeScript signature (input and output) for up to 20 paths |
+| `call` | One call, or an array of independent calls run concurrently |
+| `execute` | A JavaScript program, when one result feeds the next call or a large result must be filtered before it reaches you |
+| `resume` | Continue a call paused for approval or input, with the user's answer. Never rerun the call instead |
 
-Executor's own guidance lives in `mcp__executor__skills`: `{ app: "executor", name: "executor" }` to start, `name: "code-mode"` before writing a non-trivial `execute` program. Each app also ships a `tools` skill (`{ app: "<slug>" }`).
+Executor's own guidance lives in the Executor MCP's `skills` tool: `{ app: "executor", name: "executor" }` to start, `name: "code-mode"` before writing a non-trivial `execute` program. Each app also ships a `tools` skill (`{ app: "<slug>" }`).
 
 **Discover, don't memorize.** Apps, tool names and accounts change over time. `search` with a `namespace` (the app slug) and a small `limit` returns the exact path and input shape. Any app added to Executor shows up there automatically; this skill does **not** keep an inventory of them.
 
 Never construct a path or an argument list from memory. Paths use the app slug, and slugs with a hyphen need bracket notation: `tools["notion-mcp"].notion_search`, `tools.firecrawl.developer.developerSearch`. Copy them exactly as `search` returns them. A guessed path costs an `UnknownTool` round trip and a guessed argument costs an `InvalidToolInput`; `search` and `describe` would have avoided both.
 
-**Absence from `ToolSearch` is not absence of the integration.** These apps are not exposed as `mcp__<name>__*` tools; they live *inside* Executor. Before telling the user an integration is unavailable, run `search` and read `unavailableApps` in the result.
+**Absence from the harness's tool list is not absence of the integration.** These apps are not exposed as their own MCP tools; they live *inside* Executor. Before telling the user an integration is unavailable, run `search` and read `unavailableApps` in the result.
 
 ## Accounts
 

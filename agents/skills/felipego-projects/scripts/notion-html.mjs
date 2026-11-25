@@ -57,7 +57,7 @@ if (!process.env.NOTION_API_KEY) {
 
 // Resolve @notionhq/client relative to the CURRENT DIRECTORY, not this
 // script's own location — `import()` of a bare specifier resolves relative to
-// the importing module, which would look in ~/.claude/skills/.../node_modules
+// the importing module, which would look in the global skills folder's node_modules
 // instead of the site repo's. `createRequire` anchored at cwd fixes that.
 let Client
 try {

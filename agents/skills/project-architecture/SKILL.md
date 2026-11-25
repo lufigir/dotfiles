@@ -1,15 +1,10 @@
 ---
 name: project-architecture
 description: >
-  Architecture for a product in any stack. **Bootstrap** starts one from zero (framing, scope,
-  ERD, layers, guardrails researched for the stack, a vertical slice); **Convention** keeps its
-  rules holding mid-build. Use when starting a project, and when work decides where code goes
-  or what a layer may import, the schema or a migration, tenancy, data access and
-  authorization (Supabase and RLS included), an API or a background job, security, a list
-  screen or a form, lint guardrails, personal data, or a resource budget. Spanish triggers:
-  "proyecto nuevo", "dónde va este archivo", "en qué capa", "cómo modelo esta tabla",
-  "migración", "supabase", "rls", "reglas de lint", "datos personales", "qué base de datos",
-  "límite de uso".
+  Architecture for any stack: Bootstrap starts a product, Convention keeps rules. Use for new
+  projects, layers, schema, migrations, auth/RLS, APIs, lint, personal data. Spanish: "proyecto
+  nuevo", "dónde va este archivo", "en qué capa", "cómo modelo esta tabla", "migración",
+  "supabase", "rls", "reglas de lint", "datos personales", "qué base de datos", "límite de uso".
 ---
 
 # Project architecture
