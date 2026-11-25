@@ -131,9 +131,13 @@ config.initial_rows = 30
 -- Session persistence: tabs and panes live in a background mux server instead of the
 -- GUI window, so closing the window (or a crash) leaves the running processes alone
 -- and reopening reattaches to them. `wezterm start --no-auto-connect` gets a plain
--- window back if the server ever misbehaves.
-config.unix_domains = { { name = "unix" } }
-config.default_gui_startup_args = { "connect", "unix" }
+-- window back if the server ever misbehaves. Machines listed here skip it and open a
+-- plain window.
+local no_mux_server = { ["DESKTOP-GLH36TT"] = true }
+if not no_mux_server[wezterm.hostname()] then
+  config.unix_domains = { { name = "unix" } }
+  config.default_gui_startup_args = { "connect", "unix" }
+end
 
 -- Preserve long lines when copying (don't insert newlines at wrapping points)
 config.canonicalize_pasted_newlines = "None"
