@@ -11,11 +11,15 @@ links each config where that system expects it.
 - `powershell/Microsoft.PowerShell_profile.ps1` — PowerShell profile (Oh My Posh init + Linux-style aliases + the purple theme applied to `$PSStyle` and PSReadLine; `touch`/`which`/`grep` are defined on Windows only, since on macOS/Linux the real binaries are on PATH and beat these stand-ins. When [eza](https://github.com/eza-community/eza) is installed it takes over the listings: `ls` is the plain grid with icons, `la` adds dotfiles, `ll` is the detailed list (size, relative date, per-file git status and the branch of any subdirectory that is a repo), `lt` is a 2-level tree and `lg` swaps the branch column for the full git status of each subrepo (seconds, not milliseconds). eza prints text rather than objects, so pipe from `gci` instead)
 - `claude/settings.json` — global Claude Code settings (model, hooks, plugins, skillOverrides), shared with Orca, which copies it into its own profiles
 - `claude/settings.wezterm.json` — the layer only WezTerm loads: the PowerShell profile runs `claude --settings` with it there, turning on the terminal mods that `settings.json` leaves off
-- `claude/CLAUDE.md` — global Claude Code instructions (commit rules, pointer to personal skills)
-- `claude/skills/` — personal and vendored skills, shared with `agy` (see the opt-in model below)
+- `agents/AGENTS.md` — the one hand-edited source of the global agent instructions (rules shared by Claude Code and `agy`). Harness-specific lines sit between `<!-- claude -->` / `<!-- agy -->` markers, and `{{executor}}` and `{{browse}}` expand to each harness's MCP names. `install.ps1` generates `claude/CLAUDE.md` and `agy/AGENTS.md` from it, both committed and headed as generated; `./install.ps1 -Check` fails when either is stale
+- `agents/models.md` — which agent and model takes each role (bot chats, scheduled reviews, code workers, verifiers), and the rules between them
+- `claude/CLAUDE.md` — generated for Claude Code (`~/.claude/CLAUDE.md`, which Orca's Claude profiles import); don't edit it
+- `agents/skills/` — personal and vendored skills, shared by Claude Code and `agy` (see the opt-in model below)
 - `agy/settings.json` — base Antigravity CLI (`agy`) settings, merged into `~/.gemini/antigravity-cli/settings.json` instead of symlinked so machine state (`trustedWorkspaces`, `model`, `gcp`) stays intact and Orca sessions stay clean
 - `agy/settings.wezterm.json` — the `agy` layer only WezTerm loads via `--settings` (full-screen alt-screen, terminal bell notifications, terminal cursor)
-- `agy/AGENTS.md` — global Antigravity instructions (`~/.gemini/config/AGENTS.md`), mirroring `claude/CLAUDE.md` with `agy`'s tool names and Spanish/concise defaults. Skills from `claude/skills/` are linked individually into `~/.gemini/config/skills/` (leaving out opt-in `felipego-projects` and `grill-me`, which collides with `agy`'s built-in `/grill-me`), keeping Orca's junctions in `~/.gemini/skills/` untouched
+- `agy/AGENTS.md` — generated for Antigravity (`~/.gemini/config/AGENTS.md`) with `agy`'s tool names and Spanish/concise defaults; don't edit it. Skills from `agents/skills/` are linked individually into `~/.gemini/config/skills/` (leaving out opt-in `felipego-projects` and `grill-me`, which collides with `agy`'s built-in `/grill-me`), keeping Orca's junctions in `~/.gemini/skills/` untouched. Orca's own skills (`orca-cli`, `orca-computer-use`, `orchestration`, kept in `~/.agents/skills/` by Orca) are linked into both harnesses from there, not copied. Both get the same skill set; `./install.ps1 -Check` fails on any other difference. The only two are `grill-me` and `felipego-projects`, left out of `agy` because `agy` has a built-in `/grill-me` and no `skillOverrides` equivalent to keep an opt-in skill off
+- `git/hooks/` — global git hooks, switched on by `./install.ps1 -Components git` (`core.hooksPath`). `commit-msg` rejects a message that credits an AI agent (a `Co-Authored-By` or similar trailer naming Claude, Anthropic, Gemini, Google AI, Copilot, Cursor, Antigravity, Codex or OpenAI, a "Generated with ..." line, an agent's noreply address, a session link). Naming an agent as a topic (`docs(claude): ...`) passes. Every other hook is a stub that hands over to the repo's own `.git/hooks`, so simple-git-hooks and lint-staged keep running. A repo that sets its own `core.hooksPath` (husky, lefthook, `.githooks`) overrides the global one, so its hooks run and the commit-msg guard does not; `git commit --no-verify` skips it as well
+- `agents/hooks/guard.py` — the PreToolUse hook that Claude Code (`hooks` in `claude/settings.json`) and `agy` (`agy/hooks.json`, merged into `~/.gemini/config/hooks.json` without touching Orca's group) both call through `~/.dotfiles-hooks`, a link to that folder. It blocks `git push --force`, `-f`, `--force-with-lease` and `+refspec` pushes to `main` or `master`, and any tool call that touches `life-os/documentos` from a working directory outside life-os. `./install.ps1 -Check` runs both guards against temp repos and the two repos with their own hooks, and fails if one stops firing or blocks a normal commit or push
 - `zed/settings.json` — Zed editor settings (theme, fonts, LSP, agent)
 - `orca/astro/` — Orca theme plugin: Astro's near-black app and terminal colors. `install.ps1 -Components orca` installs it, along with Orca's official OLED theme for the editor
 - `lint/` — the lint preset that every project copies: oxlint with the boundary,
@@ -148,18 +152,18 @@ runs a prompt in an isolated session and a `tool_used: Skill` grader says whethe
 was actually chosen, so a description change can be checked before it is committed instead
 of being audited months later by counting transcripts.
 
-The command needs a plugin root, so `claude/.claude-plugin/plugin.json` wraps this directory
+The command needs a plugin root, so `agents/.claude-plugin/plugin.json` wraps this directory
 as a plugin named `dotfiles-skills`. A plugin auto-discovers its skills in `skills/`, which
 is already the layout here, so nothing moved and no symlink was needed. The manifest is inert
 outside eval runs: `install.ps1` links `settings.json`, `CLAUDE.md` and each skill folder
 individually, never this directory, so Claude Code has no path by which to load it as a plugin
 in a normal session.
 
-Cases live in `claude/evals/<case>/`, one `prompt.md` plus one or more graders:
+Cases live in `agents/evals/<case>/`, one `prompt.md` plus one or more graders:
 
 ```powershell
-claude plugin eval ./claude --ablation none --runs 3   # trigger suite, no judge calls
-claude plugin eval ./claude --case <case> --runs 1     # one case while iterating
+claude plugin eval ./agents --ablation none --runs 3   # trigger suite, no judge calls
+claude plugin eval ./agents --case <case> --runs 1     # one case while iterating
 ```
 
 `--ablation none` runs only the with-plugin arm. The default also runs every case again with
@@ -171,7 +175,7 @@ Keep graders free where possible: `regex`, `tool_used`, `tool_order` and `file_e
 computed from the transcript, while `llm` and `baseline` call a judge model. Each trigger
 case costs about $0.20 per run of the suite, all of it the agent runs themselves.
 
-The first run of `claude plugin validate ./claude` paid for the whole exercise: it found that
+The first run of `claude plugin validate ./agents` paid for the whole exercise: it found that
 `project-architecture`'s `description` was an unquoted YAML scalar containing `week six: where
 does this file go`, which fails to parse, so the skill had been loading with **empty metadata**
 and no description at all. It could never have been auto-invoked. The description is now a

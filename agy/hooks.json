@@ -1,0 +1,16 @@
+{
+  "dotfiles-guard": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,runpy; p=os.path.expanduser('~/.dotfiles-hooks/guard.py'); runpy.run_path(p, run_name='__main__') if os.path.exists(p) else print('{\\\"decision\\\":\\\"allow\\\"}')\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

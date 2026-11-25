@@ -4,6 +4,8 @@
 #   ./install.ps1                          # interactive component picker
 #   ./install.ps1 -All                     # everything, no prompts
 #   ./install.ps1 -Components wezterm,zed  # just those
+#   ./install.ps1 -Check                   # fail if CLAUDE.md/AGENTS.md is stale, the skill sets differ,
+#                                          # or a guard (git commit-msg, PreToolUse) stops working
 #
 # On Windows it needs Developer Mode enabled (Settings > Privacy & security > For
 # developers) so New-Item -ItemType SymbolicLink works without admin. On macOS and
@@ -11,7 +13,8 @@
 
 param(
     [string[]]$Components,
-    [switch]$All
+    [switch]$All,
+    [switch]$Check
 )
 
 # Must come before anything version-specific: Windows PowerShell 5.1 leaves $IsWindows
@@ -49,13 +52,19 @@ $weztermPlugins = @(
 $orcaCatalogPlugins = @(
     'stablyai.orca-oled-theme'
 )
-# Skills from claude/skills/ that stay out of ~/.gemini/config/skills/:
+# Skills from agents/skills/ that stay out of ~/.gemini/config/skills/:
 # - felipego-projects: opt-in per project (agy has no skillOverrides to keep a global skill off)
 # - grill-me: collides with agy's built-in /grill-me slash command (grilling stays linked)
+# These two are the only allowed difference between the harnesses' skill sets; -Check
+# fails on any other.
 $agyExcludedSkills = @(
     'felipego-projects'
     'grill-me'
 )
+# Orca's own skills live in ~/.agents/skills (Orca maintains them). They are linked from
+# there into both harnesses, never copied into this repo.
+$orcaSkillsDir = Join-Path $HOME '.agents' 'skills'
+$orcaSkills = @('orca-cli', 'orca-computer-use', 'orchestration')
 $script:browseInstalled = $false
 $script:gitSymlinksEnabled = $false
 
@@ -122,6 +131,295 @@ function Get-ConfigHome {
 
 $os = Get-OsName
 $configHome = Get-ConfigHome
+
+# --- Agent instructions ------------------------------------------------------
+# agents/AGENTS.md is the only hand-edited source of the global instructions. Two
+# files are generated from it and committed, so the symlinks into ~/.claude and
+# ~/.gemini keep working unchanged: claude/CLAUDE.md and agy/AGENTS.md.
+#   <!-- claude --> ... <!-- /claude -->   kept for that harness, dropped for the other
+#   {{executor}}, {{browse}}                the harness's name for the same MCP
+# A marker alone on its line removes the whole line; inline markers keep the line.
+$agentTokens = @{
+    claude = @{ executor = '`mcp__executor__*`';         browse = '`mcp__browse__*`' }
+    agy    = @{ executor = '`executor` MCP server';      browse = '`browse` MCP' }
+}
+$agentOutputs = @(
+    @{ Harness = 'claude'; Path = (Join-Path $repo 'claude' 'CLAUDE.md') }
+    @{ Harness = 'agy';    Path = (Join-Path $repo 'agy' 'AGENTS.md') }
+)
+
+function Render-AgentInstructions($harness) {
+    $text = (Get-Content (Join-Path $repo 'agents' 'AGENTS.md') -Raw) -replace "`r`n", "`n"
+    foreach ($h in $agentTokens.Keys) {
+        $text = [regex]::Replace($text, "(?ms)^<!-- $h -->\n(.*?)^<!-- /$h -->\n", $(if ($h -eq $harness) { '$1' } else { '' }))
+        $text = [regex]::Replace($text, "(?s)<!-- $h -->(.*?)<!-- /$h -->", $(if ($h -eq $harness) { '$1' } else { '' }))
+    }
+    foreach ($token in $agentTokens[$harness].Keys) {
+        $text = $text.Replace("{{$token}}", $agentTokens[$harness][$token])
+    }
+    $left = [regex]::Match($text, '<!-- /?\w+ -->|\{\{\w+\}\}')
+    if ($left.Success) { throw "agents/AGENTS.md: unresolved '$($left.Value)' for $harness" }
+    $header = "<!-- GENERATED from agents/AGENTS.md by install.ps1 for $harness. Do not edit here: edit the source and run ./install.ps1 -->`n`n"
+    return $header + $text
+}
+
+# Writes both outputs; with -Check writes nothing and returns $false if one is stale.
+function Sync-AgentInstructions([bool]$checkOnly) {
+    $ok = $true
+    foreach ($o in $agentOutputs) {
+        $want = Render-AgentInstructions $o.Harness
+        $have = if (Test-Path $o.Path) { (Get-Content $o.Path -Raw) -replace "`r`n", "`n" } else { $null }
+        $shown = Format-Path $o.Path
+        if ($have -ceq $want) { Write-Ok "$shown $($c.Dim)up to date$($c.Reset)"; continue }
+        if ($checkOnly) { Write-Fail "$shown $($c.Dim)is stale, run ./install.ps1$($c.Reset)"; $ok = $false; continue }
+        [System.IO.File]::WriteAllText($o.Path, $want, [System.Text.UTF8Encoding]::new($false))
+        Write-Ok "$shown $($c.Dim)generated$($c.Reset)"
+    }
+    return $ok
+}
+
+# Both harnesses must see the same skills: the repo's agents/skills plus Orca's set.
+# Only $agyExcludedSkills may differ (kept off agy, on in Claude). Reads what is installed.
+function Test-SkillParity {
+    $sets = [ordered]@{
+        claude = Join-Path $HOME '.claude' 'skills'
+        agy    = Join-Path $HOME '.gemini' 'config' 'skills'
+    }
+    $found = @{}
+    foreach ($h in $sets.Keys) {
+        if (-not (Test-Path $sets[$h])) { Write-Fail "$(Format-Path $sets[$h]) $($c.Dim)missing, run ./install.ps1$($c.Reset)"; return $false }
+        # A skill is a folder (or link to one) holding a SKILL.md.
+        $found[$h] = @(Get-ChildItem $sets[$h] -Force | Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') } | ForEach-Object Name)
+    }
+    $repoNames = @(Get-ChildItem (Join-Path $repo 'agents' 'skills') -Directory | ForEach-Object Name)
+    $want = @{
+        claude = $repoNames + $orcaSkills
+        agy    = @($repoNames | Where-Object { $_ -notin $agyExcludedSkills }) + $orcaSkills
+    }
+    $ok = $true
+    foreach ($h in $sets.Keys) {
+        $missing = @($want[$h] | Where-Object { $_ -notin $found[$h] })
+        $extra   = @($found[$h] | Where-Object { $_ -notin $want[$h] })
+        if ($missing) { Write-Fail "$h $($c.Dim)missing: $($missing -join ', ')$($c.Reset)"; $ok = $false }
+        if ($extra)   { Write-Fail "$h $($c.Dim)not in the shared set: $($extra -join ', ')$($c.Reset)"; $ok = $false }
+    }
+    if ($ok) {
+        Write-Ok "skills $($c.Dim)claude $($found.claude.Count), agy $($found.agy.Count); only $($agyExcludedSkills -join ', ') differ$($c.Reset)"
+    }
+    return $ok
+}
+
+# --- Guards ------------------------------------------------------------------
+# Deterministic rules enforced outside the model, by whatever tool runs the action:
+#   git/hooks/        global commit-msg guard (and chaining stubs for every other hook), made
+#                     global by core.hooksPath. Rejects a message that credits an AI agent.
+#   agents/hooks/guard.py  PreToolUse hook shared by Claude Code (claude/settings.json) and agy
+#                     (agy/hooks.json). Blocks force-pushing main/master and reading
+#                     life-os/documentos from outside life-os.
+# Both settings files call the guard through ~/.dotfiles-hooks, a link to agents/hooks.
+$gitHooksDir = Join-Path $repo 'git' 'hooks'
+$guardScript = Join-Path $repo 'agents' 'hooks' 'guard.py'
+$guardHome = Join-Path $HOME '.dotfiles-hooks'
+# Repos that keep their own hooks in .git/hooks (simple-git-hooks): the global stubs must chain.
+$guardRealRepos = @('verificacion-pagos', 'despacho-vicerrectoria')
+
+function Invoke-Guard($payload) {
+    $out = $payload | ConvertTo-Json -Depth 6 -Compress | python $guardScript 2>&1 | Out-String
+    return @{ Code = $LASTEXITCODE; Out = $out }
+}
+
+# Writes with LF endings and no BOM: these run under sh.
+function Write-HookFile($path, $body) {
+    [System.IO.File]::WriteAllText($path, "#!/bin/sh`n$body`n", [System.Text.UTF8Encoding]::new($false))
+}
+
+function Warn-RepoLocalHooksPath {
+    $codeRoot = 'D:\Code'
+    if (-not (Test-Path $codeRoot)) { return }
+    $found = @()
+    foreach ($dir in Get-ChildItem $codeRoot -Directory -ErrorAction SilentlyContinue) {
+        if (-not (Test-Path (Join-Path $dir.FullName '.git'))) { continue }
+        $local = (git -C $dir.FullName config --local --get core.hooksPath 2>$null)
+        if ($local) {
+            $found += "$($dir.Name) ($local)"
+        }
+    }
+    if ($found.Count -gt 0) {
+        foreach ($entry in $found) {
+            Write-Warn "repo skips global commit-msg guard (sets own core.hooksPath): $entry"
+        }
+    } else {
+        Write-Ok "no repos under $codeRoot set a local core.hooksPath"
+    }
+}
+
+# Proves each guard fires and lets a normal commit and push through. Runs in temp repos,
+# so it touches no real repo and needs nothing installed; the real repos are only given a
+# message file and a hook that is told to skip itself.
+function Test-Guards {
+    $script:guardFails = 0
+    function Assert-Guard([string]$name, [bool]$condition) {
+        if ($condition) { Write-Ok $name } else { Write-Fail $name; $script:guardFails++ }
+    }
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) { Write-Fail "python not found, the guard needs it"; return $false }
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Fail "git not found"; return $false }
+
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "dotfiles-guards-$([guid]::NewGuid().ToString('N'))"
+    New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+    try {
+        $work = Join-Path $tmp 'work'
+        $remote = Join-Path $tmp 'remote.git'
+        git init -q --bare $remote
+        git init -q -b main $work
+        git -C $work config user.name 'Guard Test'
+        git -C $work config user.email 'guard@example.com'
+        git -C $work config commit.gpgsign false
+        git -C $work remote add origin $remote
+
+        # --- commit-msg: global hook, in a repo with no hooks of its own ---
+        function Try-Commit([string[]]$messages) {
+            $margs = @(); foreach ($m in $messages) { $margs += @('-m', $m) }
+            git -C $work -c "core.hooksPath=$gitHooksDir" commit -q --allow-empty @margs *> $null
+            return $LASTEXITCODE
+        }
+        Write-Note "commit-msg"
+        Assert-Guard 'a normal commit goes through' ((Try-Commit @('chore: normal commit', 'A body line.')) -eq 0)
+        foreach ($ai in 'Claude', 'Anthropic', 'Gemini', 'Google AI', 'Copilot', 'Cursor', 'Antigravity', 'Codex', 'OpenAI', 'Agy') {
+            Assert-Guard "rejects Co-Authored-By: $ai" ((Try-Commit @('chore: x', "Co-Authored-By: $ai <noreply@example.com>")) -ne 0)
+        }
+        Assert-Guard 'rejects "Generated with Claude Code"' ((Try-Commit @('chore: x', 'Generated with Claude Code')) -ne 0)
+        Assert-Guard 'rejects a trailer naming a model (Gemini 4 Neon)' ((Try-Commit @('chore: x', 'Co-Authored-By: Gemini 4 Neon <g@example.com>')) -ne 0)
+        Assert-Guard 'lets a human co-author through' ((Try-Commit @('chore: x', 'Co-Authored-By: Ana Perez <ana@example.com>')) -eq 0)
+        Assert-Guard 'lets a message about an agent through ("docs(claude): ...")' ((Try-Commit @('docs(claude): describe the Gemini table')) -eq 0)
+        Assert-Guard 'lets prose "built by Claude Code agents" through' ((Try-Commit @('chore: fix scripts built by Claude Code agents')) -eq 0)
+        Assert-Guard 'lets prose "using the Gemini table" through' ((Try-Commit @('docs: render using the Gemini table')) -eq 0)
+        Assert-Guard 'lets prose mentioning "cursor" through' ((Try-Commit @('fix(editor): keep cursor on the active line', 'Built with a blinking cursor indicator.')) -eq 0)
+
+        # --- chaining: the repo's own hooks in .git/hooks still run ---
+        Write-Note "chaining to the repo's own hooks"
+        $repoHooks = Join-Path $work '.git' 'hooks'
+        Write-HookFile (Join-Path $repoHooks 'commit-msg') 'echo ran > chain-commit-msg.txt; exit 1'
+        Assert-Guard "the repo's commit-msg hook still rejects" ((Try-Commit @('chore: clean message')) -ne 0)
+        Assert-Guard "the repo's commit-msg hook ran" (Test-Path (Join-Path $work 'chain-commit-msg.txt'))
+        Write-HookFile (Join-Path $repoHooks 'commit-msg') 'exit 0'
+        Write-HookFile (Join-Path $repoHooks 'pre-commit') 'echo ran > chain-pre-commit.txt; exit 0'
+        Assert-Guard "a clean commit passes both hooks" ((Try-Commit @('chore: clean message')) -eq 0)
+        Assert-Guard "the repo's pre-commit hook ran" (Test-Path (Join-Path $work 'chain-pre-commit.txt'))
+
+        # --- push through the global hooksPath ---
+        Write-Note "push"
+        git -C $work -c "core.hooksPath=$gitHooksDir" push -q origin main *> $null
+        Assert-Guard 'a normal push goes through' ($LASTEXITCODE -eq 0)
+        Write-HookFile (Join-Path $repoHooks 'pre-push') 'echo ran > chain-pre-push.txt; exit 1'
+        git -C $work -c "core.hooksPath=$gitHooksDir" push -q origin main:other *> $null
+        Assert-Guard "the repo's pre-push hook still blocks" ($LASTEXITCODE -ne 0)
+        Assert-Guard "the repo's pre-push hook ran" (Test-Path (Join-Path $work 'chain-pre-push.txt'))
+        Remove-Item (Join-Path $repoHooks 'pre-push') -Force
+
+        # --- the two real repos with hooks of their own ---
+        Write-Note "repos with their own hooks"
+        $badMsg = Join-Path $tmp 'bad.txt'
+        $okMsg = Join-Path $tmp 'ok.txt'
+        [System.IO.File]::WriteAllText($badMsg, "chore: x`n`nCo-Authored-By: Claude <noreply@anthropic.com>`n")
+        [System.IO.File]::WriteAllText($okMsg, "chore: x`n")
+        foreach ($name in $guardRealRepos) {
+            $dir = @('D:\Code', (Join-Path $HOME 'Code')) | ForEach-Object { Join-Path $_ $name } | Where-Object { Test-Path (Join-Path $_ '.git') } | Select-Object -First 1
+            if (-not $dir) { Write-Note "$name is not on this machine, skipped"; continue }
+            git -C $dir -c "core.hooksPath=$gitHooksDir" hook run --ignore-missing commit-msg -- $badMsg *> $null
+            Assert-Guard "$name rejects a Claude trailer" ($LASTEXITCODE -ne 0)
+            git -C $dir -c "core.hooksPath=$gitHooksDir" hook run --ignore-missing commit-msg -- $okMsg *> $null
+            Assert-Guard "$name accepts a clean message" ($LASTEXITCODE -eq 0)
+            # SKIP_SIMPLE_GIT_HOOKS makes the repo's hook print a line and exit, so seeing the
+            # line proves the stub reached it without running lint-staged.
+            $env:SKIP_SIMPLE_GIT_HOOKS = '1'
+            try {
+                foreach ($hook in 'pre-commit', 'pre-push') {
+                    if (-not (Test-Path (Join-Path $dir '.git' 'hooks' $hook))) { continue }
+                    $out = git -C $dir -c "core.hooksPath=$gitHooksDir" hook run $hook 2>&1 | Out-String
+                    Assert-Guard "$name chains to its own $hook" (($LASTEXITCODE -eq 0) -and ($out -match 'skipping hook'))
+                }
+            } finally { Remove-Item Env:SKIP_SIMPLE_GIT_HOOKS -ErrorAction SilentlyContinue }
+        }
+
+        # --- PreToolUse guard, Claude Code payloads (exit 2 denies) ---
+        Write-Note "PreToolUse guard, Claude Code"
+        $other = Join-Path $tmp 'elsewhere'
+        function Claude-Bash($command, $cwd) { Invoke-Guard @{ tool_name = 'Bash'; tool_input = @{ command = $command }; cwd = $cwd } }
+        foreach ($cmd in 'git push --force origin main', 'git push -f origin master', 'git push --force-with-lease origin main',
+                         'git add . && git push origin +main', 'git push --force-with-lease=main origin main') {
+            Assert-Guard "blocks: $cmd" ((Claude-Bash $cmd $work).Code -eq 2)
+        }
+        Assert-Guard 'blocks a bare `git push -f` while on main' ((Claude-Bash 'git push -f' $work).Code -eq 2)
+        foreach ($cmd in 'git push origin main', 'git push -u origin main', 'git push --force origin feature/x', 'git push -f origin feature/x', 'git status') {
+            Assert-Guard "allows: $cmd" ((Claude-Bash $cmd $work).Code -eq 0)
+        }
+        git -C $work checkout -q -b feature/x
+        Assert-Guard 'allows a bare `git push -f` on a feature branch' ((Claude-Bash 'git push -f' $work).Code -eq 0)
+        git -C $work checkout -q main
+
+        $docs = 'D:\Code\life-os\documentos\plan.md'
+        Assert-Guard 'blocks Read of life-os/documentos from another repo' ((Invoke-Guard @{ tool_name = 'Read'; tool_input = @{ file_path = $docs }; cwd = $work }).Code -eq 2)
+        Assert-Guard 'blocks a Bash read of life-os/documentos from another repo' ((Claude-Bash "cat $docs" $work).Code -eq 2)
+        Assert-Guard 'allows Read of life-os/documentos inside life-os' ((Invoke-Guard @{ tool_name = 'Read'; tool_input = @{ file_path = $docs }; cwd = 'D:\Code\life-os' }).Code -eq 0)
+        Assert-Guard 'allows Read of an ordinary file' ((Invoke-Guard @{ tool_name = 'Read'; tool_input = @{ file_path = (Join-Path $work 'README.md') }; cwd = $work }).Code -eq 0)
+        Assert-Guard 'allows writing text that only mentions the path' ((Invoke-Guard @{ tool_name = 'Write'; tool_input = @{ file_path = (Join-Path $work 'n.md'); content = "see $docs" }; cwd = $work }).Code -eq 0)
+
+        # --- PreToolUse guard, agy payloads (deny or allow on stdout, exit 0) ---
+        Write-Note "PreToolUse guard, agy"
+        function Agy-Call($name, $toolArgs) { Invoke-Guard @{ toolCall = @{ name = $name; args = $toolArgs }; workspacePaths = @($work) } }
+        $denied = Agy-Call 'run_command' @{ CommandLine = 'git push --force origin main'; Cwd = $work }
+        Assert-Guard 'agy: denies a force-push to main' (($denied.Code -eq 0) -and ($denied.Out -match '"decision":\s*"deny"'))
+        $allowed = Agy-Call 'run_command' @{ CommandLine = 'git push origin main'; Cwd = $work }
+        Assert-Guard 'agy: allows a normal push' (($allowed.Code -eq 0) -and ($allowed.Out -match '"decision":\s*"allow"'))
+        $denied = Agy-Call 'view_file' @{ AbsolutePath = $docs }
+        Assert-Guard 'agy: denies reading life-os/documentos from another repo' ($denied.Out -match '"decision":\s*"deny"')
+        $allowed = Invoke-Guard @{ toolCall = @{ name = 'view_file'; args = @{ AbsolutePath = $docs } }; workspacePaths = @('D:\Code\life-os') }
+        Assert-Guard 'agy: allows reading life-os/documentos inside life-os' ($allowed.Out -match '"decision":\s*"allow"')
+
+        # --- the guard is wired where each tool reads its hooks ---
+        Write-Note "wiring"
+        $claudeHooks = (Get-Content (Join-Path $repo 'claude' 'settings.json') -Raw | ConvertFrom-Json -AsHashtable).hooks
+        $agyHooks = Get-Content (Join-Path $repo 'agy' 'hooks.json') -Raw
+        $claudeCmd = ($claudeHooks.PreToolUse | ConvertTo-Json -Depth 8)
+        Assert-Guard 'claude/settings.json runs the guard before every tool' ($claudeCmd -match 'dotfiles-hooks/guard\.py')
+        Assert-Guard 'claude/settings.json fails open when guard.py is missing' ($claudeCmd -match 'exists\(p\)')
+        Assert-Guard 'agy/hooks.json runs the guard before every tool' (($agyHooks -match 'PreToolUse') -and ($agyHooks -match 'dotfiles-hooks/guard\.py'))
+        Assert-Guard 'agy/hooks.json fails open with allow when guard.py is missing' (($agyHooks -match 'exists\(p\)') -and ($agyHooks -match 'allow'))
+    } finally {
+        Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    }
+
+    # Warn about repos under D:\Code that override core.hooksPath (husky, lefthook, .githooks)
+    # and therefore skip the global commit-msg guard. Read-only: touches no repo config.
+    Warn-RepoLocalHooksPath
+
+    # What this machine has applied. A warning, not a failure: the tests above prove the
+    # guards work, this says whether ./install.ps1 has switched them on here yet.
+    $global = git config --global --get core.hooksPath
+    if ($global -and ((Resolve-Path $global -ErrorAction SilentlyContinue).Path -eq (Resolve-Path $gitHooksDir).Path)) {
+        Write-Ok "git core.hooksPath $($c.Dim)points at git/hooks$($c.Reset)"
+    } else {
+        Write-Warn "git core.hooksPath is not set to $(Format-Path $gitHooksDir) $($c.Dim)here yet, run ./install.ps1 -Components git$($c.Reset)"
+    }
+    if (Test-Path (Join-Path $guardHome 'guard.py')) {
+        Write-Ok "$(Format-Path $guardHome) $($c.Dim)links to agents/hooks$($c.Reset)"
+    } else {
+        Write-Warn "$(Format-Path $guardHome) is missing $($c.Dim)here yet, run ./install.ps1 -Components claude,agy$($c.Reset)"
+    }
+    return ($script:guardFails -eq 0)
+}
+
+
+if ($Check) {
+    Write-Section "Generated instructions"
+    $okInstructions = Sync-AgentInstructions $true
+    Write-Section "Skill parity"
+    $okSkills = Test-SkillParity
+    Write-Section "Guards"
+    $okGuards = Test-Guards
+    if ($okInstructions -and $okSkills -and $okGuards) { exit 0 } else { exit 1 }
+}
+
 
 function Link-Config($target, $source) {
     $shown = Format-Path $target
@@ -202,14 +500,15 @@ function Clean-ClaudeBaseline($repo, $profileDir, $isMain) {
         } catch {}
     }
 
-    # 3. Skills in ~/.claude/skills that are NOT symlinks to <repo>/claude/skills.
+    # 3. Skills in ~/.claude/skills that are NOT symlinks to <repo>/agents/skills.
     $skillsDir = Join-Path $profileDir 'skills'
-    $repoSkills = Join-Path $repo 'claude' 'skills'
+    $repoSkills = Join-Path $repo 'agents' 'skills'
     if ($isMain -and (Test-Path $skillsDir)) {
         Get-ChildItem -Path $skillsDir -Force | ForEach-Object {
             $isRepoLink = ($_.LinkType -eq 'SymbolicLink') -and $_.Target -and `
                 $_.Target.StartsWith($repoSkills, [StringComparison]::OrdinalIgnoreCase)
-            if (-not $isRepoLink) { $skills += $_.FullName }
+            $isOrcaLink = ($_.LinkType -eq 'SymbolicLink') -and ($_.Name -in $orcaSkills)
+            if (-not ($isRepoLink -or $isOrcaLink)) { $skills += $_.FullName }
         }
     }
 
@@ -267,6 +566,20 @@ function Install-ClaudeExtras($repo) {
     }
 
     Enable-GitSymlinks
+}
+
+# One global hooksPath for every repo, every agent and the user. The stubs in git/hooks chain
+# to the repo's own .git/hooks, so simple-git-hooks and lint-staged keep running. A repo that
+# sets its own core.hooksPath (husky, lefthook, .githooks) overrides this one: its hooks run
+# and the commit-msg guard does not.
+function Install-GitHooks($repo) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Warn "git not found, skipping the hooks"; return }
+    git config --global core.hooksPath $gitHooksDir
+    if (-not $IsWindows) {
+        Get-ChildItem $gitHooksDir -File | Where-Object { $_.Name -ne 'lib.sh' } | ForEach-Object { chmod +x $_.FullName }
+    }
+    Write-Ok "git core.hooksPath $($c.Dim)$(Format-Path $gitHooksDir)$($c.Reset)"
+    Warn-RepoLocalHooksPath
 }
 
 function Enable-GitSymlinks {
@@ -493,10 +806,42 @@ function Merge-AgySettings($repo, $target) {
 # Antigravity CLI keeps settings.json as a merged real file (above) and registers MCPs in
 # ~/.gemini/config/mcp_config.json via `agy mcp add` so toggling servers with /mcp never
 # dirties the repo or breaks a symlink.
+# agy reads ~/.gemini/config/hooks.json (named groups; Orca keeps its own orca-status group there).
+# Merges the groups from agy/hooks.json into it and leaves every other group untouched.
+function Merge-AgyHooks($repo, $targetPath) {
+    $srcPath = Join-Path $repo 'agy' 'hooks.json'
+    if (-not (Test-Path $srcPath)) { return }
+    $src = Get-Content $srcPath -Raw | ConvertFrom-Json -AsHashtable
+    $dst = [ordered]@{}
+    if (Test-Path $targetPath) {
+        try {
+            $parsed = Get-Content $targetPath -Raw | ConvertFrom-Json -AsHashtable
+            foreach ($k in $parsed.Keys) { $dst[$k] = $parsed[$k] }
+        } catch {
+            Write-Warn "$(Format-Path $targetPath) $($c.Dim)is not valid JSON, left alone$($c.Reset)"; return
+        }
+    }
+    $changed = $false
+    foreach ($k in $src.Keys) {
+        if (($dst[$k] | ConvertTo-Json -Compress -Depth 10) -ne ($src[$k] | ConvertTo-Json -Compress -Depth 10)) {
+            $dst[$k] = $src[$k]
+            $changed = $true
+        }
+    }
+    if (-not $changed) {
+        Write-Ok "$(Format-Path $targetPath) $($c.Dim)guard group already there$($c.Reset)"; return
+    }
+    $parent = Split-Path -Parent $targetPath
+    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+    [System.IO.File]::WriteAllText($targetPath, (($dst | ConvertTo-Json -Depth 10) + "`n"), [System.Text.UTF8Encoding]::new($false))
+    Write-Ok "$(Format-Path $targetPath) $($c.Dim)guard group merged$($c.Reset)"
+}
+
 function Install-AgyExtras($repo) {
     $agySettings = Join-Path $HOME '.gemini' 'antigravity-cli' 'settings.json'
     Write-Section "Antigravity CLI $($c.Dim)base settings and MCP servers$($c.Reset)"
     Merge-AgySettings $repo $agySettings
+    Merge-AgyHooks $repo (Join-Path $agyConfig 'hooks.json')
 
     if (-not (Get-Command agy -ErrorAction SilentlyContinue)) {
         Write-Warn "agy CLI not found, skipping the MCPs"
@@ -575,9 +920,15 @@ foreach ($profileDir in $claudeProfiles) {
     $claudeLinks += @{ Target = (Join-Path $profileDir 'settings.wezterm.json'); Source = (Join-Path $repo 'claude' 'settings.wezterm.json') }
     $claudeLinks += @{ Target = (Join-Path $profileDir 'CLAUDE.md');     Source = (Join-Path $repo 'claude' 'CLAUDE.md') }
 }
+# The guard script both harnesses call, under one stable path that settings.json can name.
+$guardLink = @{ Target = $guardHome; Source = (Join-Path $repo 'agents' 'hooks') }
+$claudeLinks += $guardLink
 # Link each skill individually so repo-managed skills coexist with local/plugin ones.
-Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory | ForEach-Object {
+Get-ChildItem -Path (Join-Path $repo 'agents' 'skills') -Directory | ForEach-Object {
     $claudeLinks += @{ Target = (Join-Path $claudeMain 'skills' $_.Name); Source = $_.FullName }
+}
+foreach ($name in $orcaSkills) {
+    $claudeLinks += @{ Target = (Join-Path $claudeMain 'skills' $name); Source = (Join-Path $orcaSkillsDir $name) }
 }
 # An extra profile shares the main skills folder whole, local skills included.
 foreach ($profileDir in ($claudeProfiles | Where-Object { $_ -ne $claudeMain })) {
@@ -593,12 +944,16 @@ $agyCliDir = Join-Path $HOME '.gemini' 'antigravity-cli'
 $agyLinks = @(
     @{ Target = (Join-Path $agyConfig 'AGENTS.md');              Source = (Join-Path $repo 'agy' 'AGENTS.md') }
     @{ Target = (Join-Path $agyCliDir 'settings.wezterm.json');  Source = (Join-Path $repo 'agy' 'settings.wezterm.json') }
+    $guardLink
 )
-Get-ChildItem -Path (Join-Path $repo 'claude' 'skills') -Directory |
+Get-ChildItem -Path (Join-Path $repo 'agents' 'skills') -Directory |
     Where-Object { $_.Name -notin $agyExcludedSkills } |
     ForEach-Object {
         $agyLinks += @{ Target = (Join-Path $agyConfig 'skills' $_.Name); Source = $_.FullName }
     }
+foreach ($name in $orcaSkills) {
+    $agyLinks += @{ Target = (Join-Path $agyConfig 'skills' $name); Source = (Join-Path $orcaSkillsDir $name) }
+}
 
 $catalog = [ordered]@{
     'wezterm' = @{
@@ -635,15 +990,21 @@ $catalog = [ordered]@{
         Links   = @()
         Post    = { param($repo) Install-OrcaPlugins $repo }
     }
+    'git' = @{
+        Summary = 'global hooks: commit-msg guard, chained to each repo''s own'
+        Deps    = @('git')
+        Links   = @()
+        Post    = { param($repo) Install-GitHooks $repo }
+    }
     'claude' = @{
-        Summary = 'settings, CLAUDE.md, skills, MCPs, plugin'
-        Deps    = @('claude', 'node', 'uv')
+        Summary = 'settings, CLAUDE.md, skills, hooks, MCPs, plugin'
+        Deps    = @('claude', 'node', 'uv', 'python')
         Links   = $claudeLinks
         Post    = { param($repo) Install-ClaudeExtras $repo }
     }
     'agy' = @{
-        Summary = 'Antigravity CLI: settings, AGENTS.md, skills, MCPs'
-        Deps    = @('agy', 'uv')
+        Summary = 'Antigravity CLI: settings, AGENTS.md, skills, hooks, MCPs'
+        Deps    = @('agy', 'uv', 'python')
         Links   = $agyLinks
         Post    = { param($repo) Install-AgyExtras $repo }
     }
@@ -657,6 +1018,8 @@ $depHints = @{
     'claude'     = @{ Windows = 'npm install -g @anthropic-ai/claude-code';  macOS = 'npm install -g @anthropic-ai/claude-code';           Linux = 'npm install -g @anthropic-ai/claude-code' }
     'agy'        = @{ Windows = 'irm https://antigravity.google/cli/install.ps1 | iex'; macOS = 'curl -fsSL https://antigravity.google/cli/install.sh | bash'; Linux = 'curl -fsSL https://antigravity.google/cli/install.sh | bash' }
     'node'       = @{ Windows = 'winget install OpenJS.NodeJS';              macOS = 'brew install node';                                  Linux = 'https://nodejs.org/en/download' }
+    'python'     = @{ Windows = 'winget install Python.Python.3.13';         macOS = 'brew install python';                               Linux = 'sudo apt install python3 (then alias python)' }
+    'git'        = @{ Windows = 'winget install Git.Git';                    macOS = 'brew install git';                                   Linux = 'sudo apt install git' }
     'uv'         = @{ Windows = 'winget install astral-sh.uv';               macOS = 'brew install uv';                                    Linux = 'curl -LsSf https://astral.sh/uv/install.sh | sh' }
     'orca'       = @{ Windows = 'https://orca.dev';                          macOS = 'https://orca.dev';                                   Linux = 'https://orca.dev' }
     'eza'        = @{ Windows = 'winget install eza-community.eza';          macOS = 'brew install eza';                                   Linux = 'https://github.com/eza-community/eza/blob/main/INSTALL.md' }
@@ -775,6 +1138,11 @@ if (-not $selected) {
     Write-Section "Nothing selected"
     Write-Note "no changes made"
     exit 0
+}
+
+if (('claude' -in $selected) -or ('agy' -in $selected)) {
+    Write-Section "Generated instructions $($c.Dim)agents/AGENTS.md → claude/CLAUDE.md, agy/AGENTS.md$($c.Reset)"
+    Sync-AgentInstructions $false | Out-Null
 }
 
 foreach ($name in $selected) {
