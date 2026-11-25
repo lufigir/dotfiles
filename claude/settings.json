@@ -10,12 +10,24 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "sonnet",
   "skillOverrides": {
     "felipego-projects": "off",
     "claude-in-chrome": "off"
   },
-  "hooks": {},
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,runpy; p=os.path.expanduser('~/.dotfiles-hooks/guard.py'); os.path.exists(p) and runpy.run_path(p, run_name='__main__')\""
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "cowork-plugin-management@inline": false,
     "insecure-defaults@trailofbits": true,
@@ -54,7 +66,7 @@
       "autoCompactWindow": 800000
     }
   },
-  "advisorModel": "opus",
+  "advisorModel": "sonnet",
   "autoDreamEnabled": true,
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
