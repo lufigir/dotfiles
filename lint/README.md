@@ -1,7 +1,7 @@
 # The lint preset
 
 The executable part of the architecture. Everything else in
-`claude/skills/project-architecture/references/` is prose somebody has to remember; this
+`agents/skills/project-architecture/references/` is prose somebody has to remember; this
 is the part a machine remembers.
 
 One vendor: **oxc**. `oxlint` for all four rule families, `oxfmt` for formatting. No

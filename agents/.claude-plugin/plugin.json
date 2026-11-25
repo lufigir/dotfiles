@@ -1,0 +1,5 @@
+{
+  "name": "dotfiles-skills",
+  "description": "The personal and vendored skills in agents/skills/, wrapped as a plugin so `claude plugin eval` can measure whether each one actually fires.",
+  "license": "MIT"
+}
