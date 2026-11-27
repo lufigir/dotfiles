@@ -12,6 +12,7 @@ Decided 2026-11-27. Pick the agent and model for a worker from this table.
 | Hard bug / architecture | antigravity | gemini-4-carbon-high |
 | Trivial search | antigravity | gemini-4-hydrogen-low |
 | Claude Pro exhausted | antigravity | claude-sonnet-5-5 (uses Google's separate "Claude and GPT models" meter) |
+| Antigravity and Claude Pro exhausted | codex | gpt-6.2-sol (ChatGPT Plus trial, renews ~2026-12-27; fallback only) |
 
 ## Load
 
@@ -24,6 +25,7 @@ Decided 2026-11-27. Pick the agent and model for a worker from this table.
 - Workers always start in antigravity, with the model from the table (Neon Medium by default). Check `agy models` if a model name is in doubt; models leaving Antigravity (see [Rules](#rules)) are never picked.
 - If agy refuses for quota, the same worker role moves to the Claude account: claude sonnet for writing/code workers, claude haiku for trivial search. Note it on the item so the next worker returns to agy once the quota resets.
 - If Claude Pro is also exhausted, use antigravity claude-sonnet-5-5 (separate meter) for reviews and urgent work only.
+- For other worker tasks when both agy and Claude Pro are out of quota, fall back to OpenAI Codex (`codex`, `gpt-6.2-sol`; `gpt-6.2-astra` for hard bugs) on ChatGPT Plus. Codex is fallback-only, and the Plus trial started 2026-11-27 (renews paid around 2026-12-27 unless cancelled). Codex CLI is not installed on this machine yet: it needs `npm i -g @openai/codex` and a ChatGPT sign-in by the owner before first use.
 
 ## Review by risk
 
