@@ -837,6 +837,48 @@ function Merge-AgyHooks($repo, $targetPath) {
     Write-Ok "$(Format-Path $targetPath) $($c.Dim)guard group merged$($c.Reset)"
 }
 
+# Codex CLI writes machine state (trusted projects, hook state, plugins) into
+# ~/.codex/config.toml, so it is not symlinked: each top-level `key = value` line in
+# codex/config.toml replaces the same key above the first [table], or is added on top.
+function Merge-CodexConfig($repo) {
+    $target = Join-Path $HOME '.codex' 'config.toml'
+    $shown = Format-Path $target
+    $dir = Split-Path $target
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+
+    $managed = [ordered]@{}
+    foreach ($line in Get-Content (Join-Path $repo 'codex' 'config.toml')) {
+        if ($line -match '^\s*([A-Za-z0-9_]+)\s*=') { $managed[$Matches[1]] = $line.Trim() }
+    }
+
+    $lines = if (Test-Path $target) { @(Get-Content $target) } else { @() }
+    $firstTable = 0
+    while ($firstTable -lt $lines.Count -and $lines[$firstTable] -notmatch '^\s*\[') { $firstTable++ }
+
+    $changed = $false
+    $missing = @()
+    foreach ($key in $managed.Keys) {
+        $found = $false
+        for ($i = 0; $i -lt $firstTable; $i++) {
+            if ($lines[$i] -match "^\s*$key\s*=") {
+                $found = $true
+                if ($lines[$i].Trim() -ne $managed[$key]) { $lines[$i] = $managed[$key]; $changed = $true }
+            }
+        }
+        if (-not $found) { $missing += $managed[$key]; $changed = $true }
+    }
+
+    if ($changed) {
+        $text = (@($missing) + $lines) -join "`n"
+        [System.IO.File]::WriteAllText($target, $text + "`n", [System.Text.UTF8Encoding]::new($false))
+        Write-Ok "$shown $($c.Dim)merged $($managed.Keys -join ', ') (preserved local state)$($c.Reset)"
+    } else {
+        Write-Ok "$shown $($c.Dim)already up to date$($c.Reset)"
+    }
+}
+
 function Install-AgyExtras($repo) {
     $agySettings = Join-Path $HOME '.gemini' 'antigravity-cli' 'settings.json'
     Write-Section "Antigravity CLI $($c.Dim)base settings and MCP servers$($c.Reset)"
@@ -1007,6 +1049,12 @@ $catalog = [ordered]@{
         Deps    = @('agy', 'uv', 'python')
         Links   = $agyLinks
         Post    = { param($repo) Install-AgyExtras $repo }
+    }
+    'codex' = @{
+        Summary = 'Codex CLI: default model and effort (merged into config.toml)'
+        Deps    = @()
+        Links   = @()
+        Post    = { param($repo) Merge-CodexConfig $repo }
     }
 }
 

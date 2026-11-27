@@ -1,0 +1,5 @@
+# Top-level keys install.ps1 merges into ~/.codex/config.toml (the codex component).
+# Codex writes machine state into that file (trusted projects, hook state, plugins),
+# so it is merged key by key rather than symlinked. Model per role: agents/models.md.
+model = "gpt-6.2-sol"
+model_reasoning_effort = "medium"
