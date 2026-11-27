@@ -4,7 +4,7 @@ Decided 2026-11-27. Pick the agent and model for a worker from this table.
 
 | Role | Agent | Model |
 |---|---|---|
-| Bot Home Chat (Nix, Gea) | claude | opus |
+| Bot Home Chat (Nix, Gea) | claude | opus (Claude Opus 5.5), medium effort |
 | Scheduled reviews (Daily/Weekly) | claude | sonnet (Executor OAuth is stable there) |
 | Code / writing / search / mechanical worker (default) | antigravity | gemini-4-neon-medium; Claude subagents: haiku |
 | Large multi-file task | antigravity | Orchestrator (Neon) planner + Hydrogen executor, then review by risk |
@@ -18,6 +18,12 @@ Decided 2026-11-27. Pick the agent and model for a worker from this table.
 - Neon Medium is the workhorse of the Antigravity subscription: send volume there. Use Hydrogen Low only for trivial search, Carbon High only for hard bugs and architecture.
 - Spend Claude Pro only on the bots' Home Chat (opus), scheduled reviews (sonnet) and the reviews below.
 - When Claude Pro is exhausted, reviews go to antigravity claude-sonnet-5-5.
+
+## Fallback
+
+- Workers always start in antigravity, with the model from the table (Neon Medium by default). Check `agy models` if a model name is in doubt; models leaving Antigravity (see [Rules](#rules)) are never picked.
+- If agy refuses for quota, the same worker role moves to the Claude account: claude sonnet for writing/code workers, claude haiku for trivial search. Note it on the item so the next worker returns to agy once the quota resets.
+- If Claude Pro is also exhausted, use antigravity claude-sonnet-5-5 (separate meter) for reviews and urgent work only.
 
 ## Review by risk
 
